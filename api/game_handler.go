@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -19,9 +20,8 @@ func RpcGameList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 		objects, err := nk.StorageRead(ctx, objectIds)
 		if err != nil {
 			logger.Error("Error when read list game, error %s", err.Error())
-			return "", err
+			return "", presenter.ErrMarshal
 		}
-		logger.Info(objects[0].GetValue())
 		return objects[0].GetValue(), nil
 	}
 }
