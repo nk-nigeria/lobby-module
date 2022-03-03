@@ -93,7 +93,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 		}
 
 		// No available matches found, create a new one.
-		matchID, err := nk.MatchCreate(ctx, entity.ModuleName, map[string]interface{}{"bet": request.Bet})
+		matchID, err := nk.MatchCreate(ctx, entity.ModuleName, map[string]interface{}{"bet": request.Bet, "game_code": request.GameCode})
 		if err != nil {
 			logger.Error("error creating match: %v", err)
 			return "", presenter.ErrInternalError
