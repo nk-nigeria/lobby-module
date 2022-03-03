@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"

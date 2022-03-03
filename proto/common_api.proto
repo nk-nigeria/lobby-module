@@ -22,6 +22,16 @@ option go_package = "github.com/ciaolink-game-platform/cgp-common-module/api";
 message Game {
     string code = 1;
     bool active = 2;
+    string lobby_id = 3;
+    Layout layout = 4;
+
+}
+
+message Layout {
+    int32 col = 1;
+    int32 row = 2;
+    int32 col_span = 3;
+    int32 row_span = 4;
 }
 
 message GameListRequest {
