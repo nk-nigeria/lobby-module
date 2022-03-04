@@ -30,6 +30,7 @@ enum RPCCode {
 message RpcFindMatchRequest {
     // User can choose a fast or normal speed match.
     int32 bet = 1;
+    string game_code = 2;
 }
 
 // Payload for an RPC response containing match IDs the user can join.
@@ -42,6 +43,8 @@ message RpcFindMatchResponse {
 message RpcCreateMatchRequest {    
     int32 bet = 1;
     string game_code = 2;
+    string name = 3;
+    string password = 4;
 }
 
 // Payload for an RPC response containing match IDs the user can join.

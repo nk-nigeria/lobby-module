@@ -22,7 +22,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -41,11 +40,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		}
 
 		maxSize := 1
-		var fast int
-		//if request.Fast {
-		//	fast = 1
-		//}
-		query := fmt.Sprintf("+label.open:1 +label.code:%s +label.fast:%d", entity.ModuleName, fast)
+		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.Bet)
 
 		matchIDs := make([]string, 0, 10)
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
@@ -53,6 +48,8 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			logger.Error("error listing matches: %v", err)
 			return "", presenter.ErrInternalError
 		}
+
+		logger.Debug("find match result %v", matches)
 		if len(matches) > 0 {
 			// There are one or more ongoing matches the user could join.
 			for _, match := range matches {
@@ -60,12 +57,12 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			}
 		} else {
 			// No available matches found, create a new one.
-			matchID, err := nk.MatchCreate(ctx, entity.ModuleName, map[string]interface{}{"bet": request.Bet, "code": entity.ModuleName})
-			if err != nil {
-				logger.Error("error creating match: %v", err)
-				return "", presenter.ErrInternalError
-			}
-			matchIDs = append(matchIDs, matchID)
+			//matchID, err := nk.MatchCreate(ctx, entity.ModuleName, map[string]interface{}{"bet": request.Bet, "code": entity.ModuleName})
+			//if err != nil {
+			//	logger.Error("error creating match: %v", err)
+			//	return "", presenter.ErrInternalError
+			//}
+			//matchIDs = append(matchIDs, matchID)
 		}
 
 		response, err := marshaler.Marshal(&pb.RpcFindMatchResponse{MatchIds: matchIDs})
@@ -94,7 +91,12 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 		}
 
 		// No available matches found, create a new one.
-		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{"bet": request.Bet, "game_code": request.GameCode})
+		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
+			"bet":       request.Bet,
+			"game_code": request.GameCode,
+			"name":      request.Name,
+			"password":  request.Password,
+		})
 		if err != nil {
 			logger.Error("error creating match: %v", err)
 			return "", presenter.ErrInternalError
