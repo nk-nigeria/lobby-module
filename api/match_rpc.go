@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -25,6 +26,16 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
+
+type MatchLabel struct {
+	Open              int32  `json:"open"`
+	LastOpenValueNoti int32  `json:"-"` // using for check has noti new state of open
+	Bet               int32  `json:"bet"`
+	Code              string `json:"code"`
+	Name              string `json:"name"`
+	Password          string `json:"password"`
+	MaxSize           int32  `json:"max_size"`
+}
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
@@ -42,7 +53,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		maxSize := 1
 		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.Bet)
 
-		matchIDs := make([]string, 0, 10)
+		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
 		if err != nil {
 			logger.Error("error listing matches: %v", err)
@@ -53,7 +64,21 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if len(matches) > 0 {
 			// There are one or more ongoing matches the user could join.
 			for _, match := range matches {
-				matchIDs = append(matchIDs, match.MatchId)
+				var label MatchLabel
+				err = json.Unmarshal([]byte(match.Label.GetValue()), &label)
+				if err != nil {
+					logger.Error("unmarshal label error %v", err)
+					continue
+				}
+
+				logger.Debug("find match %v", label)
+				resMatches.Matches = append(resMatches.Matches, &pb.Match{
+					MatchId: match.MatchId,
+					Size:    match.Size,
+					MaxSize: label.MaxSize, // Get from label
+					Name:    label.Name,
+					Bet:     label.Bet,
+				})
 			}
 		} else {
 			// No available matches found, create a new one.
@@ -65,7 +90,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			//matchIDs = append(matchIDs, matchID)
 		}
 
-		response, err := marshaler.Marshal(&pb.RpcFindMatchResponse{MatchIds: matchIDs})
+		response, err := marshaler.Marshal(resMatches)
 		if err != nil {
 			logger.Error("error marshaling response payload: %v", err.Error())
 			return "", presenter.ErrMarshal
