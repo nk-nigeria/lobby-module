@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -15,6 +16,28 @@ func RpcGameList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 			{
 				Collection: "lobby_1",
 				Key:        "list_game",
+			},
+		}
+		objects, err := nk.StorageRead(ctx, objectIds)
+		if err != nil {
+			logger.Error("Error when read list game, error %s", err.Error())
+			return "", presenter.ErrMarshal
+		}
+		return objects[0].GetValue(), nil
+	}
+}
+
+func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		request := &pb.BetListRequest{}
+		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			return "", presenter.ErrUnmarshal
+		}
+
+		objectIds := []*runtime.StorageRead{
+			{
+				Collection: "bets",
+				Key:        request.Code,
 			},
 		}
 		objects, err := nk.StorageRead(ctx, objectIds)

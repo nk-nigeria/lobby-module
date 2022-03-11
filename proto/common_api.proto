@@ -40,3 +40,11 @@ message GameListRequest {
 message GameListResponse {
     repeated Game games = 1;
 }
+
+message BetListRequest {
+    string code = 1;
+}
+
+message BetListResponse {
+    repeated int32 bets = 1;
+}
