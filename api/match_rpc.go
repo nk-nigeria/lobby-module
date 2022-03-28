@@ -50,7 +50,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			return "", presenter.ErrUnmarshal
 		}
 
-		maxSize := 1
+		maxSize := 3
 		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.Bet)
 
 		resMatches := &pb.RpcFindMatchResponse{}
