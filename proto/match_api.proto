@@ -21,42 +21,71 @@ option go_package = "github.com/ciaolink-game-platform/cgp-lobby-module/api";
 
 // The complete set of rpc used for communication between clients and server.
 enum RPCCode {
-    // No opcode specified. Unused.
-    RPC_FIND_MATCH = 0;
-    RPC_CREATE_MATCH = 1;
+  // No opcode specified. Unused.
+  RPC_FIND_MATCH = 0;
+  RPC_CREATE_MATCH = 1;
 }
 
 // Payload for an RPC request to find a match.
 message RpcFindMatchRequest {
-    // User can choose a fast or normal speed match.
-    int32 bet = 1;
-    string game_code = 2;
+  // User can choose a fast or normal speed match.
+  Bet bet = 1;
+  string game_code = 2;
 }
 
 message Match {
-    string match_id = 1;
-    int32 size = 2;
-    int32 max_size = 3;
-    string name = 4;
-    int32 bet = 5;
+  string match_id = 1;
+  int32 size = 2;
+  int32 max_size = 3;
+  string name = 4;
+  Bet bet = 5;
 }
 
 // Payload for an RPC response containing match IDs the user can join.
 message RpcFindMatchResponse {
-    // One or more matches that fit the user's request.
-    repeated Match matches = 1;
+  // One or more matches that fit the user's request.
+  repeated Match matches = 1;
 }
 
 // Payload for an RPC request to find a match.
-message RpcCreateMatchRequest {    
-    int32 bet = 1;
-    string game_code = 2;
-    string name = 3;
-    string password = 4;
+message RpcCreateMatchRequest {
+  Bet bet = 1;
+  string game_code = 2;
+  string name = 3;
+  string password = 4;
 }
 
 // Payload for an RPC response containing match IDs the user can join.
 message RpcCreateMatchResponse {
-    // One or more matches that fit the user's request.
-    string match_id = 1;
+  // One or more matches that fit the user's request.
+  string match_id = 1;
+}
+
+message Bet {
+  bool enable = 1;
+  int32 mark_unit = 2; // mức cược (chip)
+  // tài sản tối thiểu cho phép join bàn  (đơn vị: mức cược bàn)
+  int32 xjoin = 3;
+  // tài sản tối thiểu cho phép join bàn (đơn vị: chip)
+  int32 ag_join = 4;
+  // tài sản tối thiểu dùng để xác định bàn chơi khi
+  // khi ấn Quick Start (đơn vị: mức cược bàn)
+  int32 xplaynow = 5;
+  //tài sản tối thiểu dùng để
+  // xác định bàn chơi khi ấn Quick Start (đơn vị: chip)
+  int32 ag_playnow = 6;
+  // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: mức cược bàn)
+  int32 xleave = 7;
+  // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: chip)
+  int32 ag_leave = 8;
+  // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: mcb)
+  int32 xfee = 9;
+  // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: chip)
+  int32 ag_fee = 10;
+  // mức tiền hồ áp dụng khi số chip mang vào =< Xfee hoặc AGFee
+  int32 new_fee = 11;
+}
+
+message Bets {
+  repeated Bet bets = 1;
 }

@@ -18,7 +18,8 @@ const (
 	rpcIdFindMatch   = "find_match"
 	rpcIdCreateMatch = "create_match"
 
-	rpcIdListBet = "list_bet"
+	rpcIdListBet    = "list_bet"
+	rpcIdQuickMatch = "quick_match"
 )
 
 //noinspection GoUnusedExportedFunction
@@ -32,7 +33,6 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		DiscardUnknown: false,
 	}
 	InitListGame(marshaler, ctx, logger, nk)
-	InitListBet(marshaler, ctx, logger, nk)
 
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
@@ -43,6 +43,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdCreateMatch, api.RpcCreateMatch(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 
@@ -99,53 +103,6 @@ func InitListGame(marshaler *protojson.MarshalOptions, ctx context.Context, logg
 	w := &runtime.StorageWrite{
 		Collection:      "lobby_1",
 		Key:             "list_game",
-		Value:           string(gameJson),
-		PermissionRead:  2,
-		PermissionWrite: 0,
-	}
-	writeObjects = append(writeObjects, w)
-	if len(writeObjects) == 0 {
-		logger.Debug("Can not generate list game for collection")
-		return
-	}
-	_, err = nk.StorageWrite(ctx, writeObjects)
-	if err != nil {
-		logger.Error("Write list game for collection error %s", err.Error())
-	}
-}
-
-func InitListBet(marshaler *protojson.MarshalOptions, ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
-	objectIds := []*runtime.StorageRead{
-		{
-			Collection: "bets",
-			Key:        "chinese-poker",
-		},
-	}
-	objects, err := nk.StorageRead(ctx, objectIds)
-	if err != nil {
-		logger.Error("Error when read list game at init, error %s", err.Error())
-	}
-
-	// check list game has write in collection
-	if len(objects) > 0 {
-		logger.Info("List game already write in collection")
-		return
-	}
-	writeObjects := []*runtime.StorageWrite{}
-	var bets []int32
-	for i := int32(1); i <= 10; i++ {
-		bets = append(bets, i)
-	}
-	gameJson, err := marshaler.Marshal(&pb.BetListResponse{
-		Bets: bets,
-	})
-	if err != nil {
-		logger.Debug("Can not marshaler list game for collection")
-		return
-	}
-	w := &runtime.StorageWrite{
-		Collection:      "bets",
-		Key:             "chinese-poker",
 		Value:           string(gameJson),
 		PermissionRead:  2,
 		PermissionWrite: 0,

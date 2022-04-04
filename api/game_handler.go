@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -84,19 +84,12 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			return "", presenter.ErrUnmarshal
 		}
 
-		objectIds := []*runtime.StorageRead{
-			{
-				Collection: "bets",
-				Key:        request.Code,
-			},
-		}
-		objects, err := nk.StorageRead(ctx, objectIds)
+		bets, err := entity.LoadBets(request.Code, ctx, logger, nk, unmarshaler)
 		if err != nil {
-			logger.Error("Error when read list bet, error %s", err.Error())
-			return "", presenter.ErrMarshal
+			logger.Error("Error when unmarshal list bets, error %s", err.Error())
+			return "", presenter.ErrUnmarshal
 		}
-		if len(objectIds) == 0 {
-			logger.Warn("List bet in storage empty")
+		if len(bets.Bets) == 0 {
 			return "", nil
 		}
 		queryParms, ok := ctx.Value(runtime.RUNTIME_CTX_QUERY_PARAMS).(map[string][]string)
@@ -104,19 +97,16 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			queryParms = make(map[string][]string)
 		}
 		arr := queryParms["enable_filter_chip"]
-		if len(arr) == 0 {
-			return objects[0].GetValue(), nil
-		}
+
 		v := strings.ToLower(arr[0])
 		if v != "1" && v != "true" {
-			return objects[0].GetValue(), nil
+			return "", nil
 		}
-		bets := entity.Bets{}
-		err = json.Unmarshal([]byte(objects[0].GetValue()), &bets)
-		if err != nil {
-			logger.Error("Error when unmarshal list bets, error %s", err.Error())
-			return "", presenter.ErrUnmarshal
+		if len(arr) == 0 {
+			betsJson, _ := marshaler.Marshal(bets)
+			return string(betsJson), nil
 		}
+
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			logger.Error("context did not contain user ID.")
@@ -132,16 +122,17 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			return "", presenter.ErrInternalError
 		}
 		userChip := wallets[0].Chips
-		for idx, bet := range bets.List {
+		for idx, bet := range bets.Bets {
 			bet.Enable = true
-			if userChip < int64(bet.AGJoin) {
+			if userChip < int64(bet.GetAgJoin()) {
 				bet.Enable = false
 			} else {
 				bet.Enable = true
 			}
-			bets.List[idx] = bet
+			bets.Bets[idx] = bet
 		}
-		betsJson, _ := json.Marshal(bets)
+		betsJson, _ := marshaler.Marshal(bets)
 		return string(betsJson), nil
+		// return "{   \"bets\": [     100,     500,     5000,     20000,     50000,     100000,     200000,     500000,     1000000   ] }", nil
 	}
 }
