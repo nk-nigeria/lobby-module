@@ -134,14 +134,10 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		userChip := wallets[0].Chips
 		for idx, bet := range bets.List {
 			bet.Enable = true
-			if bet.MinChip > 0 {
-				if bet.MinChip > int(userChip) {
-					bet.Enable = false
-				}
+			if userChip < int64(bet.AGJoin) {
+				bet.Enable = false
 			} else {
-				if bet.Amount > int(userChip) {
-					bet.Enable = false
-				}
+				bet.Enable = true
 			}
 			bets.List[idx] = bet
 		}
