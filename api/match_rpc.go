@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -28,13 +29,12 @@ import (
 )
 
 type MatchLabel struct {
-	Open              int32   `json:"open"`
-	LastOpenValueNoti int32   `json:"-"` // using for check has noti new state of open
-	Bet               int32  `json:"bet"`
-	Code              string  `json:"code"`
-	Name              string  `json:"name"`
-	Password          string  `json:"password"`
-	MaxSize           int32   `json:"max_size"`
+	Open     int32  `json:"open"`
+	Bet      int32  `json:"bet"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+	MaxSize  int32  `json:"max_size"`
 }
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
@@ -77,7 +77,10 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 					Size:    match.Size,
 					MaxSize: label.MaxSize, // Get from label
 					Name:    label.Name,
-					Bet:     label.Bet,
+					Bet: &pb.Bet{
+						MarkUnit: label.Bet,
+						Enable:   true,
+					},
 				})
 			}
 		}
@@ -116,15 +119,16 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 
 		logger.Debug("MatchList result %v", matches)
 		if len(matches) == 0 {
-			bets, err := entity.LoadBets(request.GameCode, ctx, logger, nk, unmarshaler)
+			bets, err := LoadBets(request.GameCode, ctx, logger, nk)
 			if err != nil {
 				return "", presenter.ErrInternalError
 			}
+
 			if len(bets.Bets) == 0 {
 				return "", nil
 			}
 			sort.Slice(bets.Bets, func(i, j int) bool {
-				return bets.Bets[i].GetMarkUnit() < bets.Bets[j].GetMarkUnit()
+				return bets.Bets[i].MarkUnit < bets.Bets[j].MarkUnit
 			})
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
@@ -142,7 +146,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				Size:    0,
 				MaxSize: int32(maxSize),
 				Name:    request.Name,
-				Bet:     bets.Bets[0],
+				Bet: &pb.Bet{
+					MarkUnit: bets.Bets[0].MarkUnit,
+				},
 			})
 			response, err := marshaler.Marshal(resMatches)
 			if err != nil {
@@ -166,7 +172,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				Size:    match.Size,
 				MaxSize: label.MaxSize, // Get from label
 				Name:    label.Name,
-				Bet:     label.Bet,
+				Bet: &pb.Bet{
+					MarkUnit: label.Bet,
+				},
 			})
 		}
 

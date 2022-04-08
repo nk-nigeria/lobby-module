@@ -64,26 +64,6 @@ message RpcCreateMatchResponse {
 message Bet {
   bool enable = 1;
   int32 mark_unit = 2; // mức cược (chip)
-  // tài sản tối thiểu cho phép join bàn  (đơn vị: mức cược bàn)
-  int32 xjoin = 3;
-  // tài sản tối thiểu cho phép join bàn (đơn vị: chip)
-  int32 ag_join = 4;
-  // tài sản tối thiểu dùng để xác định bàn chơi khi
-  // khi ấn Quick Start (đơn vị: mức cược bàn)
-  int32 xplaynow = 5;
-  //tài sản tối thiểu dùng để
-  // xác định bàn chơi khi ấn Quick Start (đơn vị: chip)
-  int32 ag_playnow = 6;
-  // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: mức cược bàn)
-  int32 xleave = 7;
-  // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: chip)
-  int32 ag_leave = 8;
-  // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: mcb)
-  int32 xfee = 9;
-  // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: chip)
-  int32 ag_fee = 10;
-  // mức tiền hồ áp dụng khi số chip mang vào =< Xfee hoặc AGFee
-  int32 new_fee = 11;
 }
 
 message Bets {
