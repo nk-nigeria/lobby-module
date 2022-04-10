@@ -19,6 +19,8 @@ const (
 	rpcIdCreateMatch = "create_match"
 
 	rpcIdListBet = "list_bet"
+
+	// rpcAuthEmail = "auth_email"
 )
 
 //noinspection GoUnusedExportedFunction
@@ -49,7 +51,11 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
 		return err
 	}
+	// if err := initializer.RegisterRpc(rpcAuthEmail, api.RpcAuthenticateEmail(marshaler, unmarshaler)); err != nil {
+	// 	return err
+	// }
 
+	initializer.RegisterBeforeAuthenticateCustom(api.BeforeAuthenticateCustom)
 	if err := api.RegisterSessionEvents(db, nk, initializer); err != nil {
 		return err
 	}
