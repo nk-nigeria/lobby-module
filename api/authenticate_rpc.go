@@ -107,12 +107,18 @@ func RpcAuthenticateEmail(marshaler *protojson.MarshalOptions, unmarshaler *prot
 }
 
 func BeforeAuthenticateCustom(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *api.AuthenticateCustomRequest) (*api.AuthenticateCustomRequest, error) {
+	// format
+	// [username]:[password]:[user_id_need_linked]
 	arrAccount := strings.Split(in.Account.Id, ":")
-	if len(arrAccount) != 2 {
+	if len(arrAccount) < 2 {
 		return nil, status.Error(codes.InvalidArgument, "Id invalid, must contains :")
 	}
 	username := arrAccount[0]
 	password := arrAccount[1]
+	linkUserId := ""
+	if len(arrAccount) > 2 {
+		linkUserId = arrAccount[2]
+	}
 
 	if len(password) < entity.MIN_LENGTH_PASSWORD {
 		return nil, status.Errorf(codes.InvalidArgument,
@@ -125,14 +131,30 @@ func BeforeAuthenticateCustom(ctx context.Context, logger runtime.Logger, db *sq
 	}
 
 	customid := uuid.Must(uuid.NewV4()).String()
-	created := true
-
-	customUser, _, err := cgbdb.AuthenticateCustomUsername(ctx, logger, db, customid, username, password, created)
+	createIfNotExist := in.GetCreate().GetValue()
+	customUser, created, err := cgbdb.AuthenticateCustomUsername(ctx, logger,
+		db, customid, username, password, createIfNotExist)
 	if err != nil {
 		return nil, err
 	}
 	in.Account.Id = customUser.Id
-
+	// err = nk.LinkDevice(ctx, customUser.UserId, "my_id_device_keyxxxx")
+	if created && linkUserId != "" {
+		err = nk.LinkCustom(ctx, linkUserId, customUser.Id)
+		if err != nil {
+			logger.Error("[Failed] Link custom id %s to userId %s, err: ", err.Error())
+		} else {
+			logger.Info("[Success] Link custom id %s to userId %s", customUser.Id, linkUserId)
+		}
+	}
 	logger.Info("Return user id: %s, username: %s", in.Account.Id, in.Username)
 	return in, nil
+}
+
+func AfterAuthenticateCustom(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *api.Session, in *api.AuthenticateCustomRequest) error {
+	// err := nk.LinkDevice(ctx, in.GetAccount().Id, "my_id_device_keyxxxx")
+	// if err != nil {
+	// 	logger.Error(err.Error())
+	// }
+	return nil
 }

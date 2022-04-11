@@ -56,6 +56,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// }
 
 	initializer.RegisterBeforeAuthenticateCustom(api.BeforeAuthenticateCustom)
+
+	// initializer.RegisterAfterAuthenticateCustom(api.AfterAuthenticateCustom)
+
 	if err := api.RegisterSessionEvents(db, nk, initializer); err != nil {
 		return err
 	}
