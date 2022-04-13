@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api"
+	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
@@ -19,6 +20,10 @@ const (
 	rpcIdCreateMatch = "create_match"
 
 	rpcIdListBet = "list_bet"
+
+	rpcGetProfile     = "get_profile"
+	rpcUpdateProfile  = "update_profile"
+	rpcUpdatePassword = "update_password"
 )
 
 //noinspection GoUnusedExportedFunction
@@ -34,6 +39,11 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	InitListGame(marshaler, ctx, logger, nk)
 	InitListBet(marshaler, ctx, logger, nk)
 
+	objStorage, err := InitObjectStorage(logger)
+	if err != nil {
+		objStorage = &objectstorage.EmptyStorage{}
+	}
+
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
 	}
@@ -47,6 +57,24 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcGetProfile, api.RpcGetProfile(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcUpdateProfile,
+		api.RpcUpdateProfile(marshaler, unmarshaler, objStorage),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcUpdatePassword,
+		api.RpcUpdatePassword(marshaler, unmarshaler),
+	); err != nil {
 		return err
 	}
 
@@ -163,4 +191,12 @@ func InitListBet(marshaler *protojson.MarshalOptions, ctx context.Context, logge
 	if err != nil {
 		logger.Error("Write list game for collection error %s", err.Error())
 	}
+}
+
+func InitObjectStorage(logger runtime.Logger) (objectstorage.ObjStorage, error) {
+	w, err := objectstorage.NewMinioWrapper("", "", "", true)
+	if err != nil {
+		logger.Error("Init Object Storage Engine Minio error: %s", err.Error())
+	}
+	return w, err
 }
