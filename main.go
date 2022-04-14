@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
@@ -42,6 +43,8 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
 		objStorage = &objectstorage.EmptyStorage{}
+	} else {
+		objStorage.MakeBucket(entity.BucketAvatar)
 	}
 
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {

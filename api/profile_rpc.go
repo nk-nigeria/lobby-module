@@ -45,6 +45,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		}
 		profile := &pb.Profile{}
 		if err := unmarshaler.Unmarshal([]byte(payload), profile); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
 		metadata := make(map[string]interface{}, 0)
@@ -54,14 +55,16 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if profile.RefCode != "" {
 			metadata["ref_code"] = profile.RefCode
 		}
-
+		if profile.AppConfig != "" {
+			metadata["app_config"] = profile.AppConfig
+		}
 		avatarFileName := profile.GetAvatarUrl()
 		avatarPresignGet := ""
 		if avatarFileName != "" {
 			expiry := 6 * 24 * time.Hour
 			avatarPresignGet, _ = objStorage.PresignGetObject(entity.BucketAvatar, avatarFileName, expiry, nil)
 		}
-		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", "", avatarPresignGet)
+		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, avatarPresignGet)
 		if err != nil {
 			logger.Error("Update userid %s error: %s", userID, err.Error())
 			return "", err
@@ -131,11 +134,13 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string)
 
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:    account.Id,
-		UserName:  account.Username,
-		AvatarUrl: account.AvatarUrl,
-		Status:    metadata["status"].(string),
-		RefCode:   metadata["ref_code"].(string),
+		UserId:    account.GetId(),
+		UserName:  account.GetUsername(),
+		AvatarUrl: account.GetAvatarUrl(),
+		LangTag:   account.GetLangTag(),
+		Status:    entity.InterfaceToString(metadata["status"]),
+		RefCode:   entity.InterfaceToString(metadata["ref_code"]),
+		AppConfig: entity.InterfaceToString(metadata["app_config"]),
 	}
 	return &profile, nil
 }
