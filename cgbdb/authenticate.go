@@ -24,13 +24,14 @@ func AuthenticateCustomUsername(ctx context.Context, logger runtime.Logger, db *
 		UserName: username,
 	}
 	// Look for an existing account.
-	query := "SELECT id, password, disable_time FROM users WHERE username = $1"
+	query := "SELECT id, password, custom_id, disable_time FROM users WHERE username = $1"
 	var dbUserID string
 	var dbPassword []byte
+	var dbCustomId string
 	var dbDisableTime pgtype.Timestamptz
 	found := true
 
-	err := db.QueryRowContext(ctx, query, username).Scan(&dbUserID, &dbPassword, &dbDisableTime)
+	err := db.QueryRowContext(ctx, query, username).Scan(&dbUserID, &dbPassword, &dbCustomId, &dbDisableTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Account not found and creation is never allowed for this type.
@@ -59,6 +60,7 @@ func AuthenticateCustomUsername(ctx context.Context, logger runtime.Logger, db *
 		if err != nil {
 			return nil, false, status.Error(codes.Unauthenticated, "Invalid credentials.")
 		}
+		customUser.Id = dbCustomId
 		customUser.UserId = dbUserID
 		return customUser, false, nil
 	}
@@ -74,8 +76,8 @@ func AuthenticateCustomUsername(ctx context.Context, logger runtime.Logger, db *
 	// Create a new account.
 	userID := uuid.Must(uuid.NewV4()).String()
 	customUser.UserId = userID
-	query = "INSERT INTO users (id, username, password, create_time, update_time) VALUES ($1, $2, $3, now(), now())"
-	result, err := db.ExecContext(ctx, query, userID, username, hashedPassword)
+	query = "INSERT INTO users (id, username, password, custom_id, create_time, update_time) VALUES ($1, $2, $3, $4, now(), now())"
+	result, err := db.ExecContext(ctx, query, userID, username, hashedPassword, customid)
 	if err != nil {
 		logger.Error("Query error %s", err.Error())
 		var pgErr *pgconn.PgError
@@ -94,6 +96,77 @@ func AuthenticateCustomUsername(ctx context.Context, logger runtime.Logger, db *
 		return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
 	}
 	return customUser, true, nil
+}
+
+func LinkDeviceWithNewUser(ctx context.Context, logger runtime.Logger, db *sql.DB, deviceId, customid, username, password string, create bool) (*entity.CustomUser, bool, error) {
+
+	if deviceId == "" {
+		logger.Info("deviceId empty, call AuthenticateCustomUsername %s", username)
+		return AuthenticateCustomUsername(ctx, logger, db, customid, username, password, create)
+	}
+	logger.Info("LinkDeviceWithNewUser %s", username)
+	customUser := &entity.CustomUser{
+		Id:       customid,
+		UserName: username,
+	}
+	query := "SELECT user_id FROM user_device WHERE id = $1"
+	var dbUserID string
+
+	err := db.QueryRowContext(ctx, query, deviceId).Scan(&dbUserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logger.Info("deviceId %s not found, call AuthenticateCustomUsername %s", deviceId, username)
+			// if not found device id, create new user
+			return AuthenticateCustomUsername(ctx, logger, db, customid, username, password, create)
+		} else {
+			logger.Error("Error looking up user_id by deviceId. %s, err: %s", deviceId, err.Error())
+			return nil, false, status.Error(codes.Internal, "Error finding user account.")
+		}
+	}
+	// found user_id link with device id, update username, password if password is nil
+	query = "SELECT id, username, password, custom_id, disable_time FROM users WHERE id = $1"
+	var dbPassword []byte
+	var dbUsername string
+	var dbCustomId string
+	var dbDisableTime pgtype.Timestamptz
+
+	err = db.QueryRowContext(ctx, query, dbUserID).Scan(&dbUserID, &dbUsername, &dbPassword, &dbCustomId, &dbDisableTime)
+	if err != nil {
+		logger.Error("Error looking up user by username %s, err: %s", username, err.Error())
+		return nil, false, status.Error(codes.Internal, "Error finding user account.")
+	}
+	// Check if it's disabled.
+	if dbDisableTime.Status == pgtype.Present && dbDisableTime.Time.Unix() != 0 {
+		logger.Info("User account is disabled, username %s", username)
+		return nil, false, status.Error(codes.PermissionDenied, "User account banned.")
+	}
+
+	// Check if the account has a password.
+	if len(dbPassword) == 0 {
+		logger.Info("Update user username %s, Link device %s ", username, deviceId)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			logger.Error("Error hashing password. username %s", username)
+			return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
+		}
+		// update user
+		query = "UPDATE users SET username=$1, password=$2, custom_id=$3 WHERE id=$4"
+		_, err = db.ExecContext(ctx, query, username, hashedPassword, customid, dbUserID)
+		if err != nil {
+			logger.Error("Cannot update user with username %s, err: %s", username, err.Error())
+			return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
+		}
+		return AuthenticateCustomUsername(ctx, logger, db, customid, username, password, false)
+	} else {
+		if username != dbUsername || bcrypt.CompareHashAndPassword(dbPassword, []byte(password)) != nil {
+			return AuthenticateCustomUsername(ctx, logger, db, customid, username, password, false)
+		}
+	}
+
+	// Check if password matches.
+	customUser.UserId = dbUserID
+	customUser.Id = dbCustomId
+	return customUser, false, nil
 }
 
 func AuthenticateEmail(ctx context.Context, logger runtime.Logger, db *sql.DB, email, password, username string, create bool) (string, string, bool, error) {

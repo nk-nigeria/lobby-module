@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func RpcAuthenticateEmail(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
@@ -132,22 +133,24 @@ func BeforeAuthenticateCustom(ctx context.Context, logger runtime.Logger, db *sq
 
 	customid := uuid.Must(uuid.NewV4()).String()
 	createIfNotExist := in.GetCreate().GetValue()
-	customUser, created, err := cgbdb.AuthenticateCustomUsername(ctx, logger,
-		db, customid, username, password, createIfNotExist)
+	customUser, _, err := cgbdb.LinkDeviceWithNewUser(ctx, logger,
+		db, linkUserId, customid, username, password, createIfNotExist)
 	if err != nil {
 		return nil, err
 	}
 	in.Account.Id = customUser.Id
-	// err = nk.LinkDevice(ctx, customUser.UserId, "my_id_device_keyxxxx")
-	if created && linkUserId != "" {
-		err = nk.LinkCustom(ctx, linkUserId, customUser.Id)
-		if err != nil {
-			logger.Error("[Failed] Link custom id %s to userId %s, err: ", err.Error())
-		} else {
-			logger.Info("[Success] Link custom id %s to userId %s", customUser.Id, linkUserId)
-		}
-	}
-	logger.Info("Return user id: %s, username: %s", in.Account.Id, in.Username)
+	// in.Username = username
+	in.Create = wrapperspb.Bool(false)
+	// // err = nk.LinkDevice(ctx, customUser.UserId, "my_id_device_keyxxxx")
+	// if created && linkUserId != "" {
+	// 	err = nk.LinkCustom(ctx, linkUserId, customUser.Id)
+	// 	if err != nil {
+	// 		logger.Error("[Failed] Link custom id %s to userId %s, err: ", err.Error())
+	// 	} else {
+	// 		logger.Info("[Success] Link custom id %s to userId %s", customUser.Id, linkUserId)
+	// 	}
+	// }
+	logger.Info("Return custom id: %s, username: %s", in.Account.Id, in.Username)
 	return in, nil
 }
 
