@@ -46,7 +46,10 @@ func (w *MinioWrapper) PresignGetObject(bucketName string, objectName string, ex
 		objectName,
 		expiry,
 		reqParams)
-	return presignedURL.String(), err
+	if err != nil {
+		return "", err
+	}
+	return url.PathUnescape(presignedURL.String())
 }
 
 func (w *MinioWrapper) PresigPutObject(bucketName string, objectName string, expiry time.Duration, params map[string]interface{}) (string, error) {
@@ -55,5 +58,8 @@ func (w *MinioWrapper) PresigPutObject(bucketName string, objectName string, exp
 		bucketName,
 		objectName,
 		expiry)
-	return presignedURL.String(), err
+	if err != nil {
+		return "", err
+	}
+	return url.PathUnescape(presignedURL.String())
 }

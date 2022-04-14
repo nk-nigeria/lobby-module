@@ -62,7 +62,11 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		avatarPresignGet := ""
 		if avatarFileName != "" {
 			expiry := 6 * 24 * time.Hour
-			avatarPresignGet, _ = objStorage.PresignGetObject(entity.BucketAvatar, avatarFileName, expiry, nil)
+			var err error
+			avatarPresignGet, err = objStorage.PresignGetObject(entity.BucketAvatar, avatarFileName, expiry, nil)
+			if err != nil {
+				logger.Error("Presgin Avatar url failed:", err.Error())
+			}
 		}
 		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, avatarPresignGet)
 		if err != nil {

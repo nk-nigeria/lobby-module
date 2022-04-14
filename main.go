@@ -25,6 +25,7 @@ const (
 	rpcGetProfile     = "get_profile"
 	rpcUpdateProfile  = "update_profile"
 	rpcUpdatePassword = "update_password"
+	rpcUpdateAvatar   = "update_avatar"
 )
 
 //noinspection GoUnusedExportedFunction
@@ -77,6 +78,13 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(
 		rpcUpdatePassword,
 		api.RpcUpdatePassword(marshaler, unmarshaler),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcUpdateAvatar,
+		api.RpcUploadAvatar(marshaler, unmarshaler, objStorage),
 	); err != nil {
 		return err
 	}
@@ -196,8 +204,14 @@ func InitListBet(marshaler *protojson.MarshalOptions, ctx context.Context, logge
 	}
 }
 
+const (
+	MinioHost      = "172.17.0.1:9000"
+	MinioKey       = "minio"
+	MinioAccessKey = "12345678"
+)
+
 func InitObjectStorage(logger runtime.Logger) (objectstorage.ObjStorage, error) {
-	w, err := objectstorage.NewMinioWrapper("", "", "", true)
+	w, err := objectstorage.NewMinioWrapper(MinioHost, MinioKey, MinioAccessKey, false)
 	if err != nil {
 		logger.Error("Init Object Storage Engine Minio error: %s", err.Error())
 	}
