@@ -17,14 +17,14 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
-func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			return "", errors.New("Missing user ID.")
 		}
 
-		profile, err := GetProfileUser(ctx, nk, userID)
+		profile, err := GetProfileUser(ctx, nk, userID, objStorage)
 		if err != nil {
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
@@ -63,23 +63,23 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if profile.AppConfig != "" {
 			metadata["app_config"] = profile.AppConfig
 		}
-		avatarFileName := profile.GetAvatarUrl()
-		avatarPresignGet := ""
-		if avatarFileName != "" {
-			expiry := 6 * 24 * time.Hour
-			var err error
-			avatarPresignGet, err = objStorage.PresignGetObject(entity.BucketAvatar, avatarFileName, expiry, nil)
-			if err != nil {
-				logger.Error("Presgin Avatar url failed:", err.Error())
-			}
-		}
-		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, avatarPresignGet)
+		// avatarFileName := profile.GetAvatarUrl()
+		// avatarPresignGet := ""
+		// if avatarFileName != "" {
+		// 	expiry := 6 * 24 * time.Hour
+		// 	var err error
+		// 	avatarPresignGet, err = objStorage.PresignGetObject(entity.BucketAvatar, avatarFileName, expiry, nil)
+		// 	if err != nil {
+		// 		logger.Error("Presgin Avatar url failed:", err.Error())
+		// 	}
+		// }
+		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, "")
 		if err != nil {
 			logger.Error("Update userid %s error: %s", userID, err.Error())
 			return "", err
 		}
 
-		newProfile, err := GetProfileUser(ctx, nk, userID)
+		newProfile, err := GetProfileUser(ctx, nk, userID, objStorage)
 		dataString, err := marshaler.Marshal(newProfile)
 		if err != nil {
 			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
@@ -127,7 +127,7 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 	}
 }
 
-func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string) (*pb.Profile, error) {
+func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, error) {
 	accounts, err := nk.UsersGetId(ctx, []string{userID}, nil)
 	if err != nil {
 		return nil, err
@@ -143,9 +143,9 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string)
 
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:        account.GetId(),
-		UserName:      account.GetUsername(),
-		AvatarUrl:     account.GetAvatarUrl(),
+		UserId:   account.GetId(),
+		UserName: account.GetUsername(),
+		// AvatarUrl:     account.GetAvatarUrl(),
 		LangTag:       account.GetLangTag(),
 		Status:        entity.InterfaceToString(metadata["status"]),
 		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
@@ -153,5 +153,8 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string)
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
 	}
+	objName := fmt.Sprintf(entity.AvatarFileName, userID)
+	avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
+	profile.AvatarUrl = avatatUrl
 	return &profile, nil
 }

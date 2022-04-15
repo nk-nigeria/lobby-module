@@ -48,6 +48,9 @@ func TestPreSignGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, putUrl)
 	err = DownloadFile(fileDownload, putUrl)
+	if err != nil {
+		t.Error(err)
+	}
 	assert.Nil(t, err)
 }
 
@@ -110,4 +113,10 @@ func DownloadFile(fileDownload string, urlDownload string) error {
 	defer res.Body.Close()
 
 	return nil
+}
+
+func TestUpload(t *testing.T) {
+	url := "http://172.17.0.1:9000/avatar/30432ce8-8f28-43a2-8002-0d87b5804722_image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio/20220415/us-east-1/s3/aws4_request&X-Amz-Date=20220415T140255Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=1b67e5b678c9bcfb8657cc52b43e3531864fd4b8bcac53b9b8fc09f3747e3df7"
+	fileUpload := "/home/sondq/Downloads/2022-04-07_17-11.png"
+	UploadFile(fileUpload, url)
 }

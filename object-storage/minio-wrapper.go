@@ -39,13 +39,13 @@ func (w *MinioWrapper) MakeBucket(bucketName string) error {
 	return err
 }
 func (w *MinioWrapper) PresignGetObject(bucketName string, objectName string, expiry time.Duration, params map[string]interface{}) (string, error) {
-	reqParams := make(url.Values)
-	reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+	// reqParams := make(url.Values)
+	// reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
 	presignedURL, err := w.minioClient.PresignedGetObject(
 		context.Background(), bucketName,
 		objectName,
 		expiry,
-		reqParams)
+		nil)
 	if err != nil {
 		return "", err
 	}
