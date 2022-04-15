@@ -68,33 +68,11 @@ func AuthenticateCustomUsername(ctx context.Context, logger runtime.Logger, db *
 		// No user account found, and creation is not allowed.
 		return nil, false, status.Error(codes.NotFound, "User account not found.")
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	newUserId, err := AddNewUser(ctx, logger, db, username, password, customid)
 	if err != nil {
-		logger.Error("Error hashing password.", zap.Error(err), zap.String("username", username), zap.String("username", username), zap.Bool("create", create))
-		return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
+		return nil, false, err
 	}
-	// Create a new account.
-	userID := uuid.Must(uuid.NewV4()).String()
-	customUser.UserId = userID
-	query = "INSERT INTO users (id, username, password, custom_id, create_time, update_time) VALUES ($1, $2, $3, $4, now(), now())"
-	result, err := db.ExecContext(ctx, query, userID, username, hashedPassword, customid)
-	if err != nil {
-		logger.Error("Query error %s", err.Error())
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == DbErrorUniqueViolation {
-			if strings.Contains(pgErr.Message, "users_username_key") {
-				// Username is already in use by a different account.
-				return nil, false, status.Error(codes.AlreadyExists, "Username is already in use.")
-			}
-		}
-		logger.Error("Cannot find or create user with username.", zap.Error(err), zap.String("username", username), zap.Bool("create", create))
-		return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
-	}
-
-	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
-		logger.Error("Did not insert new user.", zap.Int64("rows_affected", rowsAffectedCount))
-		return nil, false, status.Error(codes.Internal, "Error finding or creating user account.")
-	}
+	customUser.UserId = newUserId
 	return customUser, true, nil
 }
 
