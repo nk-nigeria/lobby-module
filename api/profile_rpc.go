@@ -50,6 +50,11 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		}
 		metadata := make(map[string]interface{}, 0)
 		if profile.Status != "" {
+			str := profile.Status
+			// max len status is 255 character
+			if len(str) > 256 {
+				str = str[:255]
+			}
 			metadata["status"] = profile.Status
 		}
 		if profile.RefCode != "" {
@@ -138,13 +143,15 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string)
 
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:    account.GetId(),
-		UserName:  account.GetUsername(),
-		AvatarUrl: account.GetAvatarUrl(),
-		LangTag:   account.GetLangTag(),
-		Status:    entity.InterfaceToString(metadata["status"]),
-		RefCode:   entity.InterfaceToString(metadata["ref_code"]),
-		AppConfig: entity.InterfaceToString(metadata["app_config"]),
+		UserId:        account.GetId(),
+		UserName:      account.GetUsername(),
+		AvatarUrl:     account.GetAvatarUrl(),
+		LangTag:       account.GetLangTag(),
+		Status:        entity.InterfaceToString(metadata["status"]),
+		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
+		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
+		LinkGroup:     entity.LinkGroupFB,
+		LinkFanpageFb: entity.LinkFanpageFB,
 	}
 	return &profile, nil
 }
