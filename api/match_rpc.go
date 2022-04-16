@@ -208,9 +208,14 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			return "", presenter.ErrUnmarshal
 		}
 
+		betJson, err := marshaler.Marshal(request.Bet)
+		if err != nil {
+			logger.Error("unmarshal bet for create match error %v", err)
+			return "", presenter.ErrUnmarshal
+		}
 		// No available matches found, create a new one.
 		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-			"bet":       request.Bet,
+			"bet":       betJson,
 			"game_code": request.GameCode,
 			"name":      request.Name,
 			"password":  request.Password,
