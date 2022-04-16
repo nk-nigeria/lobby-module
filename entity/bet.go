@@ -26,6 +26,13 @@ func (b Bet) ToPb() *pb.Bet {
 	}
 }
 
+func PbBetToBet(pb *pb.Bet) *Bet {
+	return &Bet{
+		Enable:   pb.GetEnable(),
+		MarkUnit: pb.GetMarkUnit(),
+	}
+}
+
 type ListBets struct {
 	Bets []Bet `json:"bets"`
 }
