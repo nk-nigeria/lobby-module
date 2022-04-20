@@ -19,6 +19,9 @@ const (
 	rpcIdCreateMatch = "create_match"
 
 	rpcIdListBet = "list_bet"
+
+	rpcPushToBank = "push_to_bank"
+	rpcWithDraw   = "with_draw"
 )
 
 //noinspection GoUnusedExportedFunction
@@ -47,6 +50,14 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcPushToBank, api.RpcPushToBank(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcWithDraw, api.RpcWithDraw(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

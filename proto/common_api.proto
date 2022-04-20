@@ -20,31 +20,45 @@ package api;
 option go_package = "github.com/ciaolink-game-platform/cgp-common-module/api";
 
 message Game {
-    string code = 1;
-    bool active = 2;
-    string lobby_id = 3;
-    Layout layout = 4;
-
+  string code = 1;
+  bool active = 2;
+  string lobby_id = 3;
+  Layout layout = 4;
 }
 
 message Layout {
-    int32 col = 1;
-    int32 row = 2;
-    int32 col_span = 3;
-    int32 row_span = 4;
+  int32 col = 1;
+  int32 row = 2;
+  int32 col_span = 3;
+  int32 row_span = 4;
 }
 
-message GameListRequest {
-}
+message GameListRequest {}
 
 message GameListResponse {
-    repeated Game games = 1;
+  repeated Game games = 1;
 }
 
 message BetListRequest {
-    string code = 1;
+  string code = 1;
 }
 
 message BetListResponse {
-    repeated int32 bets = 1;
+  repeated int32 bets = 1;
+}
+
+message Bank {
+  string sender_id = 1;
+  string recipient_id = 2;
+  int64 amout_chip = 3;
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_SEND = 1;
+    ACTION_RECV = 2;
+  }
+  Action action = 4;
+  int64 balance_prev = 5;
+  int64 balance_curr = 6;
+  int64 percen_fee = 7;
+  int64 amount_fee = 8;
 }
