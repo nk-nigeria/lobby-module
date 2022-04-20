@@ -73,7 +73,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		// 		logger.Error("Presgin Avatar url failed:", err.Error())
 		// 	}
 		// }
-		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, "")
+		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, profile.AvatarUrl)
 		if err != nil {
 			logger.Error("Update userid %s error: %s", userID, err.Error())
 			return "", err
@@ -109,17 +109,26 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if !ok {
 			return "", errors.New("Missing user ID.")
 		}
-		objName := fmt.Sprintf(entity.AvatarFileName, userID)
+		profile := &pb.Profile{}
+		if err := unmarshaler.Unmarshal([]byte(payload), profile); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		if profile.AvatarUrl == "" {
+			return "", presenter.ErrInternalError
+		}
+		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
+		objName := profile.AvatarUrl
 		presignUrl, err := objStorage.PresigPutObject(entity.BucketAvatar, objName, 1*time.Hour, nil)
 		if err != nil {
 			logger.Error("Presign put avatar url failed, error: %s", err.Error())
 			return "", err
 		}
-		profile := pb.Profile{
+		profile = &pb.Profile{
 			UserId:    userID,
 			AvatarUrl: presignUrl,
 		}
-		dataString, err := marshaler.Marshal(&profile)
+		dataString, err := marshaler.Marshal(profile)
 		if err != nil {
 			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
 		}
@@ -153,8 +162,11 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
 	}
-	objName := fmt.Sprintf(entity.AvatarFileName, userID)
-	avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
-	profile.AvatarUrl = avatatUrl
+	if account.GetAvatarUrl() != "" {
+		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
+		objName := account.GetAvatarUrl()
+		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
+		profile.AvatarUrl = avatatUrl
+	}
 	return &profile, nil
 }

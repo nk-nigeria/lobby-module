@@ -116,7 +116,7 @@ func DownloadFile(fileDownload string, urlDownload string) error {
 }
 
 func TestUpload(t *testing.T) {
-	url := "http://172.17.0.1:9000/avatar/30432ce8-8f28-43a2-8002-0d87b5804722_image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio/20220415/us-east-1/s3/aws4_request&X-Amz-Date=20220415T140255Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=1b67e5b678c9bcfb8657cc52b43e3531864fd4b8bcac53b9b8fc09f3747e3df7"
+	url := "http://172.17.0.1:9000/avatar/file_a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio/20220420/us-east-1/s3/aws4_request&X-Amz-Date=20220420T132604Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=0397b9653bcee7b7dff27c699cc1598ce5d73091f1e178519150188474a3a578"
 	fileUpload := "/home/sondq/Downloads/2022-04-07_17-11.png"
 	UploadFile(fileUpload, url)
 }
