@@ -29,7 +29,7 @@ enum RPCCode {
 // Payload for an RPC request to find a match.
 message RpcFindMatchRequest {
   // User can choose a fast or normal speed match.
-  Bet bet = 1;
+  int32 mark_unit = 1;
   string game_code = 2;
 }
 
