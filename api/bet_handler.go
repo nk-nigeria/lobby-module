@@ -211,21 +211,19 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		userChip := wallets[0].Chips
 
 		msg := &pb.Bets{}
-
-		for idx, bet := range bets.Bets {
+		for _, bet := range bets.Bets {
 			bet.Enable = true
 			if userChip < int64(bet.AGJoin) {
 				bet.Enable = false
 			} else {
 				bet.Enable = true
 			}
-			bets.Bets[idx] = bet
 
 			msg.Bets = append(msg.Bets, bet.ToPb())
 		}
 
 		betsJson, _ := marshaler.Marshal(msg)
+		logger.Info("bets results %s", betsJson)
 		return string(betsJson), nil
-		// return "{   \"bets\": [     100,     500,     5000,     20000,     50000,     100000,     200000,     500000,     1000000   ] }", nil
 	}
 }

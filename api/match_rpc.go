@@ -24,10 +24,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
+
+const kDefaultMaxSize = 3
 
 type MatchLabel struct {
 	Open     int32  `json:"open"`
@@ -51,8 +52,8 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			return "", presenter.ErrUnmarshal
 		}
 
-		maxSize := 3
-		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.Bet)
+		maxSize := kDefaultMaxSize
+		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
@@ -74,14 +75,11 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 
 				logger.Debug("find match %v", match.Size)
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId: match.MatchId,
-					Size:    match.Size,
-					MaxSize: label.MaxSize, // Get from label
-					Name:    label.Name,
-					Bet: &pb.Bet{
-						MarkUnit: label.Bet,
-						Enable:   true,
-					},
+					MatchId:  match.MatchId,
+					Size:     match.Size,
+					MaxSize:  label.MaxSize, // Get from label
+					Name:     label.Name,
+					MarkUnit: label.Bet,
 				})
 			}
 		}
@@ -108,10 +106,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		maxSize := 2
-		query := fmt.Sprintf("+label.code:%s +label.bet:>=%d", request.GameCode, request.Bet.MarkUnit)
-		logger.Info("Query find match %s", query)
-		// query := ""
+		maxSize := kDefaultMaxSize
+		query := fmt.Sprintf("+label.code:%s", request.GameCode)
+
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
 		if err != nil {
@@ -132,32 +129,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			sort.Slice(bets.Bets, func(i, j int) bool {
 				return bets.Bets[i].MarkUnit < bets.Bets[j].MarkUnit
 			})
-			var choiceBet entity.Bet
-			choiceBet.MarkUnit = -1
-			for _, b := range bets.Bets {
-				if b.MarkUnit < request.Bet.MarkUnit {
-					continue
-				}
-				if choiceBet.MarkUnit < 0 {
-					choiceBet = b
-					continue
-				}
-				if b.MarkUnit < choiceBet.MarkUnit {
-					choiceBet = b
-				}
-			}
-			if choiceBet.MarkUnit < 0 {
-				return "", presenter.ErrNoInputAllowed
-
-			}
-			betJson, err := marshaler.Marshal(choiceBet.ToPb())
-			if err != nil {
-				logger.Error("unmarshal bet for create match error %v", err)
-				return "", presenter.ErrUnmarshal
-			}
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-				"bet":       betJson,
+				"bet":       bets.Bets[0].MarkUnit,
 				"game_code": request.GameCode,
 				"name":      request.Name,
 				"password":  request.Password,
@@ -167,13 +141,11 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				return "", presenter.ErrInternalError
 			}
 			resMatches.Matches = append(resMatches.Matches, &pb.Match{
-				MatchId: matchID,
-				Size:    0,
-				MaxSize: int32(maxSize),
-				Name:    request.Name,
-				Bet: &pb.Bet{
-					MarkUnit: choiceBet.MarkUnit,
-				},
+				MatchId:  matchID,
+				Size:     0,
+				MaxSize:  int32(maxSize),
+				Name:     request.Name,
+				MarkUnit: bets.Bets[0].MarkUnit,
 			})
 			response, err := marshaler.Marshal(resMatches)
 			if err != nil {
@@ -193,18 +165,16 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 
 			logger.Debug("find match %v", match.Size)
 			resMatches.Matches = append(resMatches.Matches, &pb.Match{
-				MatchId: match.MatchId,
-				Size:    match.Size,
-				MaxSize: label.MaxSize, // Get from label
-				Name:    label.Name,
-				Bet: &pb.Bet{
-					MarkUnit: label.Bet,
-				},
+				MatchId:  match.MatchId,
+				Size:     match.Size,
+				MaxSize:  label.MaxSize, // Get from label
+				Name:     label.Name,
+				MarkUnit: label.Bet,
 			})
 		}
 
 		sort.Slice(resMatches.Matches, func(i, j int) bool {
-			r := resMatches.Matches[i].Bet.MarkUnit < resMatches.Matches[j].Bet.MarkUnit
+			r := resMatches.Matches[i].MarkUnit < resMatches.Matches[j].MarkUnit
 			return r
 		})
 
@@ -233,15 +203,9 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			return "", presenter.ErrUnmarshal
 		}
 
-		bet := entity.PbBetToBet(request.Bet)
-		betJson, err := json.Marshal(bet)
-		if err != nil {
-			logger.Error("unmarshal bet for create match error %v", err)
-			return "", presenter.ErrUnmarshal
-		}
 		// No available matches found, create a new one.
 		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-			"bet":       betJson,
+			"bet":       request.MarkUnit,
 			"game_code": request.GameCode,
 			"name":      request.Name,
 			"password":  request.Password,
