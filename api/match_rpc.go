@@ -107,7 +107,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", presenter.ErrUnmarshal
 		}
 		maxSize := kDefaultMaxSize
-		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+		query := fmt.Sprintf("+label.code:%s", request.GameCode)
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
