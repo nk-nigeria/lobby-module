@@ -28,6 +28,8 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
+const kDefaultMaxSize = 3
+
 type MatchLabel struct {
 	Open     int32  `json:"open"`
 	Bet      int32  `json:"bet"`
@@ -50,7 +52,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			return "", presenter.ErrUnmarshal
 		}
 
-		maxSize := 3
+		maxSize := kDefaultMaxSize
 		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 
 		resMatches := &pb.RpcFindMatchResponse{}
@@ -104,8 +106,8 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		maxSize := 2
-		query := fmt.Sprintf("+label.game_code:%s +label.bet.mark_unit:%d", request.GameCode, request.MarkUnit)
+		maxSize := kDefaultMaxSize
+		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
