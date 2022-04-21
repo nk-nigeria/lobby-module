@@ -49,7 +49,7 @@ message RpcFindMatchResponse {
 
 // Payload for an RPC request to find a match.
 message RpcCreateMatchRequest {
-  Bet bet = 1;
+  int32 mark_unit = 1;
   string game_code = 2;
   string name = 3;
   string password = 4;
