@@ -73,14 +73,11 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 
 				logger.Debug("find match %v", match.Size)
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId: match.MatchId,
-					Size:    match.Size,
-					MaxSize: label.MaxSize, // Get from label
-					Name:    label.Name,
-					Bet: &pb.Bet{
-						MarkUnit: label.Bet,
-						Enable:   true,
-					},
+					MatchId:  match.MatchId,
+					Size:     match.Size,
+					MaxSize:  label.MaxSize, // Get from label
+					Name:     label.Name,
+					MarkUnit: label.Bet,
 				})
 			}
 		}
@@ -142,13 +139,11 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				return "", presenter.ErrInternalError
 			}
 			resMatches.Matches = append(resMatches.Matches, &pb.Match{
-				MatchId: matchID,
-				Size:    0,
-				MaxSize: int32(maxSize),
-				Name:    request.Name,
-				Bet: &pb.Bet{
-					MarkUnit: bets.Bets[0].MarkUnit,
-				},
+				MatchId:  matchID,
+				Size:     0,
+				MaxSize:  int32(maxSize),
+				Name:     request.Name,
+				MarkUnit: bets.Bets[0].MarkUnit,
 			})
 			response, err := marshaler.Marshal(resMatches)
 			if err != nil {
@@ -168,18 +163,16 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 
 			logger.Debug("find match %v", match.Size)
 			resMatches.Matches = append(resMatches.Matches, &pb.Match{
-				MatchId: match.MatchId,
-				Size:    match.Size,
-				MaxSize: label.MaxSize, // Get from label
-				Name:    label.Name,
-				Bet: &pb.Bet{
-					MarkUnit: label.Bet,
-				},
+				MatchId:  match.MatchId,
+				Size:     match.Size,
+				MaxSize:  label.MaxSize, // Get from label
+				Name:     label.Name,
+				MarkUnit: label.Bet,
 			})
 		}
 
 		sort.Slice(resMatches.Matches, func(i, j int) bool {
-			r := resMatches.Matches[i].Bet.MarkUnit < resMatches.Matches[j].Bet.MarkUnit
+			r := resMatches.Matches[i].MarkUnit < resMatches.Matches[j].MarkUnit
 			return r
 		})
 
