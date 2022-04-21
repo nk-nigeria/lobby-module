@@ -25,7 +25,8 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	initStart := time.Now()
 
 	marshaler := &protojson.MarshalOptions{
-		UseEnumNumbers: true,
+		EmitUnpopulated: true,
+		UseEnumNumbers:  true,
 	}
 	unmarshaler := &protojson.UnmarshalOptions{
 		DiscardUnknown: false,

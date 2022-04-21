@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
@@ -179,6 +180,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		request := &pb.BetListRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			logger.Error("RpcBetList Unmarshal payload error: %s", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
 
