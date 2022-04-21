@@ -54,3 +54,24 @@ func RpcWithDraw(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 		return string(newBankJson), nil
 	}
 }
+
+func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		bank := &pb.Bank{}
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+
+		if payload == "" {
+			return "", presenter.ErrMarshal
+		}
+		unmarshaler.Unmarshal([]byte(payload), bank)
+		bank.SenderId = userID
+		_, err := entity.BankSendGift(ctx, logger, nk, bank)
+		if err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+}
