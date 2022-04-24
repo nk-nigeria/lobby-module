@@ -14,8 +14,8 @@ const (
 )
 
 func BankPushToSafe(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, unmarshaler *protojson.UnmarshalOptions, bank *pb.Bank) (*pb.Bank, error) {
-	if bank.GetAmoutChip() <= 0 {
-		return nil, errors.New("Amout chip must larger than zero")
+	if bank.GetChipsInBank() <= 0 {
+		return nil, errors.New("Chips push to safe must larger than zero")
 	}
 
 	wallets, err := ReadWalletUsers(ctx, nk, logger, bank.GetSenderId())
@@ -26,31 +26,37 @@ func BankPushToSafe(ctx context.Context, logger runtime.Logger, nk runtime.Nakam
 		return nil, errors.New("User not have wallet")
 	}
 	currentWallet := wallets[0]
-	if currentWallet.Chips < bank.AmoutChip {
+	if currentWallet.Chips < bank.GetChipsInBank() {
 		return nil, errors.New("User chips smaller than amout chip push to safe")
 	}
-	newUserWallet := currentWallet
-	newUserWallet.Chips = -bank.AmoutChip
-	newUserWallet.ChipsInBank = bank.AmoutChip
+
+	newBank := pb.Bank{
+		SenderId:    bank.GetSenderId(),
+		RecipientId: bank.GetRecipientId(),
+		Chips:       -bank.GetChipsInBank(),
+		ChipsInBank: bank.GetChipsInBank(),
+		Action:      pb.Bank_ACTION_PUSH_TO_SAFE,
+	}
 	// substract chip in wallet
-	err = AddChipWalletUser(ctx, nk, logger, newUserWallet.UserId, newUserWallet, "push_to_safe")
+	err = updateBank(ctx, nk, logger, bank.GetSenderId(), &newBank)
 	if err != nil {
 		logger.Error("Update wallet when push to safe action error: %s", err.Error())
 		return nil, err
 	}
 	// add chip in bank
-	newBank := bank
-	newBank.AmoutChip = newUserWallet.ChipsInBank
+	newBank.Chips = currentWallet.Chips + newBank.Chips
+	newBank.ChipsInBank = currentWallet.ChipsInBank + newBank.ChipsInBank
 	logger.Info("User id %s push %d to safe, wallet before: chips %d, bank: %d, wallets after: chips %d, bank %d",
-		bank.GetSenderId(), bank.AmoutChip, currentWallet.Chips,
-		currentWallet.ChipsInBank, currentWallet.Chips-bank.AmoutChip,
-		currentWallet.ChipsInBank+bank.AmoutChip)
-	return newBank, nil
+		bank.GetSenderId(), bank.GetChipsInBank(), currentWallet.Chips,
+		currentWallet.ChipsInBank, newBank.Chips,
+		newBank.ChipsInBank)
+
+	return &newBank, nil
 }
 
 func BankWithdraw(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, bank *pb.Bank) (*pb.Bank, error) {
-	if bank.GetAmoutChip() <= 0 {
-		return nil, errors.New("Amout chip must larger than zero")
+	if bank.GetChips() <= 0 {
+		return nil, errors.New("Amout chip withdraw must larger than zero")
 	}
 
 	wallets, err := ReadWalletUsers(ctx, nk, logger, bank.GetSenderId())
@@ -61,30 +67,36 @@ func BankWithdraw(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 		return nil, errors.New("User not have wallet")
 	}
 	currentWallet := wallets[0]
-	if currentWallet.ChipsInBank < bank.AmoutChip {
+	if currentWallet.ChipsInBank < bank.GetChips() {
 		return nil, errors.New("User chips smaller than amout chip push to safe")
 	}
 
-	newUserWallet := Wallet{}
-	newUserWallet.Chips = bank.AmoutChip
-	newUserWallet.ChipsInBank = -bank.AmoutChip
-	err = AddChipWalletUser(ctx, nk, logger, bank.SenderId, newUserWallet, "with_draw")
+	newBank := pb.Bank{
+		SenderId:    bank.GetSenderId(),
+		RecipientId: bank.GetRecipientId(),
+		Chips:       bank.GetChips(),
+		ChipsInBank: -bank.GetChips(),
+		Action:      pb.Bank_ACTION_WITHDRAW,
+	}
+	err = updateBank(ctx, nk, logger, bank.SenderId, &newBank)
 	if err != nil {
 		logger.Error("Withdraw to wallet user %s, amout chip %d, err: %s", bank.GetSenderId(), bank.GetAmountFee(), err.Error())
 		return nil, err
 	}
-	newBank := bank
-	newBank.AmoutChip = currentWallet.ChipsInBank - bank.AmoutChip
+
+	newBank.Chips = currentWallet.Chips + newBank.Chips
+	newBank.ChipsInBank = currentWallet.ChipsInBank + newBank.ChipsInBank
 	logger.Info("User id %s push %d to safe, wallet before: chips %d, bank: %d, wallets after: chips %d, bank %d",
-		bank.GetSenderId(), currentWallet.Chips,
-		currentWallet.ChipsInBank, currentWallet.Chips+bank.AmoutChip,
-		currentWallet.ChipsInBank-bank.AmoutChip)
-	return newBank, nil
+		bank.GetSenderId(), bank.GetChips(), currentWallet.Chips,
+		currentWallet.ChipsInBank, newBank.Chips,
+		newBank.ChipsInBank)
+
+	return &newBank, nil
 }
 
 func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, bank *pb.Bank) (*pb.Bank, error) {
-	if bank.GetAmoutChip() <= 0 {
-		return nil, errors.New("Amout chip must larger than zero")
+	if bank.GetChipsInBank() <= 0 {
+		return nil, errors.New("Chip send gift must larger than zero")
 	}
 	if bank.GetSenderId() == bank.GetRecipientId() {
 		return nil, errors.New("Reciver must diffirent sender")
@@ -99,48 +111,73 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	}
 	senderWallet := wallets[0]
 
-	if senderWallet.ChipsInBank < bank.AmoutChip {
+	if senderWallet.ChipsInBank < bank.GetChipsInBank() {
 		logger.Error("Sender %s amout chip smaller than amout chip request send gift, chips in bank: %d, request send gift: %d",
-			bank.GetSenderId(), senderWallet.ChipsInBank, bank.AmoutChip)
+			bank.GetSenderId(), senderWallet.ChipsInBank, bank.GetChipsInBank())
 		err = errors.New("Sender amout chip smaller than amout chip request send gift")
 		return nil, err
 	}
 
 	senderNewWallet := Wallet{}
-	senderNewWallet.ChipsInBank = -bank.AmoutChip - bank.AmountFee
-	err = AddChipWalletUser(ctx, nk, logger,
+	senderNewWallet.ChipsInBank = -bank.ChipsInBank - bank.AmountFee
+	newSenderBank := pb.Bank{
+		SenderId:    bank.GetSenderId(),
+		RecipientId: bank.GetRecipientId(),
+		Chips:       0,
+		ChipsInBank: senderNewWallet.ChipsInBank,
+		Action:      pb.Bank_ACTION_SEND_GIFT,
+	}
+	err = updateBank(ctx, nk, logger,
 		bank.GetSenderId(),
-		senderNewWallet,
-		"send_gift")
+		&newSenderBank)
 	if err != nil {
 		logger.Error("Update wallet sender %s error: %s", bank.GetSenderId(), err.Error())
 		return nil, err
 	}
 	reciverNewWallet := Wallet{}
-	reciverNewWallet.ChipsInBank = bank.AmoutChip
+	reciverNewWallet.ChipsInBank = bank.ChipsInBank
+	newRecvBank := pb.Bank{
+		SenderId:    bank.GetSenderId(),
+		RecipientId: bank.GetRecipientId(),
+		Chips:       0,
+		ChipsInBank: reciverNewWallet.ChipsInBank,
+		Action:      pb.Bank_ACTION_RECV_GIFT,
+	}
 	// add chip recv wallet
-	err = AddChipWalletUser(ctx, nk, logger,
+	err = updateBank(ctx, nk, logger,
 		bank.GetRecipientId(),
-		reciverNewWallet,
-		"recv_gift")
+		&newRecvBank)
 	if err != nil {
 		logger.Error("Update wallet recv %s error: %s", bank.GetSenderId(), err.Error())
 		// revert sender wallet
-		revertSenderWallet := Wallet{}
-		revertSenderWallet.ChipsInBank = -senderNewWallet.ChipsInBank
-		if e := AddChipWalletUser(ctx, nk, logger,
+		newSenderBank.Action = pb.Bank_ACTION_REVERT_SEND_GIF
+		newRecvBank.ChipsInBank *= -1
+		if e := updateBank(ctx, nk, logger,
 			bank.GetSenderId(),
-			revertSenderWallet,
-			"send_gift_revert"); e != nil {
+			&newRecvBank,
+		); e != nil {
 			logger.Error("Revert sender wallet %s error:%s", bank.GetSenderId(), e.Error())
 		}
 		return nil, err
 	}
 	logger.Info("Sender %s, send %d chips --> recv %s, fee %d (%d chips)",
-		bank.GetSenderId(), bank.AmoutChip,
+		bank.GetSenderId(), bank.GetChips(),
 		bank.RecipientId, bank.PercenFee, bank.AmountFee)
-	return nil, nil
+	newSenderBank.ChipsInBank = senderNewWallet.ChipsInBank - newSenderBank.ChipsInBank
+	return &newSenderBank, nil
 }
 
 func BankHistory(logger runtime.Logger, nk runtime.NakamaModule, userID string, limit, offset int64) {
+}
+
+func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userId string, bank *pb.Bank) error {
+	metadata := make(map[string]interface{})
+	metadata["bank_action"] = bank.GetAction().String()
+	metadata["sender"] = bank.GetSenderId()
+	metadata["recv"] = bank.GetRecipientId()
+	wallet := Wallet{
+		Chips:       bank.GetChips(),
+		ChipsInBank: bank.GetChipsInBank(),
+	}
+	return AddChipWalletUser(ctx, nk, logger, userId, wallet, metadata)
 }

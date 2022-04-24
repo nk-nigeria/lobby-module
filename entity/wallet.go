@@ -41,7 +41,7 @@ func ReadWalletUsers(ctx context.Context, nk runtime.NakamaModule, logger runtim
 	return wallets, nil
 }
 
-func AddChipWalletUser(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userID string, wallet Wallet, reason string) error {
+func AddChipWalletUser(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userID string, wallet Wallet, metadata map[string]interface{}) error {
 	changeset := map[string]int64{}
 	if wallet.Chips != 0 {
 		changeset["chips"] = wallet.Chips // Add amountChip coins to the user's wallet.
@@ -49,12 +49,9 @@ func AddChipWalletUser(ctx context.Context, nk runtime.NakamaModule, logger runt
 	if wallet.ChipsInBank != 0 {
 		changeset["chipsInBank"] = wallet.ChipsInBank // Add amountChip coins to the user's wallet.
 	}
-	if reason == "" {
-		reason = "add_chip"
-	}
-	metadata := map[string]interface{}{
-		"game_topup": reason,
-	}
+	// metadata := map[string]interface{}{
+	// 	"game_topup": reason,
+	// }
 
 	_, _, err := nk.WalletUpdate(ctx, userID, changeset, metadata, true)
 	if err != nil {
