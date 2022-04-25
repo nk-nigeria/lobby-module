@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"strconv"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
@@ -73,5 +75,44 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			return "", err
 		}
 		return "", nil
+	}
+}
+
+func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+		queryParms, ok := ctx.Value(runtime.RUNTIME_CTX_QUERY_PARAMS).(map[string][]string)
+		if !ok {
+			queryParms = make(map[string][]string)
+		}
+		limit := 100
+		if arr := queryParms["limit"]; len(arr) > 0 {
+			if l, err := strconv.Atoi(arr[0]); err == nil {
+				limit = l
+			}
+		}
+		cusor := ""
+		if arr := queryParms["cusor"]; len(arr) > 0 {
+			cusor = arr[0]
+		}
+		list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)
+		if err != nil {
+			logger.Error("WalletLedgerList  user: %s, error: %s", userID, err.Error())
+			return "", err
+		}
+		// logger.Info("String return %s", str)
+		walletTrans := entity.WalletTransaction{
+			Transactions: list,
+			Cusor:        cusor,
+		}
+		walletTransStr, err := json.Marshal(walletTrans)
+		if err != nil {
+			logger.Error("Marshal list wallet error %s", err.Error())
+			return "", err
+		}
+		return string(walletTransStr), nil
 	}
 }

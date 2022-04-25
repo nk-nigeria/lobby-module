@@ -14,6 +14,11 @@ type Wallet struct {
 	ChipsInBank int64 `json:"chipsInbank"`
 }
 
+type WalletTransaction struct {
+	Transactions []runtime.WalletLedgerItem
+	Cusor        string
+}
+
 func ParseWallet(payload string) (Wallet, error) {
 	w := Wallet{}
 	err := json.Unmarshal([]byte(payload), &w)
