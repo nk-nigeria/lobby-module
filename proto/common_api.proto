@@ -42,3 +42,12 @@ message GameListResponse {
 message BetListRequest {
   string code = 1;
 }
+
+message BetListResponse {
+    repeated int32 bets = 1;
+}
+
+message TokenAuth {
+    string token = 1;
+    string refresh_token = 2;
+}

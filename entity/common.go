@@ -4,6 +4,17 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
+const (
+	ModuleName          = "lobby"
+	MIN_LENGTH_PASSWORD = 6
+)
+
+type CustomUser struct {
+	Id       string
+	UserId   string
+	UserName string
+}
+
 type Games struct {
 	List []Game `json:"games"`
 }
