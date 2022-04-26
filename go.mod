@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/gofrs/uuid v4.0.0+incompatible
-	github.com/golang/protobuf v1.5.0
 	github.com/heroiclabs/nakama-common v1.15.0
 	github.com/jackc/pgconn v1.8.1
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451

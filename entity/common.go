@@ -5,7 +5,6 @@ import (
 )
 
 const (
-	ModuleName          = "lobby"
 	MIN_LENGTH_PASSWORD = 6
 )
 
