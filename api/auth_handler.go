@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/gofrs/uuid"
 
@@ -160,4 +161,25 @@ func AfterAuthenticateCustom(ctx context.Context, logger runtime.Logger, db *sql
 	// 	logger.Error(err.Error())
 	// }
 	return nil
+}
+
+func RpcUserChangePass(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+		request := &pb.User{}
+		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			logger.Error("unmarshal create match error %v", err)
+			return "", presenter.ErrUnmarshal
+		}
+		err := cgbdb.ChangePasswordUser(ctx, logger, db,
+			userId, request.GetUserName(), request.GetOldPassword(), request.GetPassword())
+		if err != nil {
+			logger.Error("Change password user %s, userName request %s error: %s", userId, request.GetUserName(), err.Error())
+			return "", err
+		}
+		return "", nil
+	}
 }
