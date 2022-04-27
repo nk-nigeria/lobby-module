@@ -57,3 +57,30 @@ message User {
   string password = 2;
   string old_password = 3;
 }
+
+enum TypeChat {
+  TYPE_CHAT_UNSPECIFIED = 0;
+  TYPE_CHAT_ROOM = 1;
+  TYPE_CHAT_DIRECTMSG = 2;
+  TYPE_CHAT_GROUUP = 3;
+
+}
+message Chat {
+  TypeChat type_chat = 1;
+  string id = 2;
+  string content = 3; 
+}
+
+message Profile {
+  string user_id = 1;
+  string user_name = 2;
+  string avatar_url = 3;
+  string status = 4;
+  int64 account_chip = 5;
+  int64 bank_chip = 6;
+  string ref_code = 7;
+  string lang_tag = 8;
+  string link_group = 9;
+  string link_fanpage_fb = 10;
+  string app_config = 11;
+}
