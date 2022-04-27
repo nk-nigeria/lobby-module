@@ -29,6 +29,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
 		}
+
 		dataString, err := marshaler.Marshal(profile)
 		if err != nil {
 			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
@@ -73,7 +74,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		// 		logger.Error("Presgin Avatar url failed:", err.Error())
 		// 	}
 		// }
-		err := nk.AccountUpdateId(ctx, userID, "", metadata, "", "", "", profile.LangTag, profile.AvatarUrl)
+		err := nk.AccountUpdateId(ctx, userID, "", metadata, profile.GetUserName(), "", "", profile.LangTag, profile.AvatarUrl)
 		if err != nil {
 			logger.Error("Update userid %s error: %s", userID, err.Error())
 			return "", err
@@ -153,7 +154,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 	// todo read account chip, bank chip
 	profile := pb.Profile{
 		UserId:   account.GetId(),
-		UserName: account.GetUsername(),
+		UserName: account.GetDisplayName(),
 		// AvatarUrl:     account.GetAvatarUrl(),
 		LangTag:       account.GetLangTag(),
 		Status:        entity.InterfaceToString(metadata["status"]),
@@ -161,6 +162,9 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
+	}
+	if profile.GetUserName() == "" {
+		profile.UserName = account.Username
 	}
 	if account.GetAvatarUrl() != "" {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
