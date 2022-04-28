@@ -16,13 +16,13 @@ import (
 )
 
 const (
-	rpcIdGameList		= "list_game"
-	rpcIdFindMatch		= "find_match"
-	rpcIdCreateMatch	= "create_match"
+	rpcIdGameList    = "list_game"
+	rpcIdFindMatch   = "find_match"
+	rpcIdCreateMatch = "create_match"
 
-	rpcIdListBet		= "list_bet"
+	rpcIdListBet = "list_bet"
 
-	rpcUserChangePass	= "user_change_pass"
+	rpcUserChangePass = "user_change_pass"
 
 	rpcGetProfile     = "get_profile"
 	rpcUpdateProfile  = "update_profile"
@@ -213,9 +213,9 @@ func InitListBet(marshaler *protojson.MarshalOptions, ctx context.Context, logge
 }
 
 const (
-	MinioHost      = "172.17.0.1:9000"
+	MinioHost      = "103.226.250.195:9000"
 	MinioKey       = "minio"
-	MinioAccessKey = "12345678"
+	MinioAccessKey = "minioadmin"
 )
 
 func InitObjectStorage(logger runtime.Logger) (objectstorage.ObjStorage, error) {
