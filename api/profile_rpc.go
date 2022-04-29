@@ -30,6 +30,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", err
 		}
 
+		marshaler.EmitUnpopulated = true
 		dataString, err := marshaler.Marshal(profile)
 		if err != nil {
 			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
@@ -64,6 +65,9 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if profile.AppConfig != "" {
 			metadata["app_config"] = profile.AppConfig
 		}
+		if profile.AvatarId != "" {
+			metadata["avatar_id"] = profile.AvatarId
+		}
 		// avatarFileName := profile.GetAvatarUrl()
 		// avatarPresignGet := ""
 		// if avatarFileName != "" {
@@ -81,6 +85,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		}
 
 		newProfile, err := GetProfileUser(ctx, nk, userID, objStorage)
+		marshaler.EmitUnpopulated = true
 		dataString, err := marshaler.Marshal(newProfile)
 		if err != nil {
 			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
@@ -162,6 +167,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
+		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
 	}
 	if profile.GetUserName() == "" {
 		profile.UserName = account.Username

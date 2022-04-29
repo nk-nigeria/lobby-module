@@ -83,4 +83,5 @@ message Profile {
   string link_group = 9;
   string link_fanpage_fb = 10;
   string app_config = 11;
+  string avatar_id=12;
 }
