@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"strconv"
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -12,7 +11,6 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
 const (
@@ -23,6 +21,7 @@ const (
 	rpcIdListBet = "list_bet"
 
 	rpcUserChangePass = "user_change_pass"
+	rpcLinkUsername   = "link_username"
 
 	rpcGetProfile     = "get_profile"
 	rpcUpdateProfile  = "update_profile"
@@ -40,8 +39,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	unmarshaler := &protojson.UnmarshalOptions{
 		DiscardUnknown: false,
 	}
-	InitListGame(marshaler, ctx, logger, nk)
-	InitListBet(marshaler, ctx, logger, nk)
+
+	api.InitListGame(ctx, logger, nk)
+	api.InitListBet(ctx, logger, nk)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -70,7 +70,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	initializer.RegisterBeforeAuthenticateCustom(api.BeforeAuthenticateCustom)
+	if err := initializer.RegisterRpc(rpcLinkUsername, api.RpcLinkUsername(marshaler, unmarshaler)); err != nil {
+		return err
+	}
 
 	if err := initializer.RegisterRpc(rpcGetProfile, api.RpcGetProfile(marshaler, unmarshaler, objStorage)); err != nil {
 		return err
@@ -103,113 +105,6 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
 	return nil
-}
-
-func InitListGame(marshaler *protojson.MarshalOptions, ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
-	objectIds := []*runtime.StorageRead{
-		{
-			Collection: "lobby_1",
-			Key:        "list_game",
-		},
-	}
-	objects, err := nk.StorageRead(ctx, objectIds)
-	if err != nil {
-		logger.Error("Error when read list game at init, error %s", err.Error())
-	}
-
-	// check list game has write in collection
-	if len(objects) > 0 {
-		logger.Info("List game already write in collection")
-		return
-	}
-	writeObjects := []*runtime.StorageWrite{}
-	games := []*pb.Game{}
-	for i := 1; i <= 4; i++ {
-		for j := 1; j <= 4; j++ {
-			game := &pb.Game{
-				Code:    "GAME_" + strconv.Itoa(i*10+j),
-				Active:  i%2 == 0,
-				LobbyId: strconv.Itoa(i + j),
-				Layout: &pb.Layout{
-					Col:     int32(i),
-					Row:     int32(j),
-					ColSpan: 2,
-					RowSpan: 2,
-				},
-			}
-			games = append(games, game)
-		}
-	}
-	gameJson, err := marshaler.Marshal(&pb.GameListResponse{
-		Games: games,
-	})
-	if err != nil {
-		logger.Debug("Can not marshaler list game for collection")
-		return
-	}
-	w := &runtime.StorageWrite{
-		Collection:      "lobby_1",
-		Key:             "list_game",
-		Value:           string(gameJson),
-		PermissionRead:  2,
-		PermissionWrite: 0,
-	}
-	writeObjects = append(writeObjects, w)
-	if len(writeObjects) == 0 {
-		logger.Debug("Can not generate list game for collection")
-		return
-	}
-	_, err = nk.StorageWrite(ctx, writeObjects)
-	if err != nil {
-		logger.Error("Write list game for collection error %s", err.Error())
-	}
-}
-
-func InitListBet(marshaler *protojson.MarshalOptions, ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
-	objectIds := []*runtime.StorageRead{
-		{
-			Collection: "bets",
-			Key:        "chinese-poker",
-		},
-	}
-	objects, err := nk.StorageRead(ctx, objectIds)
-	if err != nil {
-		logger.Error("Error when read list game at init, error %s", err.Error())
-	}
-
-	// check list game has write in collection
-	if len(objects) > 0 {
-		logger.Info("List game already write in collection")
-		return
-	}
-	writeObjects := []*runtime.StorageWrite{}
-	var bets []int32
-	for i := int32(1); i <= 10; i++ {
-		bets = append(bets, i)
-	}
-	gameJson, err := marshaler.Marshal(&pb.BetListResponse{
-		Bets: bets,
-	})
-	if err != nil {
-		logger.Debug("Can not marshaler list game for collection")
-		return
-	}
-	w := &runtime.StorageWrite{
-		Collection:      "bets",
-		Key:             "chinese-poker",
-		Value:           string(gameJson),
-		PermissionRead:  2,
-		PermissionWrite: 0,
-	}
-	writeObjects = append(writeObjects, w)
-	if len(writeObjects) == 0 {
-		logger.Debug("Can not generate list game for collection")
-		return
-	}
-	_, err = nk.StorageWrite(ctx, writeObjects)
-	if err != nil {
-		logger.Error("Write list game for collection error %s", err.Error())
-	}
 }
 
 const (
