@@ -46,14 +46,3 @@ message BetListRequest {
 message BetListResponse {
   repeated int32 bets = 1;
 }
-
-message TokenAuth {
-  string token = 1;
-  string refresh_token = 2;
-}
-
-message User {
-  string user_name = 1;
-  string password = 2;
-  string old_password = 3;
-}
