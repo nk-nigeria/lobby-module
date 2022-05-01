@@ -46,3 +46,16 @@ message BetListRequest {
 message BetListResponse {
   repeated int32 bets = 1;
 }
+
+enum TypeChat {
+  TYPE_CHAT_UNSPECIFIED = 0;
+  TYPE_CHAT_ROOM = 1;
+  TYPE_CHAT_DIRECTMSG = 2;
+  TYPE_CHAT_GROUUP = 3;
+}
+
+message Chat {
+  TypeChat type_chat = 1;
+  string id = 2;
+  string content = 3;
+}

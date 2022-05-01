@@ -5,6 +5,10 @@ import (
 )
 
 const (
+	ModuleName = "lobby"
+)
+
+const (
 	MIN_LENGTH_PASSWORD = 6
 )
 
@@ -49,4 +53,22 @@ type Layout struct {
 	Row     int32 `json:"row"`
 	ColSpan int32 `json:"colSpan"`
 	RowSpan int32 `json:"rowSpan"`
+}
+
+const (
+	BucketAvatar   = "avatar"
+	AvatarFileName = "%s_image"
+	LinkFanpageFB  = "https://www.facebook.com/"
+	LinkGroupFB    = "https://www.facebook.com/"
+)
+
+func InterfaceToString(inf interface{}) string {
+	if inf == nil {
+		return ""
+	}
+	str, ok := inf.(string)
+	if !ok {
+		return ""
+	}
+	return str
 }
