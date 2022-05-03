@@ -24,7 +24,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", errors.New("Missing user ID.")
 		}
 
-		profile, err := GetProfileUser(ctx, nk, userID, objStorage)
+		profile, _, err := GetProfileUser(ctx, nk, userID, objStorage)
 		if err != nil {
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
@@ -50,7 +50,13 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		metadata := make(map[string]interface{}, 0)
+		// metadata := make(map[string]interface{}, 0)
+		_, metadata, err := GetProfileUser(ctx, nk, userID, objStorage)
+		if err != nil {
+			logger.Error("get profile user %s, error: %s", userID, err.Error())
+			return "", err
+		}
+		// metadata = currentProfile.GetUserName()
 		if profile.Status != "" {
 			str := profile.Status
 			// max len status is 255 character
@@ -78,13 +84,13 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		// 		logger.Error("Presgin Avatar url failed:", err.Error())
 		// 	}
 		// }
-		err := nk.AccountUpdateId(ctx, userID, "", metadata, profile.GetUserName(), "", "", profile.LangTag, profile.AvatarUrl)
+		err = nk.AccountUpdateId(ctx, userID, "", metadata, profile.GetUserName(), "", "", profile.LangTag, profile.AvatarUrl)
 		if err != nil {
 			logger.Error("Update userid %s error: %s", userID, err.Error())
 			return "", err
 		}
 
-		newProfile, err := GetProfileUser(ctx, nk, userID, objStorage)
+		newProfile, _, err := GetProfileUser(ctx, nk, userID, objStorage)
 		marshaler.EmitUnpopulated = true
 		dataString, err := marshaler.Marshal(newProfile)
 		if err != nil {
@@ -142,18 +148,18 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 	}
 }
 
-func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, error) {
+func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
 	accounts, err := nk.UsersGetId(ctx, []string{userID}, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(accounts) == 0 {
-		return nil, errors.New("List account empty.")
+		return nil, nil, errors.New("List account empty.")
 	}
 	account := accounts[0]
 	var metadata map[string]interface{}
 	if err := json.Unmarshal([]byte(account.GetMetadata()), &metadata); err != nil {
-		return nil, errors.New("Corrupted user metadata.")
+		return nil, nil, errors.New("Corrupted user metadata.")
 	}
 
 	// todo read account chip, bank chip
@@ -178,5 +184,5 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
 		profile.AvatarUrl = avatatUrl
 	}
-	return &profile, nil
+	return &profile, metadata, nil
 }
