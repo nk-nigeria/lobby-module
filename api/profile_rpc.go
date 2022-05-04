@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -158,9 +159,8 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:   account.GetId(),
-		UserName: account.GetDisplayName(),
-		// AvatarUrl:     account.GetAvatarUrl(),
+		UserId:        account.GetId(),
+		UserName:      account.GetUsername(),
 		LangTag:       account.GetLangTag(),
 		Status:        entity.InterfaceToString(metadata["status"]),
 		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
@@ -169,9 +169,13 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		LinkFanpageFb: entity.LinkFanpageFB,
 		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
 	}
-	if profile.GetUserName() == "" {
-		profile.UserName = account.Username
+
+	if strings.HasPrefix(entity.AutoPrefix, profile.UserName) {
+		profile.Registrable = true
+	} else {
+		profile.Registrable = false
 	}
+
 	if account.GetAvatarUrl() != "" {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
 		objName := account.GetAvatarUrl()
