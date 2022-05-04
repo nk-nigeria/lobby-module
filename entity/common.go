@@ -6,6 +6,7 @@ import (
 
 const (
 	ModuleName = "lobby"
+	AutoPrefix = "CGP"
 )
 
 const (

@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
+	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -29,9 +32,20 @@ const (
 	rpcUpdateAvatar   = "update_avatar"
 )
 
+var (
+	node *snowflake.Node
+)
+
 //noinspection GoUnusedExportedFunction
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 	initStart := time.Now()
+
+	var err error
+	node, err = snowflake.NewNode(1)
+	if err != nil {
+		logger.Error("error init node", err)
+		return err
+	}
 
 	marshaler := &protojson.MarshalOptions{
 		UseEnumNumbers: true,
@@ -75,6 +89,16 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcGetProfile, api.RpcGetProfile(marshaler, unmarshaler, objStorage)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
+		if in.Username == "" {
+			newID := node.Generate().Int64()
+			in.Username = fmt.Sprintf("%s.%d", entity.AutoPrefix, newID)
+		}
+		return in, nil
+	}); err != nil {
 		return err
 	}
 
