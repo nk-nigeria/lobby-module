@@ -170,7 +170,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
 	}
 
-	if strings.HasPrefix(entity.AutoPrefix, profile.UserName) {
+	if strings.HasPrefix(profile.UserName, entity.AutoPrefix) {
 		profile.Registrable = true
 	} else {
 		profile.Registrable = false
