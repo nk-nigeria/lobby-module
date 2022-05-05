@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/heroiclabs/nakama-common v1.15.0
 	github.com/jackc/pgconn v1.8.1 // indirect

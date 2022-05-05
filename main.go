@@ -34,7 +34,7 @@ const (
 	rpcPushToBank        = "push_to_bank"
 	rpcWithDraw          = "with_draw"
 	rpcBankSendGift      = "send_gift"
-	rpcWalletTransaction = "wallet_transaction"
+	rpcWalletTransaction = "bank_transaction"
 )
 
 var (
