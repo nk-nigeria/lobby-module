@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	ModuleName = "lobby"
-	AutoPrefix = "CGP"
+	ModuleName         = "lobby"
+	AutoPrefix         = "CGPD"
+	AutoPrefixFacebook = "CGPF"
 )
 
 const (

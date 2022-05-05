@@ -93,9 +93,20 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
+		newID := node.Generate().Int64()
+		if in.Username == "" {
+			in.Username = fmt.Sprintf("%s.%d", entity.AutoPrefix, newID)
+		}
+
+		return in, nil
+	}); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterBeforeAuthenticateFacebook(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateFacebookRequest) (*nkapi.AuthenticateFacebookRequest, error) {
 		if in.Username == "" {
 			newID := node.Generate().Int64()
-			in.Username = fmt.Sprintf("%s.%d", entity.AutoPrefix, newID)
+			in.Username = fmt.Sprintf("%s.%d", entity.AutoPrefixFacebook, newID)
 		}
 		return in, nil
 	}); err != nil {
