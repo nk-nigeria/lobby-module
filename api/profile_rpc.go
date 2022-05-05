@@ -168,12 +168,17 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		UserId:        account.GetId(),
 		UserName:      account.GetUsername(),
 		LangTag:       account.GetLangTag(),
+		DisplayName:   account.GetDisplayName(),
 		Status:        entity.InterfaceToString(metadata["status"]),
 		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
 		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
 		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
+	}
+
+	if profile.DisplayName == "" {
+		profile.DisplayName = profile.UserName
 	}
 
 	if strings.HasPrefix(profile.UserName, entity.AutoPrefix) {
