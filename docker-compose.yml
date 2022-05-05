@@ -9,7 +9,7 @@ services:
     expose:
       - "8080"
       - "5432"
-    image: postgres:12.2-alpine
+    image: postgres:14.2-alpine
     ports:
       - "5432:5432"
       - "8080:8080"
@@ -44,5 +44,27 @@ services:
       - "7351:7351"
     restart: unless-stopped
 
+  minio:
+    command: server --console-address ":9001" /data
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE
+      - MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG
+    expose:
+      - "9000"
+      - "9001"
+    image: quay.io/minio/minio:RELEASE.2022-04-26T01-20-24Z
+    ports:
+      - "9000:9000"
+      - "9001:9001"   
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    volumes:
+      - data-minio:/data
+
 volumes:
-  data:
+  data:  
+  data-minio:
