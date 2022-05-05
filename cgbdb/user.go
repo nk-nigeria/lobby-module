@@ -77,7 +77,7 @@ func LinkUsername(ctx context.Context, logger runtime.Logger, db *sql.DB, userID
 		return status.Error(codes.InvalidArgument, "Invalid username, no spaces or control characters allowed.")
 	} else if len(password) < 8 {
 		return status.Error(codes.InvalidArgument, "Password must be at least 8 characters long.")
-	} else if len(username) < 10 || len(username) > 255 {
+	} else if len(username) < 8 || len(username) > 255 {
 		return status.Error(codes.InvalidArgument, "Invalid username address, must be 10-255 bytes.")
 	}
 
