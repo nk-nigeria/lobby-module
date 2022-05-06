@@ -150,25 +150,23 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 }
 
 func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
-	accounts, err := nk.UsersGetId(ctx, []string{userID}, nil)
+	account, err := nk.AccountGetId(ctx, userID)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(accounts) == 0 {
-		return nil, nil, errors.New("List account empty.")
-	}
-	account := accounts[0]
+
 	var metadata map[string]interface{}
-	if err := json.Unmarshal([]byte(account.GetMetadata()), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
 		return nil, nil, errors.New("Corrupted user metadata.")
 	}
 
+	user := account.User
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:        account.GetId(),
-		UserName:      account.GetUsername(),
-		LangTag:       account.GetLangTag(),
-		DisplayName:   account.GetDisplayName(),
+		UserId:        user.GetId(),
+		UserName:      user.GetUsername(),
+		LangTag:       user.GetLangTag(),
+		DisplayName:   user.GetDisplayName(),
 		Status:        entity.InterfaceToString(metadata["status"]),
 		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
 		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
@@ -187,11 +185,19 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		profile.Registrable = false
 	}
 
-	if account.GetAvatarUrl() != "" {
+	if user.GetAvatarUrl() != "" {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
-		objName := account.GetAvatarUrl()
+		objName := user.GetAvatarUrl()
 		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
 		profile.AvatarUrl = avatatUrl
 	}
+
+	if account.GetWallet() != "" {
+		wallet, err := entity.ParseWallet(account.GetWallet())
+		if err == nil {
+			profile.AccountChip = wallet.Chips
+		}
+	}
+
 	return &profile, metadata, nil
 }
