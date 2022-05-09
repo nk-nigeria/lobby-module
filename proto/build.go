@@ -17,3 +17,4 @@ package api
 //go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative common_api.proto
 //go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative match_api.proto
 //go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative auth_api.proto
+//go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative wallet.proto

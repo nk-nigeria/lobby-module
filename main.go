@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
