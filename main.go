@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -30,6 +29,11 @@ const (
 	rpcUpdateProfile  = "update_profile"
 	rpcUpdatePassword = "update_password"
 	rpcUpdateAvatar   = "update_avatar"
+
+	rpcPushToBank        = "push_to_bank"
+	rpcWithDraw          = "with_draw"
+	rpcBankSendGift      = "send_gift"
+	rpcWalletTransaction = "wallet_transaction"
 )
 
 var (
@@ -77,6 +81,20 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcPushToBank, api.RpcPushToBank(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcWithDraw, api.RpcWithDraw(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcBankSendGift, api.RpcBankSendGift(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcWalletTransaction, api.RpcWalletTransaction(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

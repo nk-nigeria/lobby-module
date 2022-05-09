@@ -20,42 +20,51 @@ package api;
 option go_package = "github.com/ciaolink-game-platform/cgp-common-module/api";
 
 message Game {
-  string code = 1;
-  bool active = 2;
-  string lobby_id = 3;
-  Layout layout = 4;
+    string code = 1;
+    bool active = 2;
+    string lobby_id = 3;
+    Layout layout = 4;
+
 }
 
 message Layout {
-  int32 col = 1;
-  int32 row = 2;
-  int32 col_span = 3;
-  int32 row_span = 4;
+    int32 col = 1;
+    int32 row = 2;
+    int32 col_span = 3;
+    int32 row_span = 4;
 }
 
-message GameListRequest {}
+message GameListRequest {
+}
 
 message GameListResponse {
-  repeated Game games = 1;
+    repeated Game games = 1;
 }
 
 message BetListRequest {
-  string code = 1;
+    string code = 1;
 }
 
 message BetListResponse {
-  repeated int32 bets = 1;
+    repeated int32 bets = 1;
 }
 
-enum TypeChat {
-  TYPE_CHAT_UNSPECIFIED = 0;
-  TYPE_CHAT_ROOM = 1;
-  TYPE_CHAT_DIRECTMSG = 2;
-  TYPE_CHAT_GROUUP = 3;
-}
-
-message Chat {
-  TypeChat type_chat = 1;
-  string id = 2;
-  string content = 3;
+message Bank {
+    string sender_id = 1;
+    string recipient_id = 2;
+    int64 chips = 3;
+    int64 chips_in_bank = 4;
+    enum Action {
+        ACTION_UNSPECIFIED = 0;
+        ACTION_SEND_GIFT = 1;
+        ACTION_RECV_GIFT = 2;
+        ACTION_REVERT_SEND_GIF = 3;
+        ACTION_PUSH_TO_SAFE = 4;
+        ACTION_WITHDRAW = 5;
+    }
+    Action action = 5;
+    int64 balance_prev = 6;
+    int64 balance_curr = 7;
+    int64 percen_fee = 8;
+    int64 amount_fee = 9;
 }
