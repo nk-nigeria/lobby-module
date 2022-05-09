@@ -15,8 +15,8 @@ type Wallet struct {
 }
 
 type WalletTransaction struct {
-	Transactions []runtime.WalletLedgerItem
-	Cusor        string
+	Transactions []runtime.WalletLedgerItem `json:"transactions"`
+	Cusor        string                     `json:"cusor"`
 }
 
 func ParseWallet(payload string) (Wallet, error) {

@@ -7,8 +7,10 @@ import (
 	"strconv"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -98,7 +100,9 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 		if arr := queryParms["cusor"]; len(arr) > 0 {
 			cusor = arr[0]
 		}
-		list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)
+		userUuid, _ := uuid.FromString(userID)
+		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, &limit, cusor)
+		// list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)
 		if err != nil {
 			logger.Error("WalletLedgerList  user: %s, error: %s", userID, err.Error())
 			return "", err

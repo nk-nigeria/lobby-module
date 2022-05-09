@@ -175,6 +175,8 @@ func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Log
 	metadata["bank_action"] = bank.GetAction().String()
 	metadata["sender"] = bank.GetSenderId()
 	metadata["recv"] = bank.GetRecipientId()
+	metadata["action"] = "bank_topup"
+
 	wallet := Wallet{
 		Chips:       bank.GetChips(),
 		ChipsInBank: bank.GetChipsInBank(),
