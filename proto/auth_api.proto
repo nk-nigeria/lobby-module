@@ -30,4 +30,5 @@ message Profile {
   string app_config = 12;
   string avatar_id =13;
   bool registrable = 14;
+  int64 vip_level = 15;
 }

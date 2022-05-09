@@ -18,6 +18,8 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
+const DefaultLevel = 1
+
 func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -150,31 +152,30 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 }
 
 func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
-	accounts, err := nk.UsersGetId(ctx, []string{userID}, nil)
+	account, err := nk.AccountGetId(ctx, userID)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(accounts) == 0 {
-		return nil, nil, errors.New("List account empty.")
-	}
-	account := accounts[0]
+
 	var metadata map[string]interface{}
-	if err := json.Unmarshal([]byte(account.GetMetadata()), &metadata); err != nil {
+	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
 		return nil, nil, errors.New("Corrupted user metadata.")
 	}
 
+	user := account.User
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:        account.GetId(),
-		UserName:      account.GetUsername(),
-		LangTag:       account.GetLangTag(),
-		DisplayName:   account.GetDisplayName(),
+		UserId:        user.GetId(),
+		UserName:      user.GetUsername(),
+		LangTag:       user.GetLangTag(),
+		DisplayName:   user.GetDisplayName(),
 		Status:        entity.InterfaceToString(metadata["status"]),
 		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
 		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
 		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
+		VipLevel:      entity.ToInt64(metadata["vip_level"], DefaultLevel),
 	}
 
 	if profile.DisplayName == "" {
@@ -187,11 +188,19 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		profile.Registrable = false
 	}
 
-	if account.GetAvatarUrl() != "" {
+	if user.GetAvatarUrl() != "" {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
-		objName := account.GetAvatarUrl()
+		objName := user.GetAvatarUrl()
 		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
 		profile.AvatarUrl = avatatUrl
 	}
+
+	if account.GetWallet() != "" {
+		wallet, err := entity.ParseWallet(account.GetWallet())
+		if err == nil {
+			profile.AccountChip = wallet.Chips
+		}
+	}
+
 	return &profile, metadata, nil
 }
