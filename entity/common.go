@@ -74,3 +74,14 @@ func InterfaceToString(inf interface{}) string {
 	}
 	return str
 }
+
+func ToInt64(inf interface{}, def int64) int64 {
+	if inf == nil {
+		return def
+	}
+	i, ok := inf.(int64)
+	if !ok {
+		return def
+	}
+	return i
+}

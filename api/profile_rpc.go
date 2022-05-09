@@ -18,6 +18,8 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
+const DefaultLevel = 1
+
 func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -173,6 +175,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		LinkGroup:     entity.LinkGroupFB,
 		LinkFanpageFb: entity.LinkFanpageFB,
 		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
+		VipLevel:      entity.ToInt64(metadata["vip_level"], DefaultLevel),
 	}
 
 	if profile.DisplayName == "" {
