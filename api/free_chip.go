@@ -1,0 +1,86 @@
+package api
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+
+	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+
+	"github.com/heroiclabs/nakama-common/runtime"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+)
+
+func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		if userID != entity.UUID_USER_SYSTEM {
+			return "", status.Error(codes.Unauthenticated, "UnAuthenticate")
+		}
+		freeChip := &pb.FreeChip{}
+		if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		err := cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
+		return "", err
+	}
+}
+
+func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		freeChip := &pb.FreeChip{}
+		if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		var err error
+		freeChip, err = cgbdb.ClaimFreeChip(ctx, logger, db, freeChip.Id, userID)
+		if err != nil {
+			return "", err
+		}
+		wallet := entity.Wallet{
+			Chips:  freeChip.Chips,
+			UserId: userID,
+		}
+		metadata := make(map[string]interface{})
+		metadata["action"] = "free_chip"
+		metadata["sender"] = freeChip.GetSenderId()
+		metadata["recv"] = freeChip.GetRecipientId()
+		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
+		if err != nil {
+			logger.Error("Add chip user %s, after claim freechip error %s", userID, err.Error())
+			return "", err
+		}
+		freeChipStr, _ := conf.Marshaler.Marshal(freeChip)
+		return string(freeChipStr), nil
+	}
+}
+
+func RpcListClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		list, err := cgbdb.GetFreeChipClaimableByUser(ctx, logger, db, userID)
+		if err != nil {
+			return "", err
+		}
+		listFreeChipStr, _ := conf.Marshaler.Marshal(list)
+		return string(listFreeChipStr), nil
+	}
+}

@@ -3,14 +3,15 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
+	"regexp"
+	"strings"
+
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"regexp"
-	"strings"
 )
 
 var (

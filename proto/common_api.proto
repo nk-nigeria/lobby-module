@@ -59,3 +59,17 @@ message Chat {
   string id = 2;
   string content = 3;
 }
+
+message FreeChip {
+  string id = 1;
+  string sender_id = 2;
+  string recipient_id = 3;
+  string title = 4;
+  string content = 5;
+  int64 chips = 6;
+  bool claimable = 7;
+}
+
+message ListFreeChip {
+  repeated FreeChip lists = 1;
+}
