@@ -40,6 +40,7 @@ const (
 	rpcAddClaimableFreeChip  = "add_claimable_freechip"
 	rpcClaimFreeChip         = "claim_freechip"
 	rpcListClaimableFreeChip = "list_claimable_freechip"
+	rpcCheckClaimFreeChip    = "check_claim_freechip"
 )
 
 var (
@@ -110,15 +111,18 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	// Free Chip
-	// if err := initializer.RegisterRpc(rpcAddClaimableFreeChip, api.RpcAddClaimableFreeChip(marshaler, unmarshaler)); err != nil {
-	// 	return err
-	// }
-	// if err := initializer.RegisterRpc(rpcClaimFreeChip, api.RpcClaimFreeChip(marshaler, unmarshaler)); err != nil {
-	// 	return err
-	// }
-	// if err := initializer.RegisterRpc(rpcListClaimableFreeChip, api.RpcListClaimableFreeChip(marshaler, unmarshaler)); err != nil {
-	// 	return err
-	// }
+	if err := initializer.RegisterRpc(rpcAddClaimableFreeChip, api.RpcAddClaimableFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcClaimFreeChip, api.RpcClaimFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListClaimableFreeChip, api.RpcListClaimableFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcCheckClaimFreeChip, api.RpcCheckClaimFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
 
 	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
 		newID := node.Generate().Int64()

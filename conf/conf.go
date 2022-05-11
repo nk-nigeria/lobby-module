@@ -6,6 +6,8 @@ import (
 )
 
 var Marshaler *protojson.MarshalOptions
+var MarshalerDefault *protojson.MarshalOptions
+
 var Unmarshaler *protojson.UnmarshalOptions
 
 var SnowlakeNode *snowflake.Node
@@ -18,6 +20,10 @@ func Init() {
 	}
 	Marshaler = &protojson.MarshalOptions{
 		UseEnumNumbers: true,
+	}
+	MarshalerDefault = &protojson.MarshalOptions{
+		EmitUnpopulated: true,
+		UseEnumNumbers:  true,
 	}
 	Unmarshaler = &protojson.UnmarshalOptions{
 		DiscardUnknown: false,
