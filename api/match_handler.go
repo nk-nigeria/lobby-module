@@ -74,12 +74,18 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				}
 
 				logger.Debug("find match %v", match.Size)
+				open := true
+				if label.Password != "" {
+					open = false
+				}
+
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
 					MatchId:  match.MatchId,
 					Size:     match.Size,
 					MaxSize:  label.MaxSize, // Get from label
 					Name:     label.Name,
 					MarkUnit: label.Bet,
+					Open:     open,
 				})
 			}
 		}
@@ -107,7 +113,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", presenter.ErrUnmarshal
 		}
 		maxSize := kDefaultMaxSize
-		query := fmt.Sprintf("+label.code:%s", request.GameCode)
+		query := fmt.Sprintf("+label.code:%s +label.open:true", request.GameCode)
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)

@@ -39,6 +39,7 @@ message Match {
   int32 max_size = 3;
   string name = 4;
   int32 mark_unit = 5;
+  bool open = 6;
 }
 
 // Payload for an RPC response containing match IDs the user can join.

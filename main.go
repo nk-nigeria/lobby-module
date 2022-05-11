@@ -20,6 +20,7 @@ const (
 	rpcIdGameList    = "list_game"
 	rpcIdFindMatch   = "find_match"
 	rpcIdCreateMatch = "create_match"
+	rpcIdQuickMatch  = "quick_match"
 
 	rpcIdListBet = "list_bet"
 
@@ -78,6 +79,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdCreateMatch, api.RpcCreateMatch(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 
