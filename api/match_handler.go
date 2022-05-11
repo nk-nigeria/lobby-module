@@ -53,7 +53,15 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		}
 
 		maxSize := kDefaultMaxSize
-		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+
+		var query string
+		if request.WithNonOpen {
+			query = fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+		} else {
+			query = fmt.Sprintf("+label.code:%s +label.bet:%d +label.open:true", request.GameCode, request.MarkUnit)
+		}
+
+		logger.Info("match query %v")
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
@@ -64,22 +72,24 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 
 		logger.Debug("find match result %v", matches)
 		if len(matches) <= 0 {
-			// No available matches found, create a new one.
-			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-				"bet":       request.MarkUnit,
-				"game_code": request.GameCode,
-			})
-			if err != nil {
-				logger.Error("error creating match: %v", err)
-				return "", presenter.ErrInternalError
+			if request.Create {
+				// No available matches found, create a new one.
+				matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
+					"bet":       request.MarkUnit,
+					"game_code": request.GameCode,
+				})
+				if err != nil {
+					logger.Error("error creating match: %v", err)
+					return "", presenter.ErrInternalError
+				}
+				resMatches.Matches = append(resMatches.Matches, &pb.Match{
+					MatchId:  matchID,
+					Size:     1,
+					MaxSize:  int32(maxSize),
+					MarkUnit: request.MarkUnit,
+					Open:     true,
+				})
 			}
-			resMatches.Matches = append(resMatches.Matches, &pb.Match{
-				MatchId:  matchID,
-				Size:     1,
-				MaxSize:  int32(maxSize),
-				MarkUnit: request.MarkUnit,
-				Open:     true,
-			})
 		} else {
 			// There are one or more ongoing matches the user could join.
 			for _, match := range matches {
