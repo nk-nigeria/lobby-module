@@ -31,7 +31,7 @@ import (
 const kDefaultMaxSize = 3
 
 type MatchLabel struct {
-	Open     int32  `json:"open"`
+	Open     bool   `json:"open"`
 	Bet      int32  `json:"bet"`
 	Code     string `json:"code"`
 	Name     string `json:"name"`
@@ -53,7 +53,15 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		}
 
 		maxSize := kDefaultMaxSize
-		query := fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+
+		var query string
+		if request.WithNonOpen {
+			query = fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+		} else {
+			query = fmt.Sprintf("+label.code:%s +label.bet:%d +label.open:true", request.GameCode, request.MarkUnit)
+		}
+
+		logger.Info("match query %v")
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
@@ -63,7 +71,26 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		}
 
 		logger.Debug("find match result %v", matches)
-		if len(matches) > 0 {
+		if len(matches) <= 0 {
+			if request.Create {
+				// No available matches found, create a new one.
+				matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
+					"bet":       request.MarkUnit,
+					"game_code": request.GameCode,
+				})
+				if err != nil {
+					logger.Error("error creating match: %v", err)
+					return "", presenter.ErrInternalError
+				}
+				resMatches.Matches = append(resMatches.Matches, &pb.Match{
+					MatchId:  matchID,
+					Size:     1,
+					MaxSize:  int32(maxSize),
+					MarkUnit: request.MarkUnit,
+					Open:     true,
+				})
+			}
+		} else {
 			// There are one or more ongoing matches the user could join.
 			for _, match := range matches {
 				var label MatchLabel
@@ -74,10 +101,6 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				}
 
 				logger.Debug("find match %v", match.Size)
-				open := true
-				if label.Password != "" {
-					open = false
-				}
 
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
 					MatchId:  match.MatchId,
@@ -85,7 +108,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 					MaxSize:  label.MaxSize, // Get from label
 					Name:     label.Name,
 					MarkUnit: label.Bet,
-					Open:     open,
+					Open:     label.Open,
 				})
 			}
 		}
@@ -116,7 +139,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		query := fmt.Sprintf("+label.code:%s +label.open:true", request.GameCode)
 
 		resMatches := &pb.RpcFindMatchResponse{}
-		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
+		matches, err := nk.MatchList(ctx, -1, true, "", nil, &maxSize, query)
 		if err != nil {
 			logger.Error("error listing matches: %v", err)
 			return "", presenter.ErrInternalError
@@ -148,10 +171,11 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			}
 			resMatches.Matches = append(resMatches.Matches, &pb.Match{
 				MatchId:  matchID,
-				Size:     0,
+				Size:     1,
 				MaxSize:  int32(maxSize),
 				Name:     request.Name,
 				MarkUnit: bets.Bets[0].MarkUnit,
+				Open:     true,
 			})
 			response, err := marshaler.Marshal(resMatches)
 			if err != nil {
