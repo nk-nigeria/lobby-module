@@ -31,7 +31,7 @@ import (
 const kDefaultMaxSize = 3
 
 type MatchLabel struct {
-	Open     bool   `json:"open"`
+	Open     int32  `json:"open"`
 	Bet      int32  `json:"bet"`
 	Code     string `json:"code"`
 	Name     string `json:"name"`
@@ -58,10 +58,10 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if request.WithNonOpen {
 			query = fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 		} else {
-			query = fmt.Sprintf("+label.code:%s +label.bet:%d +label.open:true", request.GameCode, request.MarkUnit)
+			query = fmt.Sprintf("+label.open:>0 +label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 		}
 
-		logger.Info("match query %v")
+		logger.Info("match query %v", query)
 
 		resMatches := &pb.RpcFindMatchResponse{}
 		matches, err := nk.MatchList(ctx, 10, true, "", nil, &maxSize, query)
@@ -108,7 +108,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 					MaxSize:  label.MaxSize, // Get from label
 					Name:     label.Name,
 					MarkUnit: label.Bet,
-					Open:     label.Open,
+					Open:     label.Open > 0,
 				})
 			}
 		}
