@@ -199,6 +199,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		wallet, err := entity.ParseWallet(account.GetWallet())
 		if err == nil {
 			profile.AccountChip = wallet.Chips
+			profile.BankChip = wallet.ChipsInBank
 		}
 	}
 
