@@ -71,5 +71,5 @@ message FreeChip {
 }
 
 message ListFreeChip {
-  repeated FreeChip lists = 1;
+  repeated FreeChip freechips = 1;
 }

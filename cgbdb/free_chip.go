@@ -14,7 +14,7 @@ import (
 const FreeChipTableName = "freechip"
 
 func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, freeChip *pb.FreeChip) error {
-	if freeChip == nil || freeChip.RecipientId == "" || freeChip.Chips == 0 {
+	if freeChip == nil || freeChip.RecipientId == "" || freeChip.Chips <= 0 {
 		return status.Error(codes.InvalidArgument, "Error add claimable freechip.")
 	}
 	freeChip.Id = conf.SnowlakeNode.Generate().String()
@@ -114,6 +114,40 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	}
 
 	return &pb.ListFreeChip{
-		Lists: ml,
+		Freechips: ml,
+	}, nil
+}
+
+func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB) (*pb.ListFreeChip, error) {
+
+	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " order by id desc"
+
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		logger.Error("Query lists free chip claimable user %s, error %s", err.Error())
+		return nil, status.Error(codes.Internal, "Query freechip claimable error")
+	}
+	ml := make([]*pb.FreeChip, 0)
+	var dbID, dbSenderId, dbRecvId, dbTitle, dbContent string
+	var dbChips int64
+	var dbClaimable int
+	for rows.Next() {
+		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable)
+		freeChip := pb.FreeChip{
+			Id:          dbID,
+			SenderId:    dbSenderId,
+			RecipientId: dbRecvId,
+			Title:       dbTitle,
+			Content:     dbContent,
+			Chips:       dbChips,
+		}
+		if dbClaimable == 1 {
+			freeChip.Claimable = true
+		}
+		ml = append(ml, &freeChip)
+	}
+
+	return &pb.ListFreeChip{
+		Freechips: ml,
 	}, nil
 }

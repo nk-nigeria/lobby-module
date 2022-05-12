@@ -64,10 +64,6 @@ const (
 	LinkGroupFB    = "https://www.facebook.com/"
 )
 
-const (
-	UUID_USER_SYSTEM = "00000000-0000-0000-0000-000000000000"
-)
-
 func InterfaceToString(inf interface{}) string {
 	if inf == nil {
 		return ""

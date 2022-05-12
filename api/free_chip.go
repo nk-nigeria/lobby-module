@@ -8,7 +8,9 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -29,7 +31,7 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		freeChip.SenderId = entity.UUID_USER_SYSTEM
+		freeChip.SenderId = constant.UUID_USER_SYSTEM
 		err := cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
 		if err != nil {
 			return "", err
@@ -109,5 +111,20 @@ func RpcCheckClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *pro
 
 		freeChipStr, _ := conf.MarshalerDefault.Marshal(freeChip)
 		return string(freeChipStr), nil
+	}
+}
+
+func RpcListFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if ok && userID != "" {
+			return "", errors.New("UnAth.")
+		}
+		list, err := cgbdb.GetListFreeChip(ctx, logger, db)
+		if err != nil {
+			return "", err
+		}
+		listFreeChipStr, _ := conf.MarshalerDefault.Marshal(list)
+		return string(listFreeChipStr), nil
 	}
 }
