@@ -116,11 +116,20 @@ func RpcCheckClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *pro
 
 func RpcListFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-		if ok && userID != "" {
-			return "", errors.New("UnAth.")
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		// if ok && userID != "" {
+		// 	return "", errors.New("UnAth.")
+		// }
+		freeChip := &pb.FreeChipRequest{}
+		if payload != "" {
+			if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
+				logger.Error("Error when unmarshal payload", err.Error())
+				return "", presenter.ErrUnmarshal
+			}
 		}
-		list, err := cgbdb.GetListFreeChip(ctx, logger, db)
+		logger.Info("User id %s", userID)
+		list, err := cgbdb.GetListFreeChip(ctx, logger, db,
+			freeChip.UserId, freeChip.Limit, freeChip.Cusor)
 		if err != nil {
 			return "", err
 		}

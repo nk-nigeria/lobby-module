@@ -61,7 +61,7 @@ message Chat {
 }
 
 message FreeChip {
-  string id = 1;
+  int64 id = 1;
   string sender_id = 2;
   string recipient_id = 3;
   string title = 4;
@@ -70,6 +70,17 @@ message FreeChip {
   bool claimable = 7;
 }
 
+message FreeChipRequest {
+  string user_id=1;
+  int64 limit = 2;
+  string cusor = 3;
+}
+
 message ListFreeChip {
   repeated FreeChip freechips = 1;
+  string next_cusor = 2;
+  string prev_cusor = 3;
+  int64 total = 4;
+  int64 offset = 5;
+  int64 limit = 6;
 }
