@@ -271,7 +271,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 	var nextCursor *entity.FreeChipListCursor
 	var prevCursor *entity.FreeChipListCursor
 	if len(ml) > 0 {
-		if incomingCursor.Total <= 0 || len(ml)+int(incomingCursor.Offset) < int(incomingCursor.Total) {
+		if len(ml)+int(incomingCursor.Offset) < int(total) {
 			nextCursor = &entity.FreeChipListCursor{
 				UserId: userId,
 				Id:     ml[len(ml)-1].Id,
