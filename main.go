@@ -36,6 +36,8 @@ const (
 	rpcWithDraw          = "with_draw"
 	rpcBankSendGift      = "send_gift"
 	rpcWalletTransaction = "wallet_transaction"
+
+	rpcListDeal = "list_deal"
 )
 
 var (
@@ -57,11 +59,12 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		UseEnumNumbers: true,
 	}
 	unmarshaler := &protojson.UnmarshalOptions{
-		DiscardUnknown: false,
+		DiscardUnknown: true,
 	}
 
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
+	api.InitDeal(ctx, logger, nk, marshaler)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -113,6 +116,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcGetProfile, api.RpcGetProfile(marshaler, unmarshaler, objStorage)); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(rpcListDeal, api.RpcDealList(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 
