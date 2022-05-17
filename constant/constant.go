@@ -1,0 +1,5 @@
+package constant
+
+const (
+	UUID_USER_SYSTEM = "00000000-0000-0000-0000-000000000000"
+)

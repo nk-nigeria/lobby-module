@@ -9,9 +9,9 @@ import (
 	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
 )
@@ -36,6 +36,13 @@ const (
 	rpcWithDraw          = "with_draw"
 	rpcBankSendGift      = "send_gift"
 	rpcWalletTransaction = "wallet_transaction"
+
+	//FreeChip
+	rpcAddClaimableFreeChip  = "add_claimable_freechip"
+	rpcClaimFreeChip         = "claim_freechip"
+	rpcListClaimableFreeChip = "list_claimable_freechip"
+	rpcCheckClaimFreeChip    = "check_claim_freechip"
+	rpcListFreeChip          = "list_freechip"
 )
 
 var (
@@ -45,20 +52,13 @@ var (
 //noinspection GoUnusedExportedFunction
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 	initStart := time.Now()
+	conf.Init()
 
 	var err error
-	node, err = snowflake.NewNode(1)
-	if err != nil {
-		logger.Error("error init node", err)
-		return err
-	}
+	node := conf.SnowlakeNode
 
-	marshaler := &protojson.MarshalOptions{
-		UseEnumNumbers: true,
-	}
-	unmarshaler := &protojson.UnmarshalOptions{
-		DiscardUnknown: false,
-	}
+	marshaler := conf.Marshaler
+	unmarshaler := conf.Unmarshaler
 
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
@@ -113,6 +113,23 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcGetProfile, api.RpcGetProfile(marshaler, unmarshaler, objStorage)); err != nil {
+		return err
+	}
+
+	// Free Chip
+	if err := initializer.RegisterRpc(rpcAddClaimableFreeChip, api.RpcAddClaimableFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcClaimFreeChip, api.RpcClaimFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListClaimableFreeChip, api.RpcListClaimableFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcCheckClaimFreeChip, api.RpcCheckClaimFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListFreeChip, api.RpcListFreeChip(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 
