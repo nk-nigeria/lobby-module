@@ -179,6 +179,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	api.RegisterValidatePurchase(db, nk, initializer)
+
+	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
 	return nil
 }
