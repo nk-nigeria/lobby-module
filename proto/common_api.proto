@@ -84,3 +84,17 @@ message ListFreeChip {
   int64 offset = 5;
   int64 limit = 6;
 }
+
+message Deal {
+  string id = 1;
+  int64 chips = 2;
+  int64 bonus = 3;
+  string price = 4;
+}
+
+message DealInShop {
+  Deal best = 1;
+  repeated Deal iaps = 2;
+  repeated Deal gcashes = 3;
+  repeated Deal sms = 4;
+}

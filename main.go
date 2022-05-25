@@ -43,6 +43,7 @@ const (
 	rpcListClaimableFreeChip = "list_claimable_freechip"
 	rpcCheckClaimFreeChip    = "check_claim_freechip"
 	rpcListFreeChip          = "list_freechip"
+	rpcListDeal = "list_deal"
 )
 
 var (
@@ -62,6 +63,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
+	api.InitDeal(ctx, logger, nk, marshaler)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -133,6 +135,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	if err := initializer.RegisterRpc(rpcListDeal, api.RpcDealList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
 	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
 		newID := node.Generate().Int64()
 		if in.Username == "" {
@@ -179,6 +185,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	api.RegisterValidatePurchase(db, nk, initializer)
+
+	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
 	return nil
 }
