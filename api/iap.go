@@ -49,6 +49,7 @@ func topupChipByIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 	metadata["sender"] = constant.UUID_USER_SYSTEM
 	metadata["recv"] = userID
 	metadata["iap_type"] = "google"
+	metadata["trans_id"] = purchasenk.TransactionId
 	wallet := entity.Wallet{
 		UserId: userID,
 		Chips:  100,
