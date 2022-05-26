@@ -34,7 +34,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 	}
 	deals := pb.DealInShop{
 		Best: &pb.Deal{
-			Id:          "id-best-deal",
+			Id:          "id_best_deal",
 			Chips:       1000,
 			Bonus:       50,
 			Price:       "2000",
@@ -45,7 +45,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 		},
 		Iaps: []*pb.Deal{
 			{
-				Id:          "id-best-iap-1",
+				Id:          "id_best_iap_1",
 				Chips:       100,
 				Bonus:       50,
 				Price:       "1000 Vnd",
@@ -55,7 +55,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 				Percent:     "15.5",
 			},
 			{
-				Id:          "id-best-iap-2",
+				Id:          "id_best_iap_2",
 				Chips:       200,
 				Bonus:       60,
 				Price:       "2000 Vnd",
@@ -67,7 +67,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 		},
 		Gcashes: []*pb.Deal{
 			{
-				Id:          "id-best-gcash-1",
+				Id:          "id_best_gcash1",
 				Chips:       3000,
 				Bonus:       60,
 				Price:       "1000 Vnd",
@@ -77,7 +77,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 				Percent:     "15.5",
 			},
 			{
-				Id:          "id-best-gcahs-2",
+				Id:          "id_best_gcash2",
 				Chips:       5000,
 				Bonus:       70,
 				Price:       "2000 Vnd",
@@ -89,7 +89,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 		},
 		Sms: []*pb.Deal{
 			{
-				Id:          "id-best-sms-1",
+				Id:          "id_best_sms_1",
 				Chips:       3,
 				Bonus:       90,
 				Price:       "20 Vnd",
@@ -99,7 +99,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 				Percent:     "15.5",
 			},
 			{
-				Id:          "id-best-sms-2",
+				Id:          "id_best_sms_2",
 				Chips:       5,
 				Bonus:       100,
 				Price:       "100 Vnd",
