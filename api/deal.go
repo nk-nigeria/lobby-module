@@ -15,6 +15,8 @@ const (
 	kDealKey        = "deal-key"
 )
 
+var MapDeal = make(map[string]*pb.Deal)
+
 func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, marshaler *protojson.MarshalOptions) {
 	objectIds := []*runtime.StorageRead{
 		{
@@ -46,7 +48,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 		Iaps: []*pb.Deal{
 			{
 				Id:          "id_best_iap_1",
-				Chips:       100,
+				Chips:       53123,
 				Bonus:       50,
 				Price:       "1000",
 				AmountChips: 1050,
@@ -101,7 +103,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 			{
 				Id:          "id_best_sms_2",
 				Chips:       5,
-				Bonus:       100,
+				Bonus:       1200,
 				Price:       "100",
 				AmountChips: 1050,
 				Name:        "Best deal",
@@ -109,6 +111,13 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 				Percent:     "15.5",
 			},
 		},
+	}
+	MapDeal[deals.Best.Id] = deals.Best
+	for _, deal := range deals.Gcashes {
+		MapDeal[deal.GetId()] = deal
+	}
+	for _, deal := range deals.Iaps {
+		MapDeal[deal.GetId()] = deal
 	}
 	dealsJson, err := marshaler.Marshal(&deals)
 	if err != nil {

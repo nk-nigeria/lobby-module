@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
@@ -50,9 +51,14 @@ func topupChipByIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 	metadata["recv"] = userID
 	metadata["iap_type"] = "google"
 	metadata["trans_id"] = purchasenk.TransactionId
+	deal, exits := MapDeal[purchasenk.ProductId]
+	if !exits {
+		logger.Error("Get deal from product id %s error: Not found", purchasenk.ProductId)
+		return errors.New("product id not found")
+	}
 	wallet := entity.Wallet{
 		UserId: userID,
-		Chips:  100,
+		Chips:  deal.Chips,
 	}
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 	return err
