@@ -150,7 +150,7 @@ func RpcDealList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		dealInShop, err := LoadDeals(ctx, logger, nk, unmarshaler)
 		if err != nil {
-			logger.Error("Error when unmarshal list bets, error %s", err.Error())
+			logger.Error("Error when unmarshal list deals, error %s", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
 
@@ -184,7 +184,7 @@ func LoadDeals(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModu
 
 	err = unmarshaler.Unmarshal([]byte(objects[0].GetValue()), dealInShop)
 	if err != nil {
-		logger.Error("Error when unmarshal list bets, error %s", err.Error())
+		logger.Error("Error when unmarshal list deals, error %s", err.Error())
 		return dealInShop, presenter.ErrUnmarshal
 	}
 	return dealInShop, nil

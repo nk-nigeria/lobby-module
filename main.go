@@ -43,7 +43,11 @@ const (
 	rpcListClaimableFreeChip = "list_claimable_freechip"
 	rpcCheckClaimFreeChip    = "check_claim_freechip"
 	rpcListFreeChip          = "list_freechip"
-	rpcListDeal = "list_deal"
+	rpcListDeal              = "list_deal"
+	rpcListExchangeDeal      = "list_exchange_deal"
+	rpcExchange              = "exchange"
+	rpcCancelExchange        = "exchange_cancel"
+	rpcListExchange          = "list_exchange"
 )
 
 var (
@@ -64,6 +68,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
+	api.InitExchangeList(ctx, logger, nk)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -136,6 +141,20 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcListDeal, api.RpcDealList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	// exchange
+	if err := initializer.RegisterRpc(rpcListExchangeDeal, api.RpcExChangedealsList()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcExchange, api.RpcRequestNewExchange()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcCancelExchange, api.RpcRequestCancelExchange()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListExchange, api.RpcGetAllExchange()); err != nil {
 		return err
 	}
 

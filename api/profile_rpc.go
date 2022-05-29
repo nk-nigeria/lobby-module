@@ -188,7 +188,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		profile.Registrable = false
 	}
 
-	if user.GetAvatarUrl() != "" {
+	if user.GetAvatarUrl() != "" && objStorage != nil {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
 		objName := user.GetAvatarUrl()
 		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)

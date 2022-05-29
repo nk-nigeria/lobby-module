@@ -1,0 +1,319 @@
+package cgbdb
+
+import (
+	"bytes"
+	"context"
+	"database/sql"
+	"encoding/base64"
+	"encoding/gob"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/heroiclabs/nakama-common/runtime"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const ExchangeTableName = "exchange"
+
+// CREATE TABLE public.exchange (
+//   id bigint NOT NULL,
+//   id_deal character varying(128) NOT NULL,
+// 	 chips integer NOT NULL DEFAULT 0,
+//   price character varying(128) NOT NULL,
+//   status smallint NOT NULL DEFAULT 0,
+//   unlock smallint NOT NULL DEFAULT 0,
+//   cash_id character varying(128) NOT NULL,
+//   cash_type character varying(128) NOT NULL,
+//   user_id_request character varying(128) NOT NULL,
+//   user_name_request character varying(128) NOT NULL,
+//   vip_lv smallint NOT NULL DEFAULT 0,
+//   device_id character varying(128) NOT NULL,
+//   user_id_handling character varying(128) NOT NULL,
+//   user_name_handling character varying(128) NOT NULL,
+//   reason character varying(128) NOT NULL,
+//   cursor character varying(128) NOT NULL,
+//   create_time timestamp with time zone NOT NULL DEFAULT now(),
+//   update_time timestamp with time zone NOT NULL DEFAULT now()
+// );
+// ALTER TABLE
+//   public.exchange
+// ADD
+//   CONSTRAINT exchange_pkey PRIMARY KEY (id)
+
+func AddNewExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (int64, error) {
+	exchange.Id = conf.SnowlakeNode.Generate().Int64()
+	query := "INSERT INTO " + ExchangeTableName + " (id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())"
+	result, err := db.ExecContext(ctx, query,
+		exchange.Id, exchange.GetChips(),
+		exchange.GetPrice(), exchange.GetStatus(), exchange.GetUnlock(),
+		exchange.GetCashId(), exchange.GetCashType(), exchange.GetUserIdRequest(),
+		exchange.GetUserNameRequest(), exchange.GetVipLv(), exchange.GetDeviceId(),
+		exchange.GetUserIdHandling(), exchange.GetUserNameHandling(), exchange.GetReason())
+	if err != nil {
+		logger.Error("Erro when add new exchange, user request: %s, chips: %d, price %s,  error %s",
+			exchange.UserIdRequest, exchange.Chips, exchange.Price, err.Error())
+		return 0, status.Error(codes.Internal, "Error add exchange.")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not insert new exchange, user request: %s, chips: %d, price %s",
+			exchange.UserIdRequest, exchange.Chips, exchange.Price)
+		return 0, status.Error(codes.Internal, "Error add exchange.")
+	}
+	return result.LastInsertId()
+}
+
+func GetExchangeByIdByUserID(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
+	query := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
+		ExchangeTableName + " WHERE id=$1 AND user_id_request=$2"
+	var dbId, dbChips, dbStatus, dbVipLv int64
+	var dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
+		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
+	var dbUnlock bool
+	err := db.QueryRowContext(ctx, query, exchange.Id, exchange.GetUserIdRequest()).Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
+		&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+	if err != nil {
+		logger.Error("Query exchange id %d, error %s", exchange.Id, err.Error())
+		return nil, status.Error(codes.Internal, "Query exchange error")
+	}
+	resp := pb.ExchangeInfo{
+		Id:               dbId,
+		Chips:            dbChips,
+		Price:            dbPrice,
+		Status:           dbStatus,
+		Unlock:           dbUnlock,
+		CashId:           dbCashId,
+		CashType:         dbCashType,
+		UserIdRequest:    dbUserIdReq,
+		UserNameRequest:  dbUserNameReq,
+		VipLv:            dbVipLv,
+		DeviceId:         dbDeviceId,
+		UserIdHandling:   dbUserIdHandling,
+		UserNameHandling: dbUserNameHandling,
+		Reason:           dbReason,
+	}
+	return &resp, nil
+}
+
+func CancelExchangeByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
+	exChangeInDb, err := GetExchangeByIdByUserID(ctx, logger, db, exchange)
+	if err != nil {
+		return nil, err
+	}
+	if exChangeInDb.Status != int64(pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number()) {
+		logger.Error("User %s read exchange id %s error %s",
+			exChangeInDb.GetUserIdRequest(), exChangeInDb.GetId(), err.Error())
+		return nil, presenter.ErrInternalError
+	}
+	query := "UPDATE " + ExchangeTableName + " SET status=$1 WHERE id=$2 AND user_id_request=$3 AND status=$4"
+	result, err := db.ExecContext(ctx, query, 0, pb.ExchangeStatus_EXCHANGE_STATUS_CANCELLED.Number(),
+		exchange.GetId(), exchange.GetUserIdRequest(), pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number())
+	if err != nil {
+		logger.Error("User %s Cancel exchange request id %d, error %s",
+			exchange.GetUserIdRequest(), exchange.GetId(), err.Error())
+		return nil, status.Error(codes.Internal, "Claim freechip error")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not cancel exchange request.")
+		return nil, status.Error(codes.Internal, "Error cancel exchange request")
+	}
+	exChangeInDb.Status = int64(pb.ExchangeStatus_EXCHANGE_STATUS_CANCELLED.Number())
+	return exChangeInDb, nil
+}
+
+func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, exchange *pb.ExchangeRequest) (*pb.ListExchangeInfo, error) {
+	var incomingCursor = &entity.ExchangeListCursor{}
+	cusor := exchange.GetCusor()
+	if cusor != "" {
+		cb, err := base64.URLEncoding.DecodeString(cusor)
+		if err != nil {
+			return nil, ErrWalletLedgerInvalidCursor
+		}
+		if err := gob.NewDecoder(bytes.NewReader(cb)).Decode(incomingCursor); err != nil {
+			return nil, ErrWalletLedgerInvalidCursor
+		}
+
+		// Cursor and filter mismatch. Perhaps the caller has sent an old cursor with a changed filter.
+		if userId != incomingCursor.UserId {
+			return nil, ErrWalletLedgerInvalidCursor
+		}
+		logger.Info("GetListFreeChip with cusor %d, userId %s, create time %s ",
+			incomingCursor.Id,
+			incomingCursor.UserId,
+			incomingCursor.CreateTime.String())
+	}
+	limit := incomingCursor.Limit
+	if limit < 1000 {
+		limit = 1000
+	}
+	if incomingCursor.Id < 0 {
+		incomingCursor.Id = 0
+	}
+
+	query := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
+		ExchangeTableName
+	// clause := "WHERE"
+	params := make([]interface{}, 0)
+	nextClause := func() func(arg string, operator string) string {
+		i := 0
+		return func(arg string, operator string) string {
+			i++
+			iStr := strconv.Itoa(i)
+			arg = strings.ToLower(arg)
+			if arg == "limit" || arg == "offset" {
+				return arg + " " + iStr
+			} else {
+				if i == 0 {
+					return " WHERE " + arg + operator + iStr
+				} else {
+					return " AND " + arg + operator + iStr
+				}
+			}
+
+		}
+	}()
+	if exchange.GetId() > 0 {
+		query += nextClause("id", "=")
+		params = append(params, exchange.GetId())
+	}
+	if exchange.GetUserIdRequest() != "" {
+		query += nextClause("user_id_request", "=")
+		params = append(params, exchange.GetUserIdRequest())
+	}
+	if exchange.GetCashType() != "" {
+		query += nextClause("cash_type", "=")
+		params = append(params, exchange.GetCashType())
+	}
+
+	query += " order by id desc "
+	from := incomingCursor.From
+	if from <= 0 {
+		from = exchange.GetFrom()
+	}
+	to := incomingCursor.To
+	if to <= 0 {
+		to = exchange.GetTo()
+	}
+	query += nextClause("limit", "")
+	params = append(params, from)
+	if to > from {
+		query += nextClause("to", "")
+		params = append(params, to)
+	}
+
+	var dbId, dbChips, dbStatus, dbVipLv int64
+	var dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
+		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
+	var dbUnlock bool
+	rows, err := db.QueryContext(ctx, query, params...)
+
+	if err != nil {
+		logger.Error("Query exchange id %d, error %s", exchange.Id, err.Error())
+		return nil, status.Error(codes.Internal, "Query exchange error")
+	}
+	ml := make([]*pb.ExchangeInfo, 0)
+	for rows.Next() {
+		rows.Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
+			&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+		exchangeInfo := pb.ExchangeInfo{
+			Id:               dbId,
+			Chips:            dbChips,
+			Price:            dbPrice,
+			Status:           dbStatus,
+			Unlock:           dbUnlock,
+			CashId:           dbCashId,
+			CashType:         dbCashType,
+			UserIdRequest:    dbUserIdReq,
+			UserNameRequest:  dbUserNameReq,
+			VipLv:            dbVipLv,
+			DeviceId:         dbDeviceId,
+			UserIdHandling:   dbUserIdHandling,
+			UserNameHandling: dbUserNameHandling,
+			Reason:           dbReason,
+		}
+		ml = append(ml, &exchangeInfo)
+	}
+	sort.Slice(ml, func(i, j int) bool {
+		return ml[i].Id > ml[j].Id
+	})
+
+	var total int64 = incomingCursor.Total
+	if total <= 0 {
+		queryTotal := "Select count(*) as total FROM " + ExchangeTableName +
+			strings.ReplaceAll(query, "order by id desc", "")
+
+		_ = db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
+	}
+
+	var nextCursor *entity.ExchangeListCursor
+	var prevCursor *entity.ExchangeListCursor
+	if len(ml) > 0 {
+		if len(ml)+int(incomingCursor.Offset) < int(total) {
+			nextCursor = &entity.ExchangeListCursor{
+				UserId: userId,
+				Id:     ml[len(ml)-1].Id,
+				IsNext: true,
+				Offset: incomingCursor.Offset + int64(len(ml)),
+				Limit:  limit,
+				From:   from,
+				To:     to,
+				Total:  total,
+			}
+		}
+
+		prevOffset := incomingCursor.Offset - int64(len(ml))
+		if len(ml)+int(incomingCursor.Offset) >= int(total) {
+			prevOffset = total - int64(len(ml)) - limit
+		}
+		if prevOffset < 0 {
+			prevOffset = 0
+		}
+		prevCursor = &entity.ExchangeListCursor{
+			UserId: userId,
+			Id:     ml[0].Id,
+			IsNext: false,
+			Offset: prevOffset,
+			Total:  total,
+			Limit:  limit,
+			From:   from,
+			To:     to,
+		}
+	}
+
+	var nextCursorStr string
+	if nextCursor != nil {
+		cursorBuf := new(bytes.Buffer)
+		if err := gob.NewEncoder(cursorBuf).Encode(nextCursor); err != nil {
+			logger.Error("Error creating wallet ledger list cursor", zap.Error(err))
+			return nil, err
+		}
+		nextCursorStr = base64.URLEncoding.EncodeToString(cursorBuf.Bytes())
+	}
+
+	var prevCursorStr string
+	if prevCursor != nil {
+		cursorBuf := new(bytes.Buffer)
+		if err := gob.NewEncoder(cursorBuf).Encode(prevCursor); err != nil {
+			logger.Error("Error creating wallet ledger list cursor", zap.Error(err))
+			return nil, err
+		}
+		prevCursorStr = base64.URLEncoding.EncodeToString(cursorBuf.Bytes())
+	}
+
+	return &pb.ListExchangeInfo{
+		ExchangeInfos: ml,
+		NextCusor:     nextCursorStr,
+		PrevCusor:     prevCursorStr,
+		Total:         total,
+		Offset:        incomingCursor.Offset,
+		Limit:         limit,
+		From:          from,
+		To:            to,
+	}, nil
+}
