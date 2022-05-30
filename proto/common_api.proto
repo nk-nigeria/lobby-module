@@ -94,6 +94,7 @@ message Deal {
   string name = 6;
   string currency = 7;
   string percent = 8;
+  int64 chip_per_unit = 9;
 }
 
 message DealInShop {

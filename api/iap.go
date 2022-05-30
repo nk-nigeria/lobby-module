@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
@@ -19,6 +20,7 @@ func RegisterValidatePurchase(db *sql.DB, nk runtime.NakamaModule, initializer r
 
 func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *nkapi.ValidatePurchaseResponse, in *nkapi.ValidatePurchaseGoogleRequest) error {
 	x := func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *nkapi.ValidatePurchaseResponse, in *nkapi.ValidatePurchaseGoogleRequest) error {
+
 		if out == nil {
 			logger.Error("Invalid validate purchase, out is nil")
 			return status.Error(codes.InvalidArgument, "out is nil")
@@ -29,6 +31,12 @@ func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, d
 			return status.Error(codes.InvalidArgument, "user id not found")
 		}
 		listValidatePurchase := out.GetValidatedPurchases()
+		productIDs := make([]string, len(listValidatePurchase))
+		for _, p := range listValidatePurchase {
+			productIDs = append(productIDs, p.GetProductId())
+		}
+		logger.Info("validatePurchaseGoogle userId %s, purchase id %s", userID, strings.Join(productIDs, ","))
+
 		for _, validatePurchase := range listValidatePurchase {
 			if validatePurchase.SeenBefore {
 				logger.Warn("User %s , validate duplicate purchase %s", userID, validatePurchase.ProviderResponse)
@@ -38,6 +46,7 @@ func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, d
 				logger.Error("User %s, topup by IAP error %s , purchase %s", userID, err.Error(), validatePurchase.ProviderResponse)
 				return err
 			}
+			logger.Info("[Success] Top up user %s ,from product id %s, transID %s ", userID, validatePurchase.ProductId, validatePurchase.TransactionId)
 		}
 		return nil
 	}
