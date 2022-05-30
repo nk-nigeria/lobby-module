@@ -103,20 +103,21 @@ message DealInShop {
 
 enum ExchangeStatus {
   EXCHANGE_STATUS_UNSPECIFIED = 0;
-  EXCHANGE_STATUS_CANCELLED = 1;
-  EXCHANGE_STATUS_PEDINDING = 2;
-  EXCHANGE_STATUS_DONE = 3;
-  EXCHANGE_STATUS_REJECT = 4;
-  EXCHANGE_STATUS_WAITING = 5;
+  EXCHANGE_STATUS_WAITING = 1;
+  EXCHANGE_STATUS_CANCEL_BY_USER = 2;
+  EXCHANGE_STATUS_PENDING = 3;
+  EXCHANGE_STATUS_DONE = 4;
+  EXCHANGE_STATUS_REJECT = 5;
+  
 }
 
 message ExchangeInfo {
-  int64 id = 1;
+  string id = 1;
   string id_deal = 2;
   int64 chips = 3;
   string price = 4;
   int64 status = 5;
-  bool unlock = 6;
+  int32 unlock = 6;
   string cash_id = 7;
   string cash_type = 8;
   string user_id_request = 9;
@@ -146,7 +147,7 @@ message ListExchangeInfo {
 
 
 message ExchangeRequest {
-  int64 id = 1;
+  string id = 1;
   string user_id_request = 2;
   int64 limit = 3;
   int64 from = 4;

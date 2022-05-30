@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type ExchangeListCursor struct {
-	Id         int64
+	Id         string
 	Offset     int64
 	Limit      int64
 	UserId     string

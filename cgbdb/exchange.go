@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
@@ -28,7 +28,7 @@ const ExchangeTableName = "exchange"
 // 	 chips integer NOT NULL DEFAULT 0,
 //   price character varying(128) NOT NULL,
 //   status smallint NOT NULL DEFAULT 0,
-//   unlock smallint NOT NULL DEFAULT 0,
+//   unlock smallint NOT NULL DEFAULT 1,
 //   cash_id character varying(128) NOT NULL,
 //   cash_type character varying(128) NOT NULL,
 //   user_id_request character varying(128) NOT NULL,
@@ -38,7 +38,6 @@ const ExchangeTableName = "exchange"
 //   user_id_handling character varying(128) NOT NULL,
 //   user_name_handling character varying(128) NOT NULL,
 //   reason character varying(128) NOT NULL,
-//   cursor character varying(128) NOT NULL,
 //   create_time timestamp with time zone NOT NULL DEFAULT now(),
 //   update_time timestamp with time zone NOT NULL DEFAULT now()
 // );
@@ -47,39 +46,72 @@ const ExchangeTableName = "exchange"
 // ADD
 //   CONSTRAINT exchange_pkey PRIMARY KEY (id)
 
-func AddNewExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (int64, error) {
-	exchange.Id = conf.SnowlakeNode.Generate().Int64()
-	query := "INSERT INTO " + ExchangeTableName + " (id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())"
+func AddNewExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (string, error) {
+	exchange.Id = conf.SnowlakeNode.Generate().String()
+	query := "INSERT INTO " + ExchangeTableName +
+		" (id, id_deal, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now(), now())"
 	result, err := db.ExecContext(ctx, query,
-		exchange.Id, exchange.GetChips(),
+		exchange.Id, exchange.GetIdDeal(), exchange.GetChips(),
 		exchange.GetPrice(), exchange.GetStatus(), exchange.GetUnlock(),
 		exchange.GetCashId(), exchange.GetCashType(), exchange.GetUserIdRequest(),
 		exchange.GetUserNameRequest(), exchange.GetVipLv(), exchange.GetDeviceId(),
 		exchange.GetUserIdHandling(), exchange.GetUserNameHandling(), exchange.GetReason())
 	if err != nil {
-		logger.Error("Erro when add new exchange, user request: %s, chips: %d, price %s,  error %s",
+		logger.Error("Error when add new exchange, user request: %s, chips: %d, price %s,  error %s",
 			exchange.UserIdRequest, exchange.Chips, exchange.Price, err.Error())
-		return 0, status.Error(codes.Internal, "Error add exchange.")
+		return "", status.Error(codes.Internal, "Error add exchange.")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
 		logger.Error("Did not insert new exchange, user request: %s, chips: %d, price %s",
 			exchange.UserIdRequest, exchange.Chips, exchange.Price)
-		return 0, status.Error(codes.Internal, "Error add exchange.")
+		return "", status.Error(codes.Internal, "Error add exchange.")
 	}
-	return result.LastInsertId()
+	return exchange.Id, nil
 }
 
 func GetExchangeByIdByUserID(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
 	query := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
 		ExchangeTableName + " WHERE id=$1 AND user_id_request=$2"
-	var dbId, dbChips, dbStatus, dbVipLv int64
-	var dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
+	var dbChips, dbStatus, dbVipLv int64
+	var dbId, dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
 		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
-	var dbUnlock bool
+	var dbUnlock int32
 	err := db.QueryRowContext(ctx, query, exchange.Id, exchange.GetUserIdRequest()).Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
-		&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+		&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, &dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
 	if err != nil {
-		logger.Error("Query exchange id %d, error %s", exchange.Id, err.Error())
+		logger.Error("Query exchange id %s, user id %s, error %s", exchange.Id, exchange.UserIdRequest, err.Error())
+		return nil, status.Error(codes.Internal, "Query exchange error")
+	}
+	resp := pb.ExchangeInfo{
+		Id:               dbId,
+		Chips:            dbChips,
+		Price:            dbPrice,
+		Status:           dbStatus,
+		Unlock:           dbUnlock,
+		CashId:           dbCashId,
+		CashType:         dbCashType,
+		UserIdRequest:    dbUserIdReq,
+		UserNameRequest:  dbUserNameReq,
+		VipLv:            dbVipLv,
+		DeviceId:         dbDeviceId,
+		UserIdHandling:   dbUserIdHandling,
+		UserNameHandling: dbUserNameHandling,
+		Reason:           dbReason,
+	}
+	return &resp, nil
+}
+
+func GetExchangeById(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
+	query := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
+		ExchangeTableName + " WHERE id=$1"
+	var dbChips, dbStatus, dbVipLv int64
+	var dbId, dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
+		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
+	var dbUnlock int32
+	err := db.QueryRowContext(ctx, query, exchange.Id).Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
+		&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, &dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+	if err != nil {
+		logger.Error("Query exchange id %s, user id %s, error %s", exchange.Id, exchange.UserIdRequest, err.Error())
 		return nil, status.Error(codes.Internal, "Query exchange error")
 	}
 	resp := pb.ExchangeInfo{
@@ -106,16 +138,21 @@ func CancelExchangeByIdByUser(ctx context.Context, logger runtime.Logger, db *sq
 	if err != nil {
 		return nil, err
 	}
-	if exChangeInDb.Status != int64(pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number()) {
-		logger.Error("User %s read exchange id %s error %s",
-			exChangeInDb.GetUserIdRequest(), exChangeInDb.GetId(), err.Error())
-		return nil, presenter.ErrInternalError
+	if exChangeInDb.Unlock == 0 {
+		logger.Error("User %s request cancel exchange id %s error: exchange had locked",
+			exChangeInDb.GetUserIdRequest(), exChangeInDb.GetId())
+		return exChangeInDb, nil
 	}
-	query := "UPDATE " + ExchangeTableName + " SET status=$1 WHERE id=$2 AND user_id_request=$3 AND status=$4"
-	result, err := db.ExecContext(ctx, query, 0, pb.ExchangeStatus_EXCHANGE_STATUS_CANCELLED.Number(),
+	if exChangeInDb.Status != int64(pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number()) {
+		logger.Error("User %s request cancel exchange id %s error: status not waiting",
+			exChangeInDb.GetUserIdRequest(), exChangeInDb.GetId())
+		return exChangeInDb, nil
+	}
+	query := "UPDATE " + ExchangeTableName + " SET status=$1 WHERE id=$2 AND user_id_request=$3 AND status=$4 AND unlock=1"
+	result, err := db.ExecContext(ctx, query, pb.ExchangeStatus_EXCHANGE_STATUS_CANCEL_BY_USER.Number(),
 		exchange.GetId(), exchange.GetUserIdRequest(), pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number())
 	if err != nil {
-		logger.Error("User %s Cancel exchange request id %d, error %s",
+		logger.Error("User %s Cancel exchange request id %s, error %s",
 			exchange.GetUserIdRequest(), exchange.GetId(), err.Error())
 		return nil, status.Error(codes.Internal, "Claim freechip error")
 	}
@@ -123,7 +160,7 @@ func CancelExchangeByIdByUser(ctx context.Context, logger runtime.Logger, db *sq
 		logger.Error("Did not cancel exchange request.")
 		return nil, status.Error(codes.Internal, "Error cancel exchange request")
 	}
-	exChangeInDb.Status = int64(pb.ExchangeStatus_EXCHANGE_STATUS_CANCELLED.Number())
+	exChangeInDb.Status = int64(pb.ExchangeStatus_EXCHANGE_STATUS_CANCEL_BY_USER.Number())
 	return exChangeInDb, nil
 }
 
@@ -143,33 +180,35 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		if userId != incomingCursor.UserId {
 			return nil, ErrWalletLedgerInvalidCursor
 		}
-		logger.Info("GetListFreeChip with cusor %d, userId %s, create time %s ",
+		logger.Info("GetListFreeChip with cusor id %s, userId %s, create time %s ",
 			incomingCursor.Id,
 			incomingCursor.UserId,
 			incomingCursor.CreateTime.String())
 	}
 	limit := incomingCursor.Limit
-	if limit < 1000 {
-		limit = 1000
-	}
-	if incomingCursor.Id < 0 {
-		incomingCursor.Id = 0
+	if limit <= 0 {
+		limit = exchange.Limit
 	}
 
-	query := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
+	if limit <= 0 {
+		limit = 1000
+	}
+
+	queryRows := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
 		ExchangeTableName
 	// clause := "WHERE"
+	query := ""
 	params := make([]interface{}, 0)
 	nextClause := func() func(arg string, operator string) string {
 		i := 0
 		return func(arg string, operator string) string {
 			i++
-			iStr := strconv.Itoa(i)
+			iStr := "$" + strconv.Itoa(i)
 			arg = strings.ToLower(arg)
 			if arg == "limit" || arg == "offset" {
-				return arg + " " + iStr
+				return " " + arg + " " + iStr
 			} else {
-				if i == 0 {
+				if i == 1 {
 					return " WHERE " + arg + operator + iStr
 				} else {
 					return " AND " + arg + operator + iStr
@@ -178,9 +217,14 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 
 		}
 	}()
-	if exchange.GetId() > 0 {
-		query += nextClause("id", "=")
+	if exchange.GetId() != "" {
+		if incomingCursor.IsNext {
+			query += nextClause("id", "<=")
+		} else {
+			query += nextClause("id", ">=")
+		}
 		params = append(params, exchange.GetId())
+
 	}
 	if exchange.GetUserIdRequest() != "" {
 		query += nextClause("user_id_request", "=")
@@ -191,30 +235,47 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		params = append(params, exchange.GetCashType())
 	}
 
-	query += " order by id desc "
 	from := incomingCursor.From
 	if from <= 0 {
 		from = exchange.GetFrom()
 	}
+	if from > 0 {
+		query += nextClause("create_time", ">=")
+		params = append(params, time.Unix(from, 0))
+	}
+
 	to := incomingCursor.To
 	if to <= 0 {
 		to = exchange.GetTo()
 	}
-	query += nextClause("limit", "")
-	params = append(params, from)
 	if to > from {
-		query += nextClause("to", "")
-		params = append(params, to)
+		query += nextClause("create_time", "<=")
+		params = append(params, time.Unix(to, 0))
 	}
 
-	var dbId, dbChips, dbStatus, dbVipLv int64
-	var dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
+	if incomingCursor.Id == "" || incomingCursor.IsNext {
+		query += " order by id desc "
+	} else {
+		query += " order by id asc "
+	}
+
+	query += nextClause("limit", "")
+	params = append(params, limit)
+
+	offset := incomingCursor.Offset
+
+	query += nextClause("offset", "")
+	params = append(params, offset)
+
+	var dbChips, dbStatus, dbVipLv int64
+	var dbId, dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
 		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
-	var dbUnlock bool
-	rows, err := db.QueryContext(ctx, query, params...)
+	var dbUnlock int32
+	// logger.Debug("Query %s", query)
+	rows, err := db.QueryContext(ctx, queryRows+query, params...)
 
 	if err != nil {
-		logger.Error("Query exchange id %d, error %s", exchange.Id, err.Error())
+		logger.Error("Query exchange id %s, error %s", exchange.Id, err.Error())
 		return nil, status.Error(codes.Internal, "Query exchange error")
 	}
 	ml := make([]*pb.ExchangeInfo, 0)
@@ -245,10 +306,13 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 
 	var total int64 = incomingCursor.Total
 	if total <= 0 {
-		queryTotal := "Select count(*) as total FROM " + ExchangeTableName +
+		queryTotal := "Select count(*) as total FROM " + ExchangeTableName + " " +
 			strings.ReplaceAll(query, "order by id desc", "")
-
-		_ = db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
+		logger.Debug("Query total %s", queryTotal)
+		e := db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
+		if e != nil {
+			logger.Error(e.Error())
+		}
 	}
 
 	var nextCursor *entity.ExchangeListCursor
@@ -274,16 +338,19 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		if prevOffset < 0 {
 			prevOffset = 0
 		}
-		prevCursor = &entity.ExchangeListCursor{
-			UserId: userId,
-			Id:     ml[0].Id,
-			IsNext: false,
-			Offset: prevOffset,
-			Total:  total,
-			Limit:  limit,
-			From:   from,
-			To:     to,
+		if incomingCursor.Offset > 0 {
+			prevCursor = &entity.ExchangeListCursor{
+				UserId: userId,
+				Id:     ml[0].Id,
+				IsNext: false,
+				Offset: prevOffset,
+				Total:  total,
+				Limit:  limit,
+				From:   from,
+				To:     to,
+			}
 		}
+
 	}
 
 	var nextCursorStr string
@@ -316,4 +383,29 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		From:          from,
 		To:            to,
 	}, nil
+}
+
+func ExchangeLock(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
+	curExchange, err := GetExchangeById(ctx, logger, db, exchange)
+	if err != nil {
+		logger.Error("get exchange id %s error %s", exchange.GetId(), err.Error())
+		return nil, status.Error(codes.Internal, "get exchange error")
+	}
+	if curExchange.Unlock == 0 || curExchange.Status != int64(pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number()) {
+		return curExchange, nil
+	}
+	query := "UPDATE " + ExchangeTableName + " SET status=$1, unlock=0, update_time = now() WHERE id=$2 AND status=$3"
+	result, err := db.ExecContext(ctx, query,
+		pb.ExchangeStatus_EXCHANGE_STATUS_PENDING.Number(),
+		exchange.GetId(),
+		pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number())
+	if err != nil {
+		logger.Error("Lock exchange id %s error %s", exchange.GetId(), err.Error())
+		return nil, status.Error(codes.Internal, "Lock exchange error")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not lock exchange %s", exchange.GetId())
+		return nil, status.Error(codes.Internal, "Error lock exchange")
+	}
+	return GetExchangeById(ctx, logger, db, exchange)
 }

@@ -37,14 +37,24 @@ func InitExchangeList(ctx context.Context, logger runtime.Logger, nk runtime.Nak
 	exChangeDeals := pb.ExchangeDealInShop{
 		Gcashes: []*pb.Deal{
 			{
-				Id:    "id-best-gcash-1",
-				Chips: 3000,
-				Price: "1000 Vnd",
+				Id:          "id_best_exchange_deal",
+				Chips:       1000,
+				Bonus:       0,
+				Price:       "2000",
+				AmountChips: 0,
+				Name:        "Best deal",
+				Currency:    "VND",
+				Percent:     "15.5",
 			},
 			{
-				Id:    "id-best-gcahs-2",
-				Chips: 5000,
-				Price: "2000 Vnd",
+				Id:          "id_best_exchange_deal_2",
+				Chips:       1000,
+				Bonus:       0,
+				Price:       "10000",
+				AmountChips: 0,
+				Name:        "Best deal",
+				Currency:    "VND",
+				Percent:     "33.3",
 			},
 		},
 	}
@@ -88,7 +98,7 @@ func RpcExChangedealsList() func(context.Context, runtime.Logger, *sql.DB, runti
 			return "", nil
 		}
 
-		marshaler := conf.Marshaler
+		marshaler := conf.MarshalerDefault
 		exChangedealInShopJson, _ := marshaler.Marshal(exChangedealInShop)
 		logger.Info("exchange deals results %s", exChangedealInShopJson)
 		return string(exChangedealInShopJson), nil
@@ -128,11 +138,16 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 		if !ok {
 			return "", errors.New("Missing user ID.")
 		}
-		exChangedealReq := &pb.ExchangeInfo{}
 		unmarshaler := conf.Unmarshaler
+
+		exChangedealReq := &pb.ExchangeInfo{}
 		if err := unmarshaler.Unmarshal([]byte(payload), exChangedealReq); err != nil {
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
+		}
+		if exChangedealReq.CashId == "" || exChangedealReq.CashType == "" {
+			logger.Error("Missing cash info")
+			return "", errors.New("missing cash info")
 		}
 		// check valid id deal
 		deal, err := GetExchangeDealFromId(exChangedealReq.IdDeal)
@@ -146,11 +161,11 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 			return "", presenter.ErrInternalError
 		}
 		exchange := &pb.ExchangeInfo{
-			IdDeal:          deal.Id,
+			IdDeal:          deal.GetId(),
 			Chips:           deal.Chips,
 			Price:           deal.Price,
 			Status:          int64(pb.ExchangeStatus_EXCHANGE_STATUS_WAITING.Number()),
-			Unlock:          false,
+			Unlock:          0,
 			CashId:          exChangedealReq.CashId,
 			CashType:        exChangedealReq.CashType,
 			DeviceId:        exChangedealReq.DeviceId,
@@ -160,10 +175,11 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 		}
 		id, err := cgbdb.AddNewExchange(ctx, logger, db, exchange)
 		if err != nil {
+			logger.Error("AddNewExchange error %s", err.Error())
 			return "", presenter.ErrInternalError
 		}
 		exchange.Id = id
-		marshaler := conf.Marshaler
+		marshaler := conf.MarshalerDefault
 		exChangeJson, _ := marshaler.Marshal(exchange)
 		return string(exChangeJson), nil
 	}
@@ -190,16 +206,17 @@ func RpcRequestCancelExchange() func(context.Context, runtime.Logger, *sql.DB, r
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		if exChangedealReq.Id <= 0 {
-			logger.Error("User %s query exchange %s is invalid. exchange id must > 0", userID, exChangedealReq.Id)
+		if exChangedealReq.Id == "" {
+			logger.Error("User %s query exchange %s is empty", userID, exChangedealReq.Id)
 			return "", presenter.ErrInternalError
 		}
+		exChangedealReq.UserIdRequest = userID
 		exChangeInDb, err := cgbdb.CancelExchangeByIdByUser(ctx, logger, db, exChangedealReq)
 		if err != nil {
 			logger.Error("User %s read exchange id %s error %s", userID, exChangedealReq.Id, err.Error())
 			return "", presenter.ErrInternalError
 		}
-		marshaler := conf.Marshaler
+		marshaler := conf.MarshalerDefault
 		exChangeInDbJson, _ := marshaler.Marshal(exChangeInDb)
 		return string(exChangeInDbJson), nil
 	}

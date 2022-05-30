@@ -48,6 +48,7 @@ const (
 	rpcExchange              = "exchange"
 	rpcCancelExchange        = "exchange_cancel"
 	rpcListExchange          = "list_exchange"
+	rpcListExchangeLock      = "exchange_lock"
 )
 
 var (
@@ -155,6 +156,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcListExchange, api.RpcGetAllExchange()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListExchangeLock, api.RpcExchangeLock()); err != nil {
 		return err
 	}
 
