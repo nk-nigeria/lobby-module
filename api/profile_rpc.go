@@ -18,7 +18,7 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
-const DefaultLevel = 1
+const DefaultLevel = 0
 
 func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
