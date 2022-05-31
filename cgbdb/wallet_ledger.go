@@ -46,14 +46,16 @@ func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, us
 		params[1] = incomingCursor.CreateTime
 		params[2], _ = uuid.FromString(incomingCursor.Id)
 	}
-	query := `SELECT id, changeset, metadata, create_time, update_time FROM wallet_ledger WHERE user_id = $1::UUID AND (user_id, create_time, id) < ($1::UUID, $2, $3::UUID) ORDER BY create_time DESC`
+	query := `SELECT id, changeset, metadata, create_time, update_time FROM wallet_ledger WHERE user_id = $1::UUID AND (user_id, create_time, id) < ($1::UUID, $2, $3::UUID) AND metadata ->> 'action' = 'bank_topup' ORDER BY create_time DESC`
 	if incomingCursor != nil && !incomingCursor.IsNext {
-		query = `SELECT id, changeset, metadata, create_time, update_time FROM wallet_ledger WHERE user_id = $1::UUID AND (user_id, create_time, id) > ($1::UUID, $2, $3::UUID) ORDER BY create_time ASC`
+		query = `SELECT id, changeset, metadata, create_time, update_time FROM wallet_ledger WHERE user_id = $1::UUID AND (user_id, create_time, id) > ($1::UUID, $2, $3::UUID) AND metadata ->> 'action' = 'bank_topup' ORDER BY create_time ASC`
 	}
 
 	if limit != nil {
 		query = fmt.Sprintf(`%s LIMIT %v`, query, *limit+1)
 	}
+
+	logger.Info("Query ledger ", query, " params ", params)
 
 	results := make([]runtime.WalletLedgerItem, 0, 10)
 	rows, err := db.QueryContext(ctx, query, params...)
