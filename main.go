@@ -45,10 +45,12 @@ const (
 	rpcListFreeChip          = "list_freechip"
 	rpcListDeal              = "list_deal"
 	rpcListExchangeDeal      = "list_exchange_deal"
-	rpcExchange              = "exchange"
+	rpcExchangeAdd           = "exchange_add"
 	rpcCancelExchange        = "exchange_cancel"
 	rpcListExchange          = "list_exchange"
 	rpcListExchangeLock      = "exchange_lock"
+	rpcListExchangeById      = "exchange_by_id"
+	rpcUpdataStatusExchange  = "exchange_update_status"
 )
 
 var (
@@ -149,16 +151,22 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(rpcListExchangeDeal, api.RpcExChangedealsList()); err != nil {
 		return err
 	}
-	if err := initializer.RegisterRpc(rpcExchange, api.RpcRequestNewExchange()); err != nil {
+	if err := initializer.RegisterRpc(rpcExchangeAdd, api.RpcRequestNewExchange()); err != nil {
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcCancelExchange, api.RpcRequestCancelExchange()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcListExchangeById, api.RpcGetExchange()); err != nil {
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcListExchange, api.RpcGetAllExchange()); err != nil {
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcListExchangeLock, api.RpcExchangeLock()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcUpdataStatusExchange, api.RpcExchangeUpdateStatus()); err != nil {
 		return err
 	}
 

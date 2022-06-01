@@ -15,6 +15,7 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/jackc/pgtype"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -108,8 +109,12 @@ func GetExchangeById(ctx context.Context, logger runtime.Logger, db *sql.DB, exc
 	var dbId, dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
 		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
 	var dbUnlock int32
-	err := db.QueryRowContext(ctx, query, exchange.Id).Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
-		&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, &dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+	err := db.QueryRowContext(ctx, query, exchange.Id).Scan(
+		&dbId, &dbChips, &dbPrice,
+		&dbStatus, &dbUnlock, &dbCashId,
+		&dbCashType, &dbUserIdReq, &dbUserNameReq,
+		&dbVipLv, &dbDeviceId, &dbUserIdHandling,
+		&dbUserNameHandling, &dbReason)
 	if err != nil {
 		logger.Error("Query exchange id %s, user id %s, error %s", exchange.Id, exchange.UserIdRequest, err.Error())
 		return nil, status.Error(codes.Internal, "Query exchange error")
@@ -186,6 +191,11 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 			incomingCursor.CreateTime.String())
 	}
 	limit := incomingCursor.Limit
+	offset := incomingCursor.Offset
+
+	if limit != exchange.Limit {
+		offset = 0
+	}
 	if limit <= 0 {
 		limit = exchange.Limit
 	}
@@ -194,7 +204,7 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		limit = 1000
 	}
 
-	queryRows := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason FROM " +
+	queryRows := "SELECT id, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason, create_time FROM " +
 		ExchangeTableName
 	// clause := "WHERE"
 	query := ""
@@ -236,6 +246,9 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 	}
 
 	from := incomingCursor.From
+	if from != exchange.GetFrom() {
+		offset = 0
+	}
 	if from <= 0 {
 		from = exchange.GetFrom()
 	}
@@ -245,6 +258,9 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 	}
 
 	to := incomingCursor.To
+	if to != exchange.GetTo() {
+		offset = 0
+	}
 	if to <= 0 {
 		to = exchange.GetTo()
 	}
@@ -253,16 +269,10 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		params = append(params, time.Unix(to, 0))
 	}
 
-	if incomingCursor.Id == "" || incomingCursor.IsNext {
-		query += " order by id desc "
-	} else {
-		query += " order by id asc "
-	}
+	query += " order by create_time desc "
 
 	query += nextClause("limit", "")
 	params = append(params, limit)
-
-	offset := incomingCursor.Offset
 
 	query += nextClause("offset", "")
 	params = append(params, offset)
@@ -271,6 +281,7 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 	var dbId, dbPrice, dbCashId, dbCashType, dbUserIdReq, dbUserNameReq,
 		dbDeviceId, dbUserIdHandling, dbUserNameHandling, dbReason string
 	var dbUnlock int32
+	var dbCreateTime pgtype.Timestamptz
 	// logger.Debug("Query %s", query)
 	rows, err := db.QueryContext(ctx, queryRows+query, params...)
 
@@ -278,10 +289,18 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 		logger.Error("Query exchange id %s, error %s", exchange.Id, err.Error())
 		return nil, status.Error(codes.Internal, "Query exchange error")
 	}
+	//  id, chips, price,
+	//  status, unlock, cash_id,
+	//   cash_type, user_id_request, user_name_request,
+	//   vip_lv, device_id, user_id_handling,
+	//   user_name_handling, reason, create_time FROM
 	ml := make([]*pb.ExchangeInfo, 0)
 	for rows.Next() {
-		rows.Scan(&dbId, &dbChips, &dbPrice, &dbStatus,
-			&dbUnlock, &dbCashId, &dbCashType, &dbUserIdReq, dbUserNameReq, &dbVipLv, &dbDeviceId, &dbUserIdHandling, &dbUserNameHandling, &dbReason)
+		rows.Scan(&dbId, &dbChips, &dbPrice,
+			&dbStatus, &dbUnlock, &dbCashId,
+			&dbCashType, &dbUserIdReq, &dbUserNameReq,
+			&dbVipLv, &dbDeviceId, &dbUserIdHandling,
+			&dbUserNameHandling, &dbReason, &dbCreateTime)
 		exchangeInfo := pb.ExchangeInfo{
 			Id:               dbId,
 			Chips:            dbChips,
@@ -297,17 +316,18 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 			UserIdHandling:   dbUserIdHandling,
 			UserNameHandling: dbUserNameHandling,
 			Reason:           dbReason,
+			CreateTime:       dbCreateTime.Time.Unix(),
 		}
 		ml = append(ml, &exchangeInfo)
 	}
 	sort.Slice(ml, func(i, j int) bool {
-		return ml[i].Id > ml[j].Id
+		return ml[i].CreateTime > ml[j].CreateTime
 	})
 
 	var total int64 = incomingCursor.Total
 	if total <= 0 {
 		queryTotal := "Select count(*) as total FROM " + ExchangeTableName + " " +
-			strings.ReplaceAll(query, "order by id desc", "")
+			strings.ReplaceAll(query, "order by create_time desc", "")
 		logger.Debug("Query total %s", queryTotal)
 		e := db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
 		if e != nil {
@@ -323,7 +343,7 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 				UserId: userId,
 				Id:     ml[len(ml)-1].Id,
 				IsNext: true,
-				Offset: incomingCursor.Offset + int64(len(ml)),
+				Offset: offset + int64(len(ml)),
 				Limit:  limit,
 				From:   from,
 				To:     to,
@@ -406,6 +426,36 @@ func ExchangeLock(ctx context.Context, logger runtime.Logger, db *sql.DB, exchan
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
 		logger.Error("Did not lock exchange %s", exchange.GetId())
 		return nil, status.Error(codes.Internal, "Error lock exchange")
+	}
+	return GetExchangeById(ctx, logger, db, exchange)
+}
+
+func ExchangeUpdateStatus(ctx context.Context, logger runtime.Logger, db *sql.DB, exchange *pb.ExchangeInfo) (*pb.ExchangeInfo, error) {
+	curExchange, err := GetExchangeById(ctx, logger, db, exchange)
+	if err != nil {
+		logger.Error("get exchange id %s error %s", exchange.GetId(), err.Error())
+		return nil, status.Error(codes.Internal, "get exchange error")
+	}
+	if curExchange.Unlock != 0 ||
+		curExchange.GetStatus() != int64(pb.ExchangeStatus_EXCHANGE_STATUS_PENDING.Number()) ||
+		(exchange.GetStatus() != int64(pb.ExchangeStatus_EXCHANGE_STATUS_REJECT.Number()) &&
+			exchange.GetStatus() != int64(pb.ExchangeStatus_EXCHANGE_STATUS_DONE.Number())) {
+		logger.Error("Can not update status exchange. Not meet requirement,", curExchange.Unlock)
+		return curExchange, nil
+	}
+	query := "UPDATE " + ExchangeTableName + " SET status=$1, reason=$2, update_time = now() WHERE id=$3 AND status=$4"
+	result, err := db.ExecContext(ctx, query,
+		exchange.Status,
+		exchange.Reason,
+		exchange.GetId(),
+		pb.ExchangeStatus_EXCHANGE_STATUS_PENDING.Number())
+	if err != nil {
+		logger.Error("Update status exchange id %s error %s", exchange.GetId(), err.Error())
+		return nil, status.Error(codes.Internal, "Lock exchange error")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not update status exchange %s", exchange.GetId())
+		return nil, status.Error(codes.Internal, "Error update status exchange")
 	}
 	return GetExchangeById(ctx, logger, db, exchange)
 }

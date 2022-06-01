@@ -128,6 +128,7 @@ message ExchangeInfo {
   string user_name_handling = 14;
   string reason = 15;
   string cursor = 16;
+  int64 createTime = 17;
 }
 
 message ExchangeDealInShop {
