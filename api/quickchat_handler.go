@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -41,5 +43,37 @@ func RpcUpdateQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 		}
 
 		return "", nil
+	}
+}
+
+func RpcGetQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+
+		account, err := nk.AccountGetId(ctx, userID)
+		if err != nil {
+			return "", err
+		}
+
+		var metadata map[string]interface{}
+		if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
+			return "", errors.New("Corrupted user metadata.")
+		}
+
+		metaText := metadata["qc"].([]interface{})
+		resData := &pb.QuickChatResponse{}
+		for _, text := range metaText {
+			resData.Texts = append(resData.Texts, text.(string))
+		}
+
+		res, err := marshaler.Marshal(resData)
+		if err != nil {
+			return "", fmt.Errorf("Marharl texts error: %s", err.Error())
+		}
+
+		return string(res), nil
 	}
 }

@@ -32,6 +32,7 @@ const (
 	rpcUpdatePassword  = "update_password"
 	rpcUpdateAvatar    = "update_avatar"
 	rpcUpdateQuickChat = "update_quickchat"
+	rpcGetQuickChat    = "get_quickchat"
 
 	rpcPushToBank        = "push_to_bank"
 	rpcWithDraw          = "with_draw"
@@ -185,6 +186,13 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(
 		rpcUpdateQuickChat,
 		api.RpcUpdateQuickChat(marshaler, unmarshaler),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcGetQuickChat,
+		api.RpcGetQuickChat(marshaler, unmarshaler),
 	); err != nil {
 		return err
 	}

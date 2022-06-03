@@ -36,3 +36,7 @@ message Profile {
 message QuickChatUpdateRequest {
   repeated string texts = 1;
 }
+
+message QuickChatResponse {
+  repeated string texts = 1;
+}
