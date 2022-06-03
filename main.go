@@ -66,6 +66,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
+	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
