@@ -32,3 +32,7 @@ message Profile {
   bool registrable = 14;
   int64 vip_level = 15;
 }
+
+message QuickChatUpdateRequest {
+  repeated string texts = 1;
+}

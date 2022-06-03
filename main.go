@@ -27,10 +27,11 @@ const (
 	rpcUserChangePass = "user_change_pass"
 	rpcLinkUsername   = "link_username"
 
-	rpcGetProfile     = "get_profile"
-	rpcUpdateProfile  = "update_profile"
-	rpcUpdatePassword = "update_password"
-	rpcUpdateAvatar   = "update_avatar"
+	rpcGetProfile      = "get_profile"
+	rpcUpdateProfile   = "update_profile"
+	rpcUpdatePassword  = "update_password"
+	rpcUpdateAvatar    = "update_avatar"
+	rpcUpdateQuickChat = "update_quickchat"
 
 	rpcPushToBank        = "push_to_bank"
 	rpcWithDraw          = "with_draw"
@@ -43,7 +44,7 @@ const (
 	rpcListClaimableFreeChip = "list_claimable_freechip"
 	rpcCheckClaimFreeChip    = "check_claim_freechip"
 	rpcListFreeChip          = "list_freechip"
-	rpcListDeal = "list_deal"
+	rpcListDeal              = "list_deal"
 )
 
 var (
@@ -177,6 +178,13 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(
 		rpcUpdateAvatar,
 		api.RpcUploadAvatar(marshaler, unmarshaler, objStorage),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcUpdateQuickChat,
+		api.RpcUpdateQuickChat(marshaler, unmarshaler),
 	); err != nil {
 		return err
 	}
