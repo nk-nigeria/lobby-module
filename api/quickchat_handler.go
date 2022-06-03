@@ -63,12 +63,16 @@ func RpcGetQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			return "", errors.New("Corrupted user metadata.")
 		}
 
-		metaText := metadata["qc"].([]interface{})
+		qcMeta := metadata["qc"]
 		resData := &pb.QuickChatResponse{}
-		for _, text := range metaText {
-			resData.Texts = append(resData.Texts, text.(string))
+		if qcMeta != nil {
+			metaText := qcMeta.([]interface{})
+			for _, text := range metaText {
+				resData.Texts = append(resData.Texts, text.(string))
+			}
 		}
 
+		marshaler.EmitUnpopulated = true
 		res, err := marshaler.Marshal(resData)
 		if err != nil {
 			return "", fmt.Errorf("Marharl texts error: %s", err.Error())
