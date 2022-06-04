@@ -79,7 +79,8 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 	}
 
 	for _, d := range dailyRewardTemplate.Dailies {
-		d.BonusChips = d.GetChips() * int64(d.GetPercentBonus()/100.0)
+		bonusChips := float32(d.GetChips()) * (d.GetPercentBonus() / 100.0)
+		d.BonusChips = int64(bonusChips)
 		d.TotalChips = d.GetChips() + d.GetBonusChips()
 	}
 	DailyRewardTemplate = &dailyRewardTemplate
