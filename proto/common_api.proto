@@ -103,3 +103,15 @@ message DealInShop {
   repeated Deal gcashes = 3;
   repeated Deal sms = 4;
 }
+
+message Reward {
+  int64 chips = 1;
+  float percent_bonus = 2;
+  int64 bonus_chips = 3;
+  int64 total_chips = 4;
+  int64 streak = 5;
+}
+
+message DailyReward {
+  repeated Reward dailies = 1;
+}

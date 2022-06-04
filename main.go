@@ -46,6 +46,8 @@ const (
 	rpcCheckClaimFreeChip    = "check_claim_freechip"
 	rpcListFreeChip          = "list_freechip"
 	rpcListDeal              = "list_deal"
+	rpcIdCanClaimDailyReward = "canclaimdailyreward"
+	rpcIdClaimDailyReward    = "claimdailyreward"
 )
 
 var (
@@ -66,6 +68,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
+	api.InitDailyRewardTemplate(ctx, logger, nk)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -141,6 +144,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	// daily reward
+	if err := initializer.RegisterRpc(rpcIdCanClaimDailyReward,
+		api.RpcCanClaimDailyReward()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdClaimDailyReward,
+		api.RpcClaimDailyReward()); err != nil {
+		return err
+	}
 	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
 		newID := node.Generate().Int64()
 		if in.Username == "" {
