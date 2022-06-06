@@ -17,6 +17,8 @@ const (
 	kExchangeKey        = "exchange-deal-key"
 )
 
+var MapExchangeDeal = make(map[string]*pb.Deal, 0)
+
 func InitExchangeList(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
 	objectIds := []*runtime.StorageRead{
 		{
@@ -31,6 +33,12 @@ func InitExchangeList(ctx context.Context, logger runtime.Logger, nk runtime.Nak
 	}
 
 	if len(objects) > 0 {
+		exChangeDealInShop := &pb.ExchangeDealInShop{}
+		_ = conf.Unmarshaler.Unmarshal([]byte(objects[0].GetValue()), exChangeDealInShop)
+
+		for _, deal := range exChangeDealInShop.Gcashes {
+			MapExchangeDeal[deal.GetId()] = deal
+		}
 		logger.Info("List exchange deal already write in collection")
 		return
 	}
@@ -57,6 +65,9 @@ func InitExchangeList(ctx context.Context, logger runtime.Logger, nk runtime.Nak
 				Percent:     "33.3",
 			},
 		},
+	}
+	for _, deal := range exChangeDeals.Gcashes {
+		MapExchangeDeal[deal.GetId()] = deal
 	}
 	marshaler := conf.Marshaler
 	exChangedealsJson, err := marshaler.Marshal(&exChangeDeals)
@@ -150,9 +161,9 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 			return "", errors.New("missing cash info")
 		}
 		// check valid id deal
-		deal, err := GetExchangeDealFromId(exChangedealReq.IdDeal)
+		deal, err := GetExchangeDealFromId(exChangedealReq.Id)
 		if err != nil {
-			logger.Error("User %s request add new exchange with id %s, error: %s", userID, exChangedealReq.IdDeal, err.Error())
+			logger.Error("User %s request add new exchange with id %s, error: %s", userID, exChangedealReq.Id, err.Error())
 			return "", presenter.ErrInternalError
 		}
 		profile, _, err := GetProfileUser(ctx, nk, userID, nil)
@@ -186,12 +197,10 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 }
 
 func GetExchangeDealFromId(id string) (*pb.Deal, error) {
-	return &pb.Deal{
-		Id:    "123",
-		Chips: 100,
-		Bonus: 0,
-		Price: "1000.0",
-	}, nil
+	if deal, exist := MapExchangeDeal[id]; exist {
+		return deal, nil
+	}
+	return nil, errors.New("Exchange id not found")
 }
 
 func RpcRequestCancelExchange() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
