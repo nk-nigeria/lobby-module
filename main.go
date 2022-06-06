@@ -58,6 +58,10 @@ const (
 	rpcUpdataStatusExchange  = "exchange_update_status"
 )
 
+const (
+	topicLeaderBoardAddScore = "leaderboard_add_score"
+)
+
 var (
 	node *snowflake.Node
 )
@@ -239,7 +243,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	api.RegisterValidatePurchase(db, nk, initializer)
 
-	message_queue.RegisterHandler("leaderboard_add_score", func(data []byte) {
+	message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
 		leaderBoardRecord := &pb.LeaderBoardRecord{}
 		err := unmarshaler.Unmarshal(data, leaderBoardRecord)
 		if err != nil {
