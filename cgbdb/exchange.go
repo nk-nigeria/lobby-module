@@ -53,7 +53,7 @@ func AddNewExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, exch
 		" (id, id_deal, chips, price, status, unlock, cash_id, cash_type, user_id_request, user_name_request, vip_lv, device_id, user_id_handling, user_name_handling, reason, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now(), now())"
 	result, err := db.ExecContext(ctx, query,
 		exchange.Id, exchange.GetIdDeal(), exchange.GetChips(),
-		exchange.GetPrice(), exchange.GetStatus(), exchange.GetUnlock(),
+		exchange.GetPrice(), exchange.GetStatus(), 1,
 		exchange.GetCashId(), exchange.GetCashType(), exchange.GetUserIdRequest(),
 		exchange.GetUserNameRequest(), exchange.GetVipLv(), exchange.GetDeviceId(),
 		exchange.GetUserIdHandling(), exchange.GetUserNameHandling(), exchange.GetReason())
