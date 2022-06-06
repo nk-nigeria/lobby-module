@@ -103,3 +103,9 @@ message DealInShop {
   repeated Deal gcashes = 3;
   repeated Deal sms = 4;
 }
+
+message LeaderBoardRecord {
+  string game_code = 1;
+  string user_id = 2;
+  int64 score = 3;
+}

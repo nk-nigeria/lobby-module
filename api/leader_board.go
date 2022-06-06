@@ -38,7 +38,19 @@ func InitLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.Naka
 		reset := constant.RESET_SCHEDULER_LEADER_BOARD
 		metadata := map[string]interface{}{}
 		if err := nk.LeaderboardCreate(ctx, game.Code, authoritative, sort, operator, reset, metadata); err != nil {
-			logger.Debug("Can not create ")
+			logger.Debug("Can not create leaderboard " + game.Code)
 		}
+	}
+}
+
+func UpdateScoreLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, leaderBoardRecord *pb.LeaderBoardRecord) {
+	accounts, err := nk.AccountsGetId(ctx, []string{leaderBoardRecord.GameCode})
+	if err != nil || len(accounts) == 0 {
+		logger.Error("[UpdateScoreLeaderBoard] AccountsGetId %v", err)
+		return
+	}
+	account := accounts[0]
+	if _, err := nk.LeaderboardRecordWrite(ctx, leaderBoardRecord.GameCode, leaderBoardRecord.UserId, account.GetUser().GetUsername(), leaderBoardRecord.Score, 0, map[string]interface{}{}, nil); err != nil {
+		logger.Debug("Can not UpdateScoreLeaderBoard %v", leaderBoardRecord)
 	}
 }

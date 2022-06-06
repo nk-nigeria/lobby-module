@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/message_queue"
+	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -67,6 +70,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
+	message_queue.InitNatsService(logger, constant.NastEndpoint)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -204,6 +208,16 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	api.RegisterValidatePurchase(db, nk, initializer)
 
+	message_queue.RegisterHandler("leaderboard_add_score", func(data []byte) {
+		leaderBoardRecord := &pb.LeaderBoardRecord{}
+		err := unmarshaler.Unmarshal(data, leaderBoardRecord)
+		if err != nil {
+			logger.Error("leaderboard_add_score unmarshaler err %v data %v", err, string(data))
+			return
+		}
+		api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
+	})
+	message_queue.GetNatsService().RegisterAllSubject()
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
 	return nil

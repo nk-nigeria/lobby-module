@@ -7,3 +7,5 @@ const (
 const (
 	RESET_SCHEDULER_LEADER_BOARD = "0 0 * * 1" // At 00:00 on Monday.
 )
+
+const NastEndpoint = ""
