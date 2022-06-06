@@ -15,14 +15,20 @@ import (
 func RpcGetAllExchange() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-		if userID != "" {
-			return "", errors.New("Unath.")
-		}
+		// if userID != "" {
+		// 	return "", errors.New("Unath.")
+		// }
 		unmarshaler := conf.Unmarshaler
 		exChangedealReq := &pb.ExchangeRequest{}
-		if err := unmarshaler.Unmarshal([]byte(payload), exChangedealReq); err != nil {
-			logger.Error("Error when unmarshal payload", err.Error())
-			return "", presenter.ErrUnmarshal
+
+		if payload != "" {
+			if err := unmarshaler.Unmarshal([]byte(payload), exChangedealReq); err != nil {
+				logger.Error("Error when unmarshal payload", err.Error())
+				return "", presenter.ErrUnmarshal
+			}
+		}
+		if userID != "" {
+			exChangedealReq.UserIdRequest = userID
 		}
 		list, err := cgbdb.GetAllExchange(ctx, logger, db, userID, exChangedealReq)
 		if err != nil {
