@@ -47,6 +47,7 @@ func (conn *NatsService) Publish(topic string, data []byte) {
 func (conn *NatsService) RegisterAllSubject() {
 	for topic, _ := range messageHandler {
 		_, err := conn.conn.Subscribe(topic, func(msg *nats.Msg) {
+			conn.logger.Info("Receive data %s", topic, string(msg.Data))
 			processMessage(msg.Subject, msg.Data)
 		})
 		if err != nil {

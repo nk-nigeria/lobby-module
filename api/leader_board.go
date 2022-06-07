@@ -52,5 +52,7 @@ func UpdateScoreLeaderBoard(ctx context.Context, logger runtime.Logger, nk runti
 	account := accounts[0]
 	if _, err := nk.LeaderboardRecordWrite(ctx, leaderBoardRecord.GameCode, leaderBoardRecord.UserId, account.GetUser().GetUsername(), leaderBoardRecord.Score, 0, map[string]interface{}{}, nil); err != nil {
 		logger.Debug("Can not UpdateScoreLeaderBoard %v", leaderBoardRecord)
+	} else {
+		logger.Info("UpdateScoreLeaderBoard success %v", leaderBoardRecord)
 	}
 }
