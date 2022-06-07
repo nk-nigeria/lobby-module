@@ -54,6 +54,9 @@ func AddChipWalletUser(ctx context.Context, nk runtime.NakamaModule, logger runt
 	if wallet.ChipsInBank != 0 {
 		changeset["chipsInBank"] = wallet.ChipsInBank // Add amountChip coins to the user's wallet.
 	}
+	if wallet.Chips <= 0 && wallet.ChipsInBank <= 0 {
+		return nil
+	}
 	// metadata := map[string]interface{}{
 	// 	"game_topup": reason,
 	// }

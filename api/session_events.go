@@ -17,9 +17,10 @@ package api
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	"time"
 )
 
 const (
@@ -32,7 +33,7 @@ func RegisterSessionEvents(db *sql.DB, nk runtime.NakamaModule, initializer runt
 	if err := initializer.RegisterEventSessionStart(eventSessionStartFunc(nk)); err != nil {
 		return err
 	}
-	if err := initializer.RegisterEventSessionEnd(eventSessionEndFunc(db)); err != nil {
+	if err := initializer.RegisterEventSessionEnd(eventSessionEndFunc(nk, db)); err != nil {
 		return err
 	}
 
@@ -40,13 +41,14 @@ func RegisterSessionEvents(db *sql.DB, nk runtime.NakamaModule, initializer runt
 }
 
 // Update a user's last online timestamp when they disconnect.
-func eventSessionEndFunc(db *sql.DB) func(context.Context, runtime.Logger, *api.Event) {
+func eventSessionEndFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Context, runtime.Logger, *api.Event) {
 	return func(ctx context.Context, logger runtime.Logger, evt *api.Event) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			logger.Error("context did not contain user ID.")
 			return
 		}
+		saveSecsOnlineNotClaimReward(ctx, logger, nk, db)
 
 		// Restrict the time allowed with the DB operation so we can fail fast in a stampeding herd scenario.
 		ctx2, _ := context.WithTimeout(ctx, 1*time.Second)
@@ -119,5 +121,30 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 				continue
 			}
 		}
+
 	}
+}
+
+func saveSecsOnlineNotClaimReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, db *sql.DB) {
+	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !ok {
+		logger.Error("context did not contain user ID.")
+		return
+	}
+	account, _, err := GetProfileUser(ctx, nk, userID, nil)
+	if err != nil {
+		logger.Error("Get account %s, error :%s", userID, err.Error())
+		return
+	}
+	userDailyReward, dailyRewardObject, err := GetLastDailyRewardObject(ctx, logger, nk)
+	if err != nil {
+		logger.Error("Get GetLastDailyRewardObject %s, error :%s", userID, err.Error())
+		return
+	}
+	userDailyReward.CalcSecsNotClaimReward(account.GetLastOnlineTimeUnix())
+	version := ""
+	if dailyRewardObject != nil {
+		version = dailyRewardObject.GetVersion()
+	}
+	SaveUserDailyReward(ctx, nk, logger, userDailyReward, version, userID)
 }

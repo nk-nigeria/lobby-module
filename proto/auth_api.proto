@@ -31,6 +31,7 @@ message Profile {
   string avatar_id =13;
   bool registrable = 14;
   int64 vip_level = 15;
+  int64 last_online_time_unix = 16;
 }
 
 message QuickChatUpdateRequest {

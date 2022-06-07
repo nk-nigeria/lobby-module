@@ -6,12 +6,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -104,4 +107,97 @@ AND (NOT EXISTS
 		return status.Error(codes.AlreadyExists, "Username is already in use.")
 	}
 	return nil
+}
+
+func GetAccount(ctx context.Context, logger runtime.Logger, db *sql.DB, userID string) (*entity.Account, error) {
+	var displayName sql.NullString
+	var username sql.NullString
+	var avatarURL sql.NullString
+	var langTag sql.NullString
+	var location sql.NullString
+	var timezone sql.NullString
+	var metadata sql.NullString
+	var wallet sql.NullString
+	var email sql.NullString
+	var apple sql.NullString
+	var facebook sql.NullString
+	var facebookInstantGame sql.NullString
+	var google sql.NullString
+	var gamecenter sql.NullString
+	var steam sql.NullString
+	var customID sql.NullString
+	var edgeCount int
+	var createTime pgtype.Timestamptz
+	var updateTime pgtype.Timestamptz
+	var verifyTime pgtype.Timestamptz
+	var disableTime pgtype.Timestamptz
+	var deviceIDs pgtype.VarcharArray
+	var lastOnlineTime pgtype.Timestamptz
+
+	query := `
+SELECT u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
+	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
+	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id), u.last_online_time_unix
+FROM users u
+WHERE u.id = $1`
+
+	if err := db.QueryRowContext(ctx, query, userID).
+		Scan(&username, &displayName, &avatarURL,
+			&langTag, &location, &timezone,
+			&metadata, &wallet, &email,
+			&apple, &facebook, &facebookInstantGame,
+			&google, &gamecenter, &steam,
+			&customID, &edgeCount, &createTime,
+			&updateTime, &verifyTime, &disableTime, &deviceIDs, &lastOnlineTime); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrAccountNotFound
+		}
+		logger.Error("Error retrieving user account.%s", err.Error())
+		return nil, err
+	}
+
+	devices := make([]*api.AccountDevice, 0, len(deviceIDs.Elements))
+	for _, deviceID := range deviceIDs.Elements {
+		devices = append(devices, &api.AccountDevice{Id: deviceID.String})
+	}
+
+	var verifyTimestamp *timestamppb.Timestamp
+	if verifyTime.Status == pgtype.Present && verifyTime.Time.Unix() != 0 {
+		verifyTimestamp = &timestamppb.Timestamp{Seconds: verifyTime.Time.Unix()}
+	}
+	var disableTimestamp *timestamppb.Timestamp
+	if disableTime.Status == pgtype.Present && disableTime.Time.Unix() != 0 {
+		disableTimestamp = &timestamppb.Timestamp{Seconds: disableTime.Time.Unix()}
+	}
+	account := entity.Account{
+		Account: api.Account{
+			User: &api.User{
+				Id:                    userID,
+				Username:              username.String,
+				DisplayName:           displayName.String,
+				AvatarUrl:             avatarURL.String,
+				LangTag:               langTag.String,
+				Location:              location.String,
+				Timezone:              timezone.String,
+				Metadata:              metadata.String,
+				AppleId:               apple.String,
+				FacebookId:            facebook.String,
+				FacebookInstantGameId: facebookInstantGame.String,
+				GoogleId:              google.String,
+				GamecenterId:          gamecenter.String,
+				SteamId:               steam.String,
+				EdgeCount:             int32(edgeCount),
+				CreateTime:            &timestamppb.Timestamp{Seconds: createTime.Time.Unix()},
+				UpdateTime:            &timestamppb.Timestamp{Seconds: updateTime.Time.Unix()},
+			},
+			Wallet:      wallet.String,
+			Email:       email.String,
+			Devices:     devices,
+			CustomId:    customID.String,
+			VerifyTime:  verifyTimestamp,
+			DisableTime: disableTimestamp,
+		},
+		LastOnlineTimeUnix: lastOnlineTime.Time.Unix(),
+	}
+	return &account, nil
 }

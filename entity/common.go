@@ -1,6 +1,9 @@
 package entity
 
 import (
+	"fmt"
+	"strconv"
+
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 )
 
@@ -79,9 +82,19 @@ func ToInt64(inf interface{}, def int64) int64 {
 	if inf == nil {
 		return def
 	}
-	i, ok := inf.(int64)
-	if !ok {
-		return def
+	switch v := inf.(type) {
+	case int:
+		return int64(inf.(int))
+	case int64:
+		return inf.(int64)
+	case string:
+		str := inf.(string)
+		i, _ := strconv.ParseInt(str, 10, 64)
+		return i
+	case float64:
+		return int64(inf.(float64))
+	default:
+		fmt.Printf("I don't know about type %T!\n", v)
 	}
-	return i
+	return def
 }

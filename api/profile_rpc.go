@@ -77,6 +77,9 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if profile.AvatarId != "" {
 			metadata["avatar_id"] = profile.AvatarId
 		}
+		if profile.LastOnlineTimeUnix > 0 {
+			metadata["last_online_time_unix"] = profile.LastOnlineTimeUnix
+		}
 		// avatarFileName := profile.GetAvatarUrl()
 		// avatarPresignGet := ""
 		// if avatarFileName != "" {
@@ -165,17 +168,18 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 	user := account.User
 	// todo read account chip, bank chip
 	profile := pb.Profile{
-		UserId:        user.GetId(),
-		UserName:      user.GetUsername(),
-		LangTag:       user.GetLangTag(),
-		DisplayName:   user.GetDisplayName(),
-		Status:        entity.InterfaceToString(metadata["status"]),
-		RefCode:       entity.InterfaceToString(metadata["ref_code"]),
-		AppConfig:     entity.InterfaceToString(metadata["app_config"]),
-		LinkGroup:     entity.LinkGroupFB,
-		LinkFanpageFb: entity.LinkFanpageFB,
-		AvatarId:      entity.InterfaceToString(metadata["avatar_id"]),
-		VipLevel:      entity.ToInt64(metadata["vip_level"], DefaultLevel),
+		UserId:             user.GetId(),
+		UserName:           user.GetUsername(),
+		LangTag:            user.GetLangTag(),
+		DisplayName:        user.GetDisplayName(),
+		Status:             entity.InterfaceToString(metadata["status"]),
+		RefCode:            entity.InterfaceToString(metadata["ref_code"]),
+		AppConfig:          entity.InterfaceToString(metadata["app_config"]),
+		LinkGroup:          entity.LinkGroupFB,
+		LinkFanpageFb:      entity.LinkFanpageFB,
+		AvatarId:           entity.InterfaceToString(metadata["avatar_id"]),
+		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
+		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 10),
 	}
 
 	if profile.DisplayName == "" {
@@ -188,7 +192,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		profile.Registrable = false
 	}
 
-	if user.GetAvatarUrl() != "" {
+	if user.GetAvatarUrl() != "" && objStorage != nil {
 		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
 		objName := user.GetAvatarUrl()
 		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
