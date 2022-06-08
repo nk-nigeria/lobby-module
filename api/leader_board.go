@@ -44,7 +44,7 @@ func InitLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.Naka
 }
 
 func UpdateScoreLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, leaderBoardRecord *pb.LeaderBoardRecord) {
-	accounts, err := nk.AccountsGetId(ctx, []string{leaderBoardRecord.GameCode})
+	accounts, err := nk.AccountsGetId(ctx, []string{leaderBoardRecord.UserId})
 	if err != nil || len(accounts) == 0 {
 		logger.Error("[UpdateScoreLeaderBoard] AccountsGetId %v", err)
 		return
