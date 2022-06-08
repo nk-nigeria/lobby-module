@@ -55,7 +55,7 @@ func (u *Reward) CalcSecsNotClaimReward(lastOnlineTimeUnix int64) {
 	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 
 	// last claim not today -->  first claim in day
-	if time.Unix(lastClaimUnix, 0).Before(t) {
+	if !time.Unix(lastClaimUnix, 0).After(midnight) || !time.Unix(lastClaimUnix, 0).Before(midnight.Add(24*time.Hour)) {
 		u.SecsOnline = 0
 		u.NumClaim = 0
 	}
