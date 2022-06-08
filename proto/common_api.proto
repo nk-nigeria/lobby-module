@@ -104,22 +104,25 @@ message DealInShop {
   repeated Deal sms = 4;
 }
 
-message OnlineReward {
-  int64 chips = 1;
-  int64 secs_online = 2;
-  int64 streak = 3;
-}
-
 message Reward {
   int64 chips = 1;
   float percent_bonus = 2;
   int64 bonus_chips = 3;
   int64 total_chips = 4;
   int64 streak = 5;
-  OnlineReward online_reward = 6;
-  repeated OnlineReward online_rewards = 7;
+  int64 secs_online = 6;
+  int64 secs_online_after_claim = 7;
+  bool can_claim  = 8;
+  int64 num_claim = 9;
+  int64 last_claim_unix = 10;
+}
+
+message DayReward {
+  Reward inday_reward = 1;
+  Reward online_reward = 2;
+  repeated Reward online_rewards = 3;  
 }
 
 message DailyReward {
-  repeated Reward dailies = 1;
+  repeated DayReward dailies = 1;
 }

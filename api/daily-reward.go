@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -44,12 +43,14 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 		unmarshaler.Unmarshal([]byte(objects[0].GetValue()), DailyRewardTemplate)
 	}
 	dailyRewardTemplate := pb.DailyReward{
-		Dailies: []*pb.Reward{
+		Dailies: []*pb.DayReward{
 			{
-				Chips:        2200,
-				PercentBonus: 10.0,
-				Streak:       1,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 10.0,
+					Streak:       1,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -63,10 +64,12 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				},
 			},
 			{
-				Chips:        2200,
-				PercentBonus: 20.0,
-				Streak:       2,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 20.0,
+					Streak:       2,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -80,10 +83,12 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				},
 			},
 			{
-				Chips:        2200,
-				PercentBonus: 30.0,
-				Streak:       3,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 30.0,
+					Streak:       3,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -97,10 +102,12 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				},
 			},
 			{
-				Chips:        2200,
-				PercentBonus: 40.0,
-				Streak:       4,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 40.0,
+					Streak:       4,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -114,10 +121,12 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				},
 			},
 			{
-				Chips:        2200,
-				PercentBonus: 50.0,
-				Streak:       5,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 50.0,
+					Streak:       5,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -131,10 +140,12 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				},
 			},
 			{
-				Chips:        2200,
-				PercentBonus: 100.0,
-				Streak:       6,
-				OnlineRewards: []*pb.OnlineReward{
+				IndayReward: &pb.Reward{
+					Chips:        2200,
+					PercentBonus: 100.0,
+					Streak:       6,
+				},
+				OnlineRewards: []*pb.Reward{
 					{
 						Chips:      100,
 						SecsOnline: 3600,
@@ -151,9 +162,9 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 	}
 
 	for _, d := range dailyRewardTemplate.Dailies {
-		bonusChips := float32(d.GetChips()) * (d.GetPercentBonus() / 100.0)
-		d.BonusChips = int64(bonusChips)
-		d.TotalChips = d.GetChips() + d.GetBonusChips()
+		bonusChips := float32(d.GetIndayReward().GetChips()) * (d.GetIndayReward().GetPercentBonus() / 100.0)
+		d.GetIndayReward().BonusChips = int64(bonusChips)
+		d.GetIndayReward().TotalChips = d.GetIndayReward().GetChips() + d.GetIndayReward().GetBonusChips()
 	}
 	DailyRewardTemplate = &dailyRewardTemplate
 	marshaler := conf.Marshaler
@@ -178,7 +189,7 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 	}
 }
 
-func canUserClaimDailyReward(d entity.UserDailyReward) bool {
+func canUserClaimDailyReward(d *entity.Reward) bool {
 	t := time.Now()
 	// return time.Unix(d.LastClaimUnix, 0).Before(t.Add(-5 * time.Second))
 	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
@@ -187,22 +198,25 @@ func canUserClaimDailyReward(d entity.UserDailyReward) bool {
 
 func RpcCanClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		userDailyReward, _, err := GetLastDailyRewardObject(ctx, logger, nk)
-		if err != nil {
-			logger.Error("Error getting daily reward: %v", err)
-			return "", presenter.ErrInternalError
-		}
+		// userDayReward, _, err := GetLastDailyRewardObject(ctx, logger, nk)
+		// if err != nil {
+		// 	logger.Error("Error getting daily reward: %v", err)
+		// 	return "", presenter.ErrInternalError
+		// }
 
-		userDailyReward.CanClaimDailyReward = canUserClaimDailyReward(*userDailyReward)
+		// userDayReward.CanClaimDailyReward = canUserClaimDailyReward(*userDayReward)
 		// call GetStreak for reset stream
 		// if last claim not yesterday
-		_ = userDailyReward.GetStreak()
-		userDailyReward, err = GetAndProcessDailyReward(ctx, logger, db, nk)
+		// _ = userDayReward.GetStreak()
+		userDayReward, err := GetAndProcessDailyReward(ctx, logger, db, nk)
 		if err != nil {
 			logger.Error("GetAndProcessDailyReward error %s ", err.Error())
 			return "", presenter.ErrInternalError
 		}
-		out, err := json.Marshal(userDailyReward)
+		out, err := conf.Marshaler.Marshal(&pb.DayReward{
+			IndayReward:  userDayReward.IndayReward.Reward,
+			OnlineReward: userDayReward.OnlineReward.Reward,
+		})
 
 		if err != nil {
 			logger.Error("Marshal error: %v", err)
@@ -231,8 +245,11 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 			logger.Error("getDailyRewardByStreak error %s ", err.Error())
 			return "", presenter.ErrInternalError
 		}
-		if !userDailyReward.CanClaimDailyReward && !userDailyReward.CanClaimOnlineReward {
-			out, err := json.Marshal(userDailyReward)
+		if !userDailyReward.IndayReward.CanClaim && !userDailyReward.OnlineReward.CanClaim {
+			out, err := conf.Marshaler.Marshal(&pb.DayReward{
+				IndayReward:  userDailyReward.IndayReward.Reward,
+				OnlineReward: userDailyReward.OnlineReward.Reward,
+			})
 			if err != nil {
 				logger.Error("Marshal error: %v", err)
 				return "", presenter.ErrUnmarshal
@@ -244,15 +261,20 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 			version = dailyRewardObject.GetVersion()
 		}
 		wallet := entity.Wallet{
-			Chips: userDailyReward.GetTotalChips(),
+			Chips: userDailyReward.OnlineReward.TotalChips + userDailyReward.OnlineReward.TotalChips,
 		}
-		out, err := json.Marshal(userDailyReward)
+		out, err := conf.Marshaler.Marshal(&pb.DayReward{
+			IndayReward:  userDailyReward.IndayReward.Reward,
+			OnlineReward: userDailyReward.OnlineReward.Reward,
+		})
 		if err != nil {
 			logger.Error("Marshal error: %v", err)
 			return "", presenter.ErrUnmarshal
 		}
-		userDailyReward.Reward = nil
-		userDailyReward.SecsOnlineNotClaim = userDailyReward.SecsOnlineAfterClaim
+		// userDailyReward.Reward = nil
+		userDailyReward.OnlineReward.SecsOnline = userDailyReward.IndayReward.SecsOnlineAfterClaim
+		userDailyReward.IndayReward.LastClaimUnix = time.Now().Unix()
+		userDailyReward.IndayReward.LastClaimUnix = time.Now().Unix()
 		err = SaveUserDailyReward(ctx, nk, logger, userDailyReward, version, userID)
 		if err != nil {
 			return "", err
@@ -269,12 +291,19 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 	}
 }
 
-func GetLastDailyRewardObject(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) (*entity.UserDailyReward, *api.StorageObject, error) {
-	d := &entity.UserDailyReward{
-		LastClaimUnix:        0,
-		Streak:               0,
-		TimesGetOnlineReward: 0,
-		SecsOnlineNotClaim:   0,
+func GetLastDailyRewardObject(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) (*entity.DayReward, *api.StorageObject, error) {
+	// d := &DayReward{
+	// 	Reward: pb.Reward{
+	// 		LastClaimUnix:        0,
+	// 		Streak:               0,
+	// 		NumClaim:             0,
+	// 		SecsOnline:           0,
+	// 		SecsOnlineAfterClaim: 0,
+	// 	},
+	// }
+	d := &entity.DayReward{
+		IndayReward:  entity.NewReward(),
+		OnlineReward: entity.NewReward(),
 	}
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
@@ -293,14 +322,29 @@ func GetLastDailyRewardObject(ctx context.Context, logger runtime.Logger, nk run
 	if len(objects) == 0 {
 		return d, nil, nil
 	}
-	if err := json.Unmarshal([]byte(objects[0].GetValue()), &d); err != nil {
+	unmarshaler := conf.Unmarshaler
+	g := &pb.DayReward{}
+	if err := unmarshaler.Unmarshal([]byte(objects[0].GetValue()), g); err != nil {
 		logger.Error("Unmarshal error: %v", err)
 		return nil, nil, presenter.ErrMarshal
 	}
+	d.IndayReward = &entity.Reward{Reward: g.IndayReward}
+	d.OnlineReward = &entity.Reward{Reward: g.OnlineReward}
+
+	for _, r := range g.OnlineRewards {
+		d.Onlinerewards = append(d.Onlinerewards, &entity.Reward{Reward: r})
+	}
+	if d.IndayReward == nil {
+		d.IndayReward = entity.NewReward()
+	}
+	if d.OnlineReward == nil {
+		d.OnlineReward = entity.NewReward()
+	}
 	return d, objects[0], nil
+
 }
 
-func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) (*entity.UserDailyReward, error) {
+func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) (*entity.DayReward, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
 		return nil, presenter.ErrNoUserIdFound
@@ -312,18 +356,18 @@ func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sq
 		return nil, presenter.ErrInternalError
 	}
 
-	userDailyReward.CanClaimDailyReward = canUserClaimDailyReward(*userDailyReward)
+	userDailyReward.IndayReward.CanClaim = canUserClaimDailyReward(userDailyReward.IndayReward)
 	// call GetStreak for reset stream
 	// if last claim not yesterday
-	if userDailyReward.CanClaimDailyReward {
-		userDailyReward.PlusStreak()
+	if userDailyReward.IndayReward.CanClaim {
+		userDailyReward.IndayReward.PlusStreak(6)
 	}
 	account, _, err := GetProfileUser(ctx, nk, userID, nil)
 	if err != nil {
 		logger.Error("GetProfileUser error %s", err.Error())
 		return nil, err
 	}
-	userDailyReward.CalcSecsNotClaimReward(account.LastOnlineTimeUnix)
+	userDailyReward.OnlineReward.CalcSecsNotClaimReward(account.LastOnlineTimeUnix)
 
 	userDailyReward, err = getDailyReward(userDailyReward)
 	if err != nil {
@@ -334,29 +378,31 @@ func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sq
 	return userDailyReward, nil
 
 }
-func getDailyReward(userDailyReward *entity.UserDailyReward) (*entity.UserDailyReward, error) {
-	if userDailyReward.Streak > int64(len(DailyRewardTemplate.Dailies)) {
+func getDailyReward(userDailyReward *entity.DayReward) (*entity.DayReward, error) {
+	if userDailyReward.IndayReward.Streak > int64(len(DailyRewardTemplate.Dailies)) {
 		return nil, errors.New("Out of index daily reward template")
 	}
-	userDailyReward.SecsOnlineAfterClaim = userDailyReward.SecsOnlineNotClaim
-	r := DailyRewardTemplate.Dailies[userDailyReward.Streak-1]
-	reward := &pb.Reward{
-		Chips:         r.Chips,
-		PercentBonus:  r.PercentBonus,
-		BonusChips:    r.BonusChips,
-		TotalChips:    r.TotalChips,
-		Streak:        r.Streak,
+	userDailyReward.OnlineReward.SecsOnlineAfterClaim = userDailyReward.OnlineReward.SecsOnline
+	r := DailyRewardTemplate.Dailies[userDailyReward.IndayReward.Streak-1]
+	reward := &pb.DayReward{
+		IndayReward: &pb.Reward{
+			Chips:        r.GetIndayReward().Chips,
+			PercentBonus: r.GetIndayReward().PercentBonus,
+			BonusChips:   r.GetIndayReward().BonusChips,
+			TotalChips:   r.GetIndayReward().TotalChips,
+			Streak:       r.GetIndayReward().Streak,
+		},
 		OnlineReward:  r.OnlineReward,
 		OnlineRewards: r.OnlineRewards,
 	}
-	if !userDailyReward.CanClaimDailyReward {
-		reward = &pb.Reward{
+	if !userDailyReward.IndayReward.CanClaim {
+		reward = &pb.DayReward{
 			OnlineRewards: reward.OnlineRewards,
 		}
 	}
-	var onlineReward *pb.OnlineReward
+	var onlineReward *pb.Reward
 	reward.OnlineReward = nil
-	timesGetOnlineReward := userDailyReward.TimesGetOnlineReward + 1
+	timesGetOnlineReward := userDailyReward.OnlineReward.NumClaim + 1
 	for _, s := range reward.OnlineRewards {
 		if s.Streak == timesGetOnlineReward {
 			onlineReward = s
@@ -367,36 +413,51 @@ func getDailyReward(userDailyReward *entity.UserDailyReward) (*entity.UserDailyR
 		onlineReward = reward.OnlineRewards[len(reward.OnlineRewards)-1]
 	}
 
-	reward.OnlineRewards = nil
-	userDailyReward.Reward = reward
-	userDailyReward.Reward.OnlineReward = &pb.OnlineReward{}
-	if onlineReward != nil && userDailyReward.SecsOnlineNotClaim >= onlineReward.SecsOnline {
-		ratio := userDailyReward.SecsOnlineNotClaim / onlineReward.SecsOnline
-		userDailyReward.Reward.OnlineReward.Chips = ratio * onlineReward.Chips
-		userDailyReward.SecsOnlineAfterClaim -= ratio * onlineReward.SecsOnline
-		if userDailyReward.SecsOnlineAfterClaim < 0 {
-			userDailyReward.SecsOnlineAfterClaim = 0
+	userDailyReward.IndayReward = &entity.Reward{
+		Reward: r.IndayReward,
+	}
+	// reward.OnlineRewards = nil
+	// userDailyReward = &entity.DayReward{
+	// 	IndayReward: &entity.Reward{
+	// 		Reward: r.IndayReward,
+	// 	},
+	// 	OnlineReward: &entity.Reward{
+	// 		Reward: r.OnlineReward,
+	// 	},
+	// }
+	// userDailyReward.OnlineReward = entity.NewReward()
+
+	if onlineReward != nil && userDailyReward.OnlineReward.SecsOnline >= onlineReward.SecsOnline {
+		ratio := userDailyReward.OnlineReward.SecsOnline / onlineReward.SecsOnline
+		userDailyReward.OnlineReward.Chips = ratio * onlineReward.Chips
+		userDailyReward.OnlineReward.SecsOnlineAfterClaim -= ratio * onlineReward.SecsOnline
+		if userDailyReward.OnlineReward.SecsOnlineAfterClaim < 0 {
+			userDailyReward.OnlineReward.SecsOnlineAfterClaim = 0
 		}
 
 	}
-	if userDailyReward.Reward.OnlineReward.Chips > 0 {
-		userDailyReward.CanClaimOnlineReward = true
-		userDailyReward.TimesGetOnlineReward = timesGetOnlineReward
+	if userDailyReward.OnlineReward.Chips > 0 {
+		userDailyReward.OnlineReward.TotalChips = userDailyReward.OnlineReward.Chips
+		userDailyReward.OnlineReward.CanClaim = true
+		userDailyReward.OnlineReward.NumClaim = timesGetOnlineReward
 	} else {
-		userDailyReward.CanClaimOnlineReward = false
+		userDailyReward.OnlineReward.CanClaim = false
 	}
 	return userDailyReward, nil
 }
 
-func SaveUserDailyReward(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userDailyReward *entity.UserDailyReward, version, userID string) error {
-	object, _ := json.Marshal(userDailyReward)
+func SaveUserDailyReward(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userDailyReward *entity.DayReward, version, userID string) error {
+	out, _ := conf.Marshaler.Marshal(&pb.DayReward{
+		IndayReward:  userDailyReward.IndayReward.Reward,
+		OnlineReward: userDailyReward.OnlineReward.Reward,
+	})
 	_, err := nk.StorageWrite(ctx, []*runtime.StorageWrite{
 		{
 			Collection:      kDailyRewardCollection,
 			Key:             kDailyRewardKey,
 			PermissionRead:  1,
 			PermissionWrite: 0, // No client write.
-			Value:           string(object),
+			Value:           string(out),
 			Version:         version,
 			UserID:          userID,
 		},

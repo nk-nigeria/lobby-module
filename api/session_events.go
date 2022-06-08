@@ -141,7 +141,7 @@ func saveSecsOnlineNotClaimReward(ctx context.Context, logger runtime.Logger, nk
 		logger.Error("Get GetLastDailyRewardObject %s, error :%s", userID, err.Error())
 		return
 	}
-	userDailyReward.CalcSecsNotClaimReward(account.GetLastOnlineTimeUnix())
+	userDailyReward.OnlineReward.CalcSecsNotClaimReward(account.GetLastOnlineTimeUnix())
 	version := ""
 	if dailyRewardObject != nil {
 		version = dailyRewardObject.GetVersion()
