@@ -163,3 +163,26 @@ message ExchangeRequest {
   string cusor = 6;
   string cash_type = 9;
 }
+
+message Reward {
+  int64 chips = 1;
+  float percent_bonus = 2;
+  int64 bonus_chips = 3;
+  int64 total_chips = 4;
+  int64 streak = 5;
+  int64 secs_online = 6;
+  int64 secs_online_after_claim = 7;
+  bool can_claim  = 8;
+  int64 num_claim = 9;
+  int64 last_claim_unix = 10;
+}
+
+message DayReward {
+  Reward inday_reward = 1;
+  Reward online_reward = 2;
+  repeated Reward online_rewards = 3;  
+}
+
+message DailyReward {
+  repeated DayReward dailies = 1;
+}

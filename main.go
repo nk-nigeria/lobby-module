@@ -56,6 +56,9 @@ const (
 	rpcListExchangeLock      = "exchange_lock"
 	rpcListExchangeById      = "exchange_by_id"
 	rpcUpdataStatusExchange  = "exchange_update_status"
+
+	rpcIdCanClaimDailyReward = "canclaimdailyreward"
+	rpcIdClaimDailyReward    = "claimdailyreward"
 )
 
 const (
@@ -80,6 +83,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
+	api.InitDailyRewardTemplate(ctx, logger, nk)
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
 	message_queue.InitNatsService(logger, constant.NastEndpoint)
 	api.InitExchangeList(ctx, logger, nk)
@@ -178,6 +182,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcUpdataStatusExchange, api.RpcExchangeUpdateStatus()); err != nil {
+		return err
+	}
+	// daily reward
+	if err := initializer.RegisterRpc(rpcIdCanClaimDailyReward,
+		api.RpcCanClaimDailyReward()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdClaimDailyReward,
+		api.RpcClaimDailyReward()); err != nil {
 		return err
 	}
 
