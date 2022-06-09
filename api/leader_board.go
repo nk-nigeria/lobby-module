@@ -32,7 +32,7 @@ func InitLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.Naka
 	}
 
 	for _, game := range gameListResponse.Games {
-		authoritative := false
+		authoritative := true // No client can submit a score directly.
 		sort := "desc"
 		operator := "incr"
 		reset := constant.RESET_SCHEDULER_LEADER_BOARD
