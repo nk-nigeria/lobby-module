@@ -411,6 +411,7 @@ func getDailyReward(userDailyReward *entity.DayReward) (*entity.DayReward, error
 	userDailyReward.IndayReward.Chips = r.GetIndayReward().Chips
 	userDailyReward.IndayReward.PercentBonus = r.GetIndayReward().PercentBonus
 	userDailyReward.IndayReward.BonusChips = r.GetIndayReward().BonusChips
+	userDailyReward.IndayReward.TotalChips = r.GetIndayReward().GetTotalChips()
 	var onlineReward *pb.Reward
 
 	timesGetOnlineReward := userDailyReward.OnlineReward.NumClaim + 1
