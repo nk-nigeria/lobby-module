@@ -57,7 +57,7 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      500,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -65,18 +65,18 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			},
 			{
 				IndayReward: &pb.Reward{
-					Chips:        2200,
+					Chips:        4400,
 					PercentBonus: 20.0,
 					Streak:       2,
 				},
 				OnlineRewards: []*pb.Reward{
 					{
-						Chips:      100,
+						Chips:      200,
 						SecsOnline: 3600,
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      600,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -84,18 +84,18 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			},
 			{
 				IndayReward: &pb.Reward{
-					Chips:        2200,
+					Chips:        8800,
 					PercentBonus: 30.0,
 					Streak:       3,
 				},
 				OnlineRewards: []*pb.Reward{
 					{
-						Chips:      100,
+						Chips:      300,
 						SecsOnline: 3600,
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      700,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -103,18 +103,18 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			},
 			{
 				IndayReward: &pb.Reward{
-					Chips:        2200,
+					Chips:        17600,
 					PercentBonus: 40.0,
 					Streak:       4,
 				},
 				OnlineRewards: []*pb.Reward{
 					{
-						Chips:      100,
+						Chips:      400,
 						SecsOnline: 3600,
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      800,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -122,18 +122,18 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			},
 			{
 				IndayReward: &pb.Reward{
-					Chips:        2200,
+					Chips:        35200,
 					PercentBonus: 50.0,
 					Streak:       5,
 				},
 				OnlineRewards: []*pb.Reward{
 					{
-						Chips:      100,
+						Chips:      500,
 						SecsOnline: 3600,
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      900,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -141,18 +141,18 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			},
 			{
 				IndayReward: &pb.Reward{
-					Chips:        2200,
+					Chips:        70400,
 					PercentBonus: 100.0,
 					Streak:       6,
 				},
 				OnlineRewards: []*pb.Reward{
 					{
-						Chips:      100,
+						Chips:      600,
 						SecsOnline: 3600,
 						Streak:     1,
 					},
 					{
-						Chips:      100,
+						Chips:      1000,
 						SecsOnline: 7200,
 						Streak:     2,
 					},
@@ -213,7 +213,7 @@ func RpcCanClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, run
 			logger.Error("GetAndProcessDailyReward error %s ", err.Error())
 			return "", presenter.ErrInternalError
 		}
-		out, err := conf.Marshaler.Marshal(&pb.DayReward{
+		out, err := conf.MarshalerDefault.Marshal(&pb.DayReward{
 			IndayReward:  userDayReward.IndayReward.Reward,
 			OnlineReward: userDayReward.OnlineReward.Reward,
 		})
@@ -246,7 +246,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 			return "", presenter.ErrInternalError
 		}
 		if !userDailyReward.IndayReward.CanClaim && !userDailyReward.OnlineReward.CanClaim {
-			out, err := conf.Marshaler.Marshal(&pb.DayReward{
+			out, err := conf.MarshalerDefault.Marshal(&pb.DayReward{
 				IndayReward:  userDailyReward.IndayReward.Reward,
 				OnlineReward: userDailyReward.OnlineReward.Reward,
 			})
@@ -269,6 +269,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		}
 		if userDailyReward.IndayReward.CanClaim {
 			userDailyReward.IndayReward.NumClaim++
+			userDailyReward.IndayReward.PlusStreak(6)
 			wallet.Chips += userDailyReward.IndayReward.GetTotalChips()
 		}
 		if userDailyReward.OnlineReward.CanClaim {
@@ -288,7 +289,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 		userDailyReward.IndayReward.CanClaim = false
 		userDailyReward.OnlineReward.CanClaim = false
-		out, err := conf.Marshaler.Marshal(&pb.DayReward{
+		out, err := conf.MarshalerDefault.Marshal(&pb.DayReward{
 			IndayReward:  userDailyReward.IndayReward.Reward,
 			OnlineReward: userDailyReward.OnlineReward.Reward,
 		})
@@ -368,11 +369,7 @@ func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sq
 	}
 
 	userDailyReward.IndayReward.CanClaim = canUserClaimDailyReward(userDailyReward.IndayReward)
-	// call GetStreak for reset stream
-	// if last claim not yesterday
-	if userDailyReward.IndayReward.CanClaim {
-		userDailyReward.IndayReward.PlusStreak(6)
-	}
+
 	account, _, err := GetProfileUser(ctx, nk, userID, nil)
 	if err != nil {
 		logger.Error("GetProfileUser error %s", err.Error())
@@ -390,11 +387,14 @@ func GetAndProcessDailyReward(ctx context.Context, logger runtime.Logger, db *sq
 
 }
 func getDailyReward(userDailyReward *entity.DayReward) (*entity.DayReward, error) {
+	// call GetStreak for reset stream
+	// if last claim not yesterday
+	userDailyReward.IndayReward.ResetStreakIfNotClaimContinue()
 	if userDailyReward.IndayReward.Streak > int64(len(DailyRewardTemplate.Dailies)) {
 		return nil, errors.New("Out of index daily reward template")
 	}
 	userDailyReward.OnlineReward.SecsOnlineAfterClaim = userDailyReward.OnlineReward.SecsOnline
-	r := DailyRewardTemplate.Dailies[userDailyReward.IndayReward.GetStreak()-1]
+	r := DailyRewardTemplate.Dailies[userDailyReward.IndayReward.GetStreak()]
 	reward := &pb.DayReward{
 		IndayReward: &pb.Reward{
 			Chips:         r.GetIndayReward().Chips,
@@ -461,6 +461,7 @@ func SaveUserDailyReward(ctx context.Context, nk runtime.NakamaModule, logger ru
 		IndayReward: &pb.Reward{
 			NumClaim:      indayReward.NumClaim,
 			LastClaimUnix: indayReward.LastClaimUnix,
+			Streak:        indayReward.GetStreak(),
 		},
 		OnlineReward: &pb.Reward{
 			NumClaim:      onlineReward.NumClaim,

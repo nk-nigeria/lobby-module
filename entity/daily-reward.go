@@ -25,18 +25,14 @@ func NewReward() *Reward {
 func (u *Reward) PlusStreak(maxStreak int64) {
 	u.Streak++
 	if u.Streak > maxStreak {
-		u.Streak = 1
+		u.Streak = 0
 	}
-	u.resetStreakIfNotClaimContinue()
 }
 
 func (u *Reward) GetStreak() int64 {
 
 	if u.Streak <= 0 {
-		u.Streak = 1
-	}
-	if u.Streak > 1 {
-		u.resetStreakIfNotClaimContinue()
+		u.Streak = 0
 	}
 	return u.Streak
 }
@@ -67,11 +63,11 @@ func (u *Reward) CalcSecsNotClaimReward(lastOnlineTimeUnix int64) {
 
 }
 
-func (u *Reward) resetStreakIfNotClaimContinue() {
+func (u *Reward) ResetStreakIfNotClaimContinue() {
 	t := time.Now()
 	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 	if u.LastClaimUnix < midnight.Unix() {
 		// reset streak, not claim continue
-		u.Streak = 1
+		u.Streak = 0
 	}
 }
