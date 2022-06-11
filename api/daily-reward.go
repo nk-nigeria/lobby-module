@@ -48,42 +48,42 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 			{
 				BasicChips:  []int64{1000, 2000, 3000, 4000, 5000, 6000, 7000},
 				PercenBonus: 10,
-				OnlineSec:   3600,
+				OnlineSec:   150,
 				OnlineChip:  100,
 				Streak:      1,
 			},
 			{
 				BasicChips:  []int64{1001, 2001, 3001, 4001, 5001, 6001, 7001},
 				PercenBonus: 20,
-				OnlineSec:   7200,
+				OnlineSec:   300,
 				OnlineChip:  200,
 				Streak:      2,
 			},
 			{
 				BasicChips:  []int64{1002, 2002, 3002, 4002, 5002, 6002, 7002},
 				PercenBonus: 30,
-				OnlineSec:   7200,
+				OnlineSec:   300,
 				OnlineChip:  300,
 				Streak:      3,
 			},
 			{
 				BasicChips:  []int64{1003, 2003, 3003, 4003, 5003, 6003, 7003},
 				PercenBonus: 40,
-				OnlineSec:   7200,
+				OnlineSec:   300,
 				OnlineChip:  400,
 				Streak:      4,
 			},
 			{
 				BasicChips:  []int64{1004, 2004, 3004, 4004, 5004, 6004, 7004},
 				PercenBonus: 50,
-				OnlineSec:   7200,
+				OnlineSec:   300,
 				OnlineChip:  500,
 				Streak:      5,
 			},
 			{
 				BasicChips:  []int64{1005, 2005, 3005, 4005, 5005, 6005, 7005},
 				PercenBonus: 100,
-				OnlineSec:   7200,
+				OnlineSec:   300,
 				OnlineChip:  600,
 				Streak:      6,
 			},
@@ -231,11 +231,17 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 			LastClaimUnix: midnightUnix,
 		}
 	}
+	profile, _, err := GetProfileUser(ctx, nk, userID, nil)
+	if err != nil {
+		logger.Error("Get account %s error %s", userID, err.Error())
+		return nil, presenter.ErrInternalError
+	}
 
 	d := &pb.Reward{}
 	d.LastClaimUnix = lastClaim.GetLastClaimUnix()
 	d.NextClaimUnix = lastClaim.GetNextClaimUnix()
 	d.ReachMaxStreak = lastClaim.ReachMaxStreak
+	d.LastOnlineUnix = profile.GetLastOnlineTimeUnix()
 	// streak on ui start at 1, on sv start at 0
 	d.Streak = lastClaim.GetStreak() + 1
 	if d.ReachMaxStreak || lastClaim.GetStreak() >= int64(len(DailyRewardTemplate.RewardTemplates)) {
@@ -260,7 +266,8 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 	d.OnlineChip = rewardTemplate.GetOnlineChip()
 	if lastClaim.NextClaimUnix == 0 {
 		needSaveLastClaim = true
-		lastClaim.NextClaimUnix = lastClaim.LastClaimUnix + rewardTemplate.OnlineSec
+		timestampCountReward := entity.MaxIn64(d.LastClaimUnix, d.LastOnlineUnix)
+		lastClaim.NextClaimUnix = timestampCountReward + rewardTemplate.OnlineSec
 		if lastClaim.NextClaimUnix >= nextMidnightUnix {
 			d.NextClaimSec = 0
 			d.ReachMaxStreak = true

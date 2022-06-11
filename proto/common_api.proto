@@ -179,6 +179,7 @@ message Reward {
   int64 next_claim_sec = 12;
   bool reach_max_streak = 13;
   int64 last_spin_number = 14;
+  int64 last_online_unix = 15;
 }
 
 message RewardTemplate {

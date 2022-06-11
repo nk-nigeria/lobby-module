@@ -84,6 +84,8 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 			return
 		}
 
+		resetUserDailyReward(ctx, logger, nk)
+
 		// Fetch all live presences for this user on their private notification stream.
 		presences, err := nk.StreamUserList(streamModeNotification, userID, "", "", true, true)
 		if err != nil {
@@ -125,18 +127,21 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 	}
 }
 
-// func resetUserDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, db *sql.DB) {
-// 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-// 	if !ok {
-// 		logger.Error("context did not contain user ID.")
-// 		return
-// 	}
-// 	objectIds := []*runtime.StorageDelete{
-// 		{
-// 			Collection: kDailyRewardTemplateCollection,
-// 			Key:        kDailyRewardTemplateKey,
-// 			UserID:     userID,
-// 		},
-// 	}
-// 	nk.StorageDelete(ctx, objectIds)
-// }
+func resetUserDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
+	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	if !ok {
+		logger.Error("context did not contain user ID.")
+		return
+	}
+	lastClaim, lastClaimObject, err := GetLastDailyRewardObject(ctx, logger, nk)
+	if err != nil {
+		logger.Error("GetLastDailyRewardObject error %s", err.Error())
+		return
+	}
+	lastClaim.NextClaimUnix = 0
+	version := ""
+	if lastClaimObject != nil {
+		version = lastClaimObject.GetVersion()
+	}
+	SaveLastClaimReward(ctx, nk, logger, lastClaim, version, userID)
+}

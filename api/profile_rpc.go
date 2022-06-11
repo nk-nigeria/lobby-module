@@ -179,7 +179,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		LinkFanpageFb:      entity.LinkFanpageFB,
 		AvatarId:           entity.InterfaceToString(metadata["avatar_id"]),
 		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
-		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 10),
+		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 0),
 	}
 
 	if profile.DisplayName == "" {
