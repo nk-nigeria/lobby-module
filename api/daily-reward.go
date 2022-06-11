@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
@@ -48,40 +50,50 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 				PercenBonus: 10,
 				OnlineSec:   3600,
 				OnlineChip:  100,
+				Streak:      1,
 			},
 			{
 				BasicChips:  []int64{1001, 2001, 3001, 4001, 5001, 6001, 7001},
 				PercenBonus: 20,
 				OnlineSec:   7200,
 				OnlineChip:  200,
+				Streak:      2,
 			},
 			{
 				BasicChips:  []int64{1002, 2002, 3002, 4002, 5002, 6002, 7002},
 				PercenBonus: 30,
 				OnlineSec:   7200,
 				OnlineChip:  300,
+				Streak:      3,
 			},
 			{
 				BasicChips:  []int64{1003, 2003, 3003, 4003, 5003, 6003, 7003},
 				PercenBonus: 40,
 				OnlineSec:   7200,
 				OnlineChip:  400,
+				Streak:      4,
 			},
 			{
 				BasicChips:  []int64{1004, 2004, 3004, 4004, 5004, 6004, 7004},
 				PercenBonus: 50,
 				OnlineSec:   7200,
 				OnlineChip:  500,
+				Streak:      5,
 			},
 			{
 				BasicChips:  []int64{1005, 2005, 3005, 4005, 5005, 6005, 7005},
 				PercenBonus: 100,
 				OnlineSec:   7200,
 				OnlineChip:  600,
+				Streak:      6,
 			},
 		},
 	}
-
+	sort.Slice(dailyRewardTemplate.RewardTemplates, func(i, j int) bool {
+		a := dailyRewardTemplate.RewardTemplates[i]
+		b := dailyRewardTemplate.RewardTemplates[j]
+		return a.Streak < b.Streak
+	})
 	DailyRewardTemplate = &dailyRewardTemplate
 	marshaler := conf.Marshaler
 	dailyRewardTemplateJson, err := marshaler.Marshal(&dailyRewardTemplate)
@@ -102,6 +114,30 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 	_, err = nk.StorageWrite(ctx, writeObjects)
 	if err != nil {
 		logger.Error("Write deals collection error %s", err.Error())
+	}
+}
+
+func RpcDailyRewardTemplate() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		objectIds := []*runtime.StorageRead{
+			{
+				Collection: kDailyRewardTemplateCollection,
+				Key:        kDailyRewardTemplateKey,
+			},
+		}
+		objects, err := nk.StorageRead(ctx, objectIds)
+		if err != nil {
+			logger.Error("Error when read daily reward template at init, error %s", err.Error())
+			return "", presenter.ErrInternalError
+		}
+		if len(objects) > 0 {
+			return objects[0].GetValue(), nil
+		}
+		return "{}", nil
 	}
 }
 
@@ -152,7 +188,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		}
 		SaveLastClaimReward(ctx, nk, logger, lastClaim, version, userID)
 		wallet := entity.Wallet{
-			Chips: reward.TotalChips,
+			Chips: reward.TotalChip,
 		}
 
 		metadata := make(map[string]interface{})
@@ -220,7 +256,7 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 	}
 	d.LastSpinNumber = lastClaim.LastSpinNumber
 	d.PercentBonus = rewardTemplate.GetPercenBonus()
-	d.BonusChips = int64(float32(d.GetBasicChip()) * (d.GetPercentBonus() / 100.0))
+	d.BonusChip = int64(float32(d.GetBasicChip()) * (d.GetPercentBonus() / 100.0))
 	d.OnlineChip = rewardTemplate.GetOnlineChip()
 	if lastClaim.NextClaimUnix == 0 {
 		needSaveLastClaim = true
@@ -245,7 +281,7 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 			d.NextClaimSec = d.GetNextClaimUnix() - time.Now().Unix()
 		}
 	}
-	d.TotalChips = d.BasicChip + d.BonusChips + d.OnlineChip
+	d.TotalChip = d.BasicChip + d.BonusChip + d.OnlineChip
 	return d, nil
 }
 
@@ -279,7 +315,7 @@ func GetLastDailyRewardObject(ctx context.Context, logger runtime.Logger, nk run
 }
 
 func RewardToString(r *pb.Reward, logger runtime.Logger) (string, error) {
-	data, err := conf.Marshaler.Marshal(r)
+	data, err := conf.MarshalerDefault.Marshal(r)
 	if err != nil {
 		logger.Error("RewardToJson error %s", err.Error())
 		return "", presenter.ErrMarshal
