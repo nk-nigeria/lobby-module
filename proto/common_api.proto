@@ -165,24 +165,38 @@ message ExchangeRequest {
 }
 
 message Reward {
-  int64 chips = 1;
+  int64 basic_chip = 1;
   float percent_bonus = 2;
   int64 bonus_chips = 3;
-  int64 total_chips = 4;
-  int64 streak = 5;
-  int64 secs_online = 6;
-  int64 secs_online_after_claim = 7;
+  int64 online_chip = 4;
+  int64 total_chips = 5;
+  int64 streak = 6;
+  int64 online_sec = 7;
   bool can_claim  = 8;
   int64 num_claim = 9;
   int64 last_claim_unix = 10;
+  int64 next_claim_unix = 11;
+  int64 next_claim_sec = 12;
+  bool reach_max_streak = 13;
+  int64 last_spin_number = 14;
 }
 
-message DayReward {
-  Reward inday_reward = 1;
-  Reward online_reward = 2;
-  repeated Reward online_rewards = 3;  
+message RewardTemplate {
+  repeated int64 basic_chips = 1;
+  float percen_bonus = 2;
+  int64 online_sec = 3;  
+  int64 online_chip = 4;
 }
 
-message DailyReward {
-  repeated DayReward dailies = 1;
+message LastClaimReward {
+  int64 last_claim_unix = 1;
+  int64 next_claim_unix = 2;
+  int64 streak = 3;
+  int64 last_spin_number = 4;
+  bool reach_max_streak = 5;
+
+}
+
+message DailyRewardTemplate {
+  repeated RewardTemplate reward_templates = 1;
 }

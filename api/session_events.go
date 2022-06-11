@@ -48,7 +48,7 @@ func eventSessionEndFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Conte
 			logger.Error("context did not contain user ID.")
 			return
 		}
-		saveSecsOnlineNotClaimReward(ctx, logger, nk, db)
+		// saveSecsOnlineNotClaimReward(ctx, logger, nk, db)
 
 		// Restrict the time allowed with the DB operation so we can fail fast in a stampeding herd scenario.
 		ctx2, _ := context.WithTimeout(ctx, 1*time.Second)
@@ -125,26 +125,18 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 	}
 }
 
-func saveSecsOnlineNotClaimReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, db *sql.DB) {
-	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-	if !ok {
-		logger.Error("context did not contain user ID.")
-		return
-	}
-	account, _, err := GetProfileUser(ctx, nk, userID, nil)
-	if err != nil {
-		logger.Error("Get account %s, error :%s", userID, err.Error())
-		return
-	}
-	userDailyReward, dailyRewardObject, err := GetLastDailyRewardObject(ctx, logger, nk)
-	if err != nil {
-		logger.Error("Get GetLastDailyRewardObject %s, error :%s", userID, err.Error())
-		return
-	}
-	userDailyReward.OnlineReward.CalcSecsNotClaimReward(account.GetLastOnlineTimeUnix())
-	version := ""
-	if dailyRewardObject != nil {
-		version = dailyRewardObject.GetVersion()
-	}
-	SaveUserDailyReward(ctx, nk, logger, userDailyReward, version, userID)
-}
+// func resetUserDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, db *sql.DB) {
+// 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+// 	if !ok {
+// 		logger.Error("context did not contain user ID.")
+// 		return
+// 	}
+// 	objectIds := []*runtime.StorageDelete{
+// 		{
+// 			Collection: kDailyRewardTemplateCollection,
+// 			Key:        kDailyRewardTemplateKey,
+// 			UserID:     userID,
+// 		},
+// 	}
+// 	nk.StorageDelete(ctx, objectIds)
+// }

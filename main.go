@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/message_queue"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
-	"time"
 
 	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
