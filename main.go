@@ -58,6 +58,7 @@ const (
 	rpcListExchangeById      = "exchange_by_id"
 	rpcUpdataStatusExchange  = "exchange_update_status"
 
+	rpcIdDailyRewardTemplate = "dailyrewardtemplate"
 	rpcIdCanClaimDailyReward = "canclaimdailyreward"
 	rpcIdClaimDailyReward    = "claimdailyreward"
 )
@@ -192,6 +193,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 	if err := initializer.RegisterRpc(rpcIdClaimDailyReward,
 		api.RpcClaimDailyReward()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDailyRewardTemplate,
+		api.RpcDailyRewardTemplate()); err != nil {
 		return err
 	}
 

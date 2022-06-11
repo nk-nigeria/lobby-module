@@ -167,9 +167,9 @@ message ExchangeRequest {
 message Reward {
   int64 basic_chip = 1;
   float percent_bonus = 2;
-  int64 bonus_chips = 3;
+  int64 bonus_chip = 3;
   int64 online_chip = 4;
-  int64 total_chips = 5;
+  int64 total_chip = 5;
   int64 streak = 6;
   int64 online_sec = 7;
   bool can_claim  = 8;
@@ -186,6 +186,8 @@ message RewardTemplate {
   float percen_bonus = 2;
   int64 online_sec = 3;  
   int64 online_chip = 4;
+  int64 streak = 5;
+
 }
 
 message LastClaimReward {
