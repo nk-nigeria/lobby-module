@@ -115,7 +115,6 @@ enum ExchangeStatus {
   EXCHANGE_STATUS_PENDING = 3;
   EXCHANGE_STATUS_DONE = 4;
   EXCHANGE_STATUS_REJECT = 5;
-  
 }
 
 message ExchangeInfo {
@@ -153,7 +152,6 @@ message ListExchangeInfo {
   int64 to = 8;
 }
 
-
 message ExchangeRequest {
   string id = 1;
   string user_id_request = 2;
@@ -172,7 +170,7 @@ message Reward {
   int64 total_chip = 5;
   int64 streak = 6;
   int64 online_sec = 7;
-  bool can_claim  = 8;
+  bool can_claim = 8;
   int64 num_claim = 9;
   int64 last_claim_unix = 10;
   int64 next_claim_unix = 11;
@@ -185,10 +183,9 @@ message Reward {
 message RewardTemplate {
   repeated int64 basic_chips = 1;
   float percen_bonus = 2;
-  int64 online_sec = 3;  
+  int64 online_sec = 3;
   int64 online_chip = 4;
   int64 streak = 5;
-
 }
 
 message LastClaimReward {
@@ -197,9 +194,32 @@ message LastClaimReward {
   int64 streak = 3;
   int64 last_spin_number = 4;
   bool reach_max_streak = 5;
-
 }
 
 message DailyRewardTemplate {
   repeated RewardTemplate reward_templates = 1;
+}
+
+enum GiftCodeType {
+  GIFT_CODE_TYPE_UNSPECIFIED = 0;
+  GIFT_CODE_TYPE_GAME = 1;
+}
+
+message GiftCode {
+  int64 id = 1;
+  string code = 2;
+  int64 n_current = 3;
+  int64 n_max = 4;
+  int64 value = 5;
+  int64 start_time_unix = 6;
+  int64 end_time_unix = 7;
+  string message = 8;
+  int64 vip = 9;
+  GiftCodeType gift_code_type = 10;
+  bool deleted = 11;
+  bool reach_max_claim = 12;
+}
+
+message ListGiftCode {
+  repeated GiftCode gift_codes = 1;
 }

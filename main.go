@@ -61,6 +61,12 @@ const (
 	rpcIdDailyRewardTemplate = "dailyrewardtemplate"
 	rpcIdCanClaimDailyReward = "canclaimdailyreward"
 	rpcIdClaimDailyReward    = "claimdailyreward"
+
+	//giftcode
+	rpcIdAddGiftCode    = "gift_code_add"
+	rpcIdClaimGiftCode  = "gift_code_claim"
+	rpcIdListGiftCode   = "gift_code_list"
+	rpcIdDeleteGiftCode = "gift_code_delete"
 )
 
 const (
@@ -199,6 +205,25 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		api.RpcDailyRewardTemplate()); err != nil {
 		return err
 	}
+
+	// giftcode
+	if err := initializer.RegisterRpc(rpcIdAddGiftCode,
+		api.RpcAddGiftCode()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdClaimGiftCode,
+		api.RpcClaimGiftCode()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdListGiftCode,
+		api.RpcListGiftCode()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDeleteGiftCode,
+		api.RpcDeleteGiftCode()); err != nil {
+		return err
+	}
+	//end gift code
 
 	if err := initializer.RegisterBeforeAuthenticateDevice(func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, in *nkapi.AuthenticateDeviceRequest) (*nkapi.AuthenticateDeviceRequest, error) {
 		newID := node.Generate().Int64()
