@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
-
+	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/message_queue"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -62,6 +62,12 @@ const (
 	rpcIdCanClaimDailyReward = "canclaimdailyreward"
 	rpcIdClaimDailyReward    = "claimdailyreward"
 
+	// UserGroup
+	rpcIdListUserGroup   = "list_user_group"
+	rpcIdAddUserGroup    = "add_user_group"
+	rpcIdUpdateUserGroup = "update_user_group"
+	rpcIdDeleteUserGroup = "delete_user_group"
+
 	//giftcode
 	rpcIdAddGiftCode    = "gift_code_add"
 	rpcIdClaimGiftCode  = "gift_code_claim"
@@ -88,6 +94,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	marshaler := conf.Marshaler
 	unmarshaler := conf.Unmarshaler
 
+	cgbdb.RunMigrations(ctx, logger, db)
 	api.InitListGame(ctx, logger, nk)
 	api.InitListBet(ctx, logger, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
@@ -192,6 +199,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(rpcUpdataStatusExchange, api.RpcExchangeUpdateStatus()); err != nil {
 		return err
 	}
+
 	// daily reward
 	if err := initializer.RegisterRpc(rpcIdCanClaimDailyReward,
 		api.RpcCanClaimDailyReward()); err != nil {
@@ -206,7 +214,25 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	// giftcode
+	// user group
+	if err := initializer.RegisterRpc(rpcIdListUserGroup,
+		api.RpcListUserGroup(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdAddUserGroup,
+		api.RpcAddUserGroup(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdUpdateUserGroup,
+		api.RpcUpdateUserGroup(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDeleteUserGroup,
+		api.RpcDeleteUserGroup(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+		// giftcode
 	if err := initializer.RegisterRpc(rpcIdAddGiftCode,
 		api.RpcAddGiftCode()); err != nil {
 		return err
