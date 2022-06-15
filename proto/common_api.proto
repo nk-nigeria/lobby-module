@@ -218,6 +218,9 @@ message GiftCode {
   GiftCodeType gift_code_type = 10;
   bool deleted = 11;
   bool reach_max_claim = 12;
+  bool already_claim = 13;
+  string user_id = 14;
+  bool open_to_claim = 15;
 }
 
 message ListGiftCode {

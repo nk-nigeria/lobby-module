@@ -25,6 +25,10 @@ func String2Bool(str string) bool {
 	return str == "true" || str == "1"
 }
 
+func IntToBool(num int) bool {
+	return num != 0
+}
+
 func MaxIn64(a, b int64) int64 {
 	if a > b {
 		return a

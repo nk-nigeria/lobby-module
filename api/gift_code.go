@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
@@ -25,7 +26,8 @@ func RpcAddGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.Nak
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		if giftCode.Code == "" || giftCode.Value < 0 || giftCode.NMax <= 0 {
+		if giftCode.Code == "" || giftCode.Value < 0 || giftCode.NMax <= 0 ||
+			giftCode.StartTimeUnix <= 0 || giftCode.EndTimeUnix <= time.Now().Unix() {
 			logger.Error("Invalid payload")
 			return "", presenter.ErrUnmarshal
 		}
@@ -34,7 +36,7 @@ func RpcAddGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.Nak
 			logger.Error("AddNewGiftCode error %s", err.Error())
 			return "", err
 		}
-		out, _ := conf.Marshaler.Marshal(dbGiftCode)
+		out, _ := conf.MarshalerDefault.Marshal(dbGiftCode)
 		return string(out), nil
 	}
 }
@@ -54,6 +56,7 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			logger.Error("Invalid payload")
 			return "", presenter.ErrUnmarshal
 		}
+		giftCode.UserId = userID
 		dbGiftCode, err := cgbdb.ClaimGiftCode(ctx, logger, db, giftCode)
 		if err != nil {
 			logger.Error("ClaimGiftCode error %s", err.Error())
@@ -66,12 +69,12 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 		metadata["action"] = "gift_code"
 		metadata["sender"] = constant.UUID_USER_SYSTEM
 		metadata["recv"] = userID
-		metadata["g_id"] = ""
+		metadata["g_id"] = dbGiftCode.Id
 		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 		if err != nil {
 			logger.Error("Update wallet chip by claim giftcode %s error %s", giftCode.GetCode(), err.Error())
 		}
-		out, _ := conf.Marshaler.Marshal(dbGiftCode)
+		out, _ := conf.MarshalerDefault.Marshal(dbGiftCode)
 		return string(out), nil
 	}
 }
@@ -86,7 +89,7 @@ func RpcListGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.Na
 		if err != nil {
 			logger.Error("GetListGiftCode error %s", err.Error())
 		}
-		out, _ := conf.Marshaler.Marshal(&ml)
+		out, _ := conf.MarshalerDefault.Marshal(&ml)
 		return string(out), nil
 	}
 
@@ -112,7 +115,7 @@ func RpcDeleteGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.
 			logger.Error("DeletedGiftCode %s error %s", giftCode.GetCode(), err.Error())
 			return "", err
 		}
-		out, _ := conf.Marshaler.Marshal(dbGiftCode)
+		out, _ := conf.MarshalerDefault.Marshal(dbGiftCode)
 		return string(out), nil
 	}
 }
