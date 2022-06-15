@@ -251,8 +251,8 @@ message ListGiftCode {
 
 
 enum TypeNotification {
-  TYPE_NOTIFICATION_RESERVED = 0;
-  TYPE_NOTIFICATION_MAIL_BOX = 1;
+    RESERVED = 0;
+    MAIL_BOX = 1;
 }
 
 message AddNotificationRequest {
@@ -275,16 +275,58 @@ message Notification {
  }
 
 message NotificationRequest {
-  int64 limit = 1;
-  string cusor = 2;
-  TypeNotification type = 3;
+    int64 limit = 1;
+    string cusor = 2;
+    TypeNotification type = 3;
 }
 
 message ListNotification {
-  repeated Notification notifications = 1;
-  string next_cusor = 2;
-  string prev_cusor = 3;
-  int64 total = 4;
-  int64 offset = 5;
-  int64 limit = 6;
+    repeated Notification notifications = 1;
+    string next_cusor = 2;
+    string prev_cusor = 3;
+    int64 total = 4;
+    int64 offset = 5;
+    int64 limit = 6;
+}
+
+enum TypeInAppMessage {
+    HOT_NEWS = 0;
+    BANNER = 1;
+}
+
+enum InAppMessageAction {
+    NONE = 0;
+    NAVIGATE = 1;
+    OPEN_URL = 2;
+}
+
+message InAppMessageData {
+    InAppMessageAction action = 1;
+    string target = 2;
+    map<string, string> params = 3;
+}
+
+message InAppMessage {
+    int64 id = 1;
+    int64 high_priority = 2;
+    int64 group_id = 3;
+    TypeInAppMessage type = 4;
+    InAppMessageData data = 5;
+    int64 startDate = 6;
+    int64 endDate = 7;
+}
+
+message InAppMessageRequest {
+    int64 limit = 1;
+    string cusor = 2;
+    TypeInAppMessage type = 3;
+}
+
+message ListInAppMessage {
+    repeated InAppMessage inAppMessages = 1;
+    string next_cusor = 2;
+    string prev_cusor = 3;
+    int64 total = 4;
+    int64 offset = 5;
+    int64 limit = 6;
 }

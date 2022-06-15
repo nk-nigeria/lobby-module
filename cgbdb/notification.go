@@ -108,7 +108,7 @@ func DeleteNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 		return status.Error(codes.Internal, "Delete notification error")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
-		logger.Error("Did delete user group")
+		logger.Error("Did delete notification")
 		return status.Error(codes.Internal, "Error delete notification")
 	}
 	return nil
@@ -164,8 +164,8 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		NotificationTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
-		logger.Error("Query lists user group, error %s", err.Error())
-		return nil, status.Error(codes.Internal, "Query lists user group")
+		logger.Error("Query lists notification, error %s", err.Error())
+		return nil, status.Error(codes.Internal, "Query lists notification")
 	}
 	ml := make([]*pb.Notification, 0)
 	var dbID int64
@@ -228,7 +228,7 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	if nextCursor != nil {
 		cursorBuf := new(bytes.Buffer)
 		if err := gob.NewEncoder(cursorBuf).Encode(nextCursor); err != nil {
-			logger.Error("Error creating wallet ledger list cursor", zap.Error(err))
+			logger.Error("Error creating list cursor", zap.Error(err))
 			return nil, err
 		}
 		nextCursorStr = base64.URLEncoding.EncodeToString(cursorBuf.Bytes())
@@ -238,7 +238,7 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	if prevCursor != nil {
 		cursorBuf := new(bytes.Buffer)
 		if err := gob.NewEncoder(cursorBuf).Encode(prevCursor); err != nil {
-			logger.Error("Error creating wallet ledger list cursor", zap.Error(err))
+			logger.Error("Error creating list cursor", zap.Error(err))
 			return nil, err
 		}
 		prevCursorStr = base64.URLEncoding.EncodeToString(cursorBuf.Bytes())

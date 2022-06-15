@@ -52,5 +52,25 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		return
 	}
 
+	_, err = db.ExecContext(ctx, `
+		CREATE SEQUENCE IF NOT EXISTS in_app_message_id_seq;
+		CREATE TABLE IF NOT EXISTS public.in_app_message (
+			id bigint NOT NULL DEFAULT nextval('in_app_message_id_seq'),
+			group_id bigint NOT NULL,
+			type bigint  NOT NULL,
+			data jsonb NOT NULL,
+			start_date bigint,
+			end_date bigint,
+			high_priority bigint NOT NULL,
+			create_time timestamp with time zone NOT NULL DEFAULT now(),
+			update_time timestamp with time zone NOT NULL DEFAULT now(),
+			constraint in_app_message_pk primary key (id)
+		);
+		ALTER SEQUENCE in_app_message_id_seq OWNED BY public.in_app_message.id;
+  	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
 	logger.Error("Done run migration")
 }

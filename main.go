@@ -79,6 +79,12 @@ const (
 	rpcIdAddNotification    = "add_notification"
 	rpcIdReadNotification   = "read_notification"
 	rpcIdDeleteNotification = "delete_notification"
+
+	// InAppMessage
+	rpcIdListInAppMessage   = "list_in_app_message"
+	rpcIdAddInAppMessage    = "add_in_app_message"
+	rpcIdUpdateInAppMessage = "update_in_app_message"
+	rpcIdDeleteInAppMessage = "delete_in_app_message"
 )
 
 const (
@@ -238,7 +244,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-		// giftcode
+	// giftcode
 	if err := initializer.RegisterRpc(rpcIdAddGiftCode,
 		api.RpcAddGiftCode()); err != nil {
 		return err
@@ -272,6 +278,24 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 	if err := initializer.RegisterRpc(rpcIdDeleteNotification,
 		api.RpcDeleteNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	// in app message
+	if err := initializer.RegisterRpc(rpcIdListInAppMessage,
+		api.RpcListInAppMessage(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdAddInAppMessage,
+		api.RpcAddInAppMessage(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdUpdateInAppMessage,
+		api.RpcUpdateInAppMessage(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDeleteInAppMessage,
+		api.RpcDeleteInAppMessage(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 
