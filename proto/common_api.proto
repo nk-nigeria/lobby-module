@@ -203,3 +203,24 @@ message LastClaimReward {
 message DailyRewardTemplate {
   repeated RewardTemplate reward_templates = 1;
 }
+
+message UserGroup {
+  int64 id = 1;
+  string name = 2;
+  string type = 3;
+  string data = 4;
+}
+
+message ListUserGroup {
+  repeated UserGroup userGroups = 1;
+  string next_cusor = 2;
+  string prev_cusor = 3;
+  int64 total = 4;
+  int64 offset = 5;
+  int64 limit = 6;
+}
+
+message UserGroupRequest {
+  int64 limit = 1;
+  string cusor = 2;
+}
