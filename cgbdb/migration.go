@@ -23,10 +23,34 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		);
 
 		ALTER SEQUENCE user_group_id_seq OWNED BY public.user_group.id;
+	
+		
   `)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
 		return
 	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE SEQUENCE IF NOT EXISTS cgb_notification_id_seq;
+		CREATE TABLE IF NOT EXISTS public.cgb_notification (
+			id bigint NOT NULL DEFAULT nextval('cgb_notification_id_seq'),
+			title character varying(256)  NOT NULL,
+			content text NOT NULL,
+			sender_id character varying(128) NOT NULL,
+			recipient_id character varying(128) NOT NULL,
+			type bigint  NOT NULL,
+			read boolean NOT NULL,
+			create_time timestamp with time zone NOT NULL DEFAULT now(),
+			update_time timestamp with time zone NOT NULL DEFAULT now(),
+			constraint cgb_notification_pk primary key (id)
+		);
+		ALTER SEQUENCE cgb_notification_id_seq OWNED BY public.cgb_notification.id;
+  	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
+
 	logger.Error("Done run migration")
 }

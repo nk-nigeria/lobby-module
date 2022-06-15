@@ -67,6 +67,12 @@ const (
 	rpcIdAddUserGroup    = "add_user_group"
 	rpcIdUpdateUserGroup = "update_user_group"
 	rpcIdDeleteUserGroup = "delete_user_group"
+
+	// Notification
+	rpcIdListNotification   = "list_notification"
+	rpcIdAddNotification    = "add_notification"
+	rpcIdReadNotification   = "read_notification"
+	rpcIdDeleteNotification = "delete_notification"
 )
 
 const (
@@ -223,6 +229,24 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 	if err := initializer.RegisterRpc(rpcIdDeleteUserGroup,
 		api.RpcDeleteUserGroup(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	// Notification
+	if err := initializer.RegisterRpc(rpcIdListNotification,
+		api.RpcListNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdAddNotification,
+		api.RpcAddNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdReadNotification,
+		api.RpcReadNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDeleteNotification,
+		api.RpcDeleteNotification(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

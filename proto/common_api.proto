@@ -224,3 +224,42 @@ message UserGroupRequest {
   int64 limit = 1;
   string cusor = 2;
 }
+
+enum TypeNotification {
+  TYPE_NOTIFICATION_RESERVED = 0;
+  TYPE_NOTIFICATION_MAIL_BOX = 1;
+}
+
+message AddNotificationRequest {
+    repeated string recipient_ids = 1;
+    int64 user_group_id = 2;
+    TypeNotification type = 3;
+    string title = 4;
+    string content = 5;
+    string sender_id = 6;
+}
+
+message Notification {
+     int64 id = 1;
+     string recipient_id = 2;
+     TypeNotification type = 3;
+     string title = 4;
+     string content = 5;
+     string sender_id = 6;
+     bool read = 7;
+ }
+
+message NotificationRequest {
+  int64 limit = 1;
+  string cusor = 2;
+  TypeNotification type = 3;
+}
+
+message ListNotification {
+  repeated Notification notifications = 1;
+  string next_cusor = 2;
+  string prev_cusor = 3;
+  int64 total = 4;
+  int64 offset = 5;
+  int64 limit = 6;
+}
