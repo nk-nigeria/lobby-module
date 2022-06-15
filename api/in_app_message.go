@@ -36,7 +36,7 @@ func RpcUpdateInAppMessage(marshaler *protojson.MarshalOptions, unmarshaler *pro
 			return "", presenter.ErrUnmarshal
 		}
 		var err error
-		inAppMessage, err = cgbdb.UpdateInAppMessage(ctx, logger, db, unmarshaler, inAppMessage.Id, inAppMessage)
+		inAppMessage, err = cgbdb.UpdateInAppMessage(ctx, logger, db, marshaler, unmarshaler, inAppMessage.Id, inAppMessage)
 		if err != nil {
 			return "", err
 		}

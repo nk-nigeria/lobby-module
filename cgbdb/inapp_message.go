@@ -103,13 +103,14 @@ func DeleteInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return nil
 }
 
-func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
+func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, id int64, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
 	oldInAppMessage, err := GetInAppMessageById(ctx, logger, db, unmarshaler, id)
 	if err != nil {
 		return nil, err
 	}
+	data, _ := marshaler.Marshal(inAppMessage.Data)
 	query := "UPDATE " + InAppMessageTableName + " SET group_id=$1, data=$2, start_date=$3, end_date=$4, high_priority=$5 WHERE id=$6"
-	result, err := db.ExecContext(ctx, query, inAppMessage.GroupId, inAppMessage.Data, inAppMessage.StartDate, inAppMessage.EndDate, inAppMessage.HighPriority, oldInAppMessage.Id)
+	result, err := db.ExecContext(ctx, query, inAppMessage.GroupId, data, inAppMessage.StartDate, inAppMessage.EndDate, inAppMessage.HighPriority, oldInAppMessage.Id)
 	if err != nil {
 		logger.Error("Update inAppMessage id %d, error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Update inAppMessage error")
