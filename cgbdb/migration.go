@@ -3,6 +3,7 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
+
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
@@ -72,5 +73,114 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		logger.Error("Error: %s", err.Error())
 		return
 	}
+
+	_, err = db.ExecContext(ctx, `CREATE TABLE public.freechip (
+		id bigint NOT NULL,
+		sender_id character varying(128) NOT NULL,
+		recipient_id character varying(128) NOT NULL,
+		title character varying(128) NOT NULL,
+		content character varying(128) NOT NULL,
+		chips integer NOT NULL DEFAULT 0,
+		claimable smallint NOT NULL DEFAULT 1,
+		create_time timestamp with time zone NOT NULL DEFAULT now(),
+		update_time timestamp with time zone NOT NULL DEFAULT now()
+		);
+		ALTER TABLE
+		public.freechip
+		ADD
+		CONSTRAINT freechip_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
+
+	_, err = db.ExecContext(ctx, `CREATE TABLE
+		public.giftcode (
+			id bigint NOT NULL,
+			code character varying(128) NOT NULL DEFAULT '',
+			UNIQUE(code),
+			n_current integer NOT NULL DEFAULT 0,
+			n_max integer NOT NULL DEFAULT 0,
+			value integer NOT NULL DEFAULT 0,
+			start_time_unix timestamp,
+			end_time_unix timestamp,
+			message character varying(256) NOT NULL DEFAULT '',
+			vip integer NOT NULL DEFAULT 0,
+			gift_code_type smallint NOT NULL DEFAULT 1,
+			deleted smallint NOT NULL DEFAULT 0,
+			create_time timestamp
+
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+		ALTER TABLE
+		public.giftcode
+		ADD
+		CONSTRAINT giftcode_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE
+		public.giftcodeclaim (
+			id bigint NOT NULL,
+			code character varying(128) NOT NULL DEFAULT '',
+			user_id character varying(128) NOT NULL,
+			create_time timestamp
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+		ALTER TABLE
+		public.giftcodeclaim
+		ADD
+  		CONSTRAINT giftcodeclaim_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE public.exchange (
+		id bigint NOT NULL,
+		id_deal character varying(128) NOT NULL,
+			chips integer NOT NULL DEFAULT 0,
+		price character varying(128) NOT NULL,
+		status smallint NOT NULL DEFAULT 0,
+		unlock smallint NOT NULL DEFAULT 1,
+		cash_id character varying(128) NOT NULL,
+		cash_type character varying(128) NOT NULL,
+		user_id_request character varying(128) NOT NULL,
+		user_name_request character varying(128) NOT NULL,
+		vip_lv smallint NOT NULL DEFAULT 0,
+		device_id character varying(128) NOT NULL,
+		user_id_handling character varying(128) NOT NULL,
+		user_name_handling character varying(128) NOT NULL,
+		reason character varying(128) NOT NULL,
+		create_time timestamp with time zone NOT NULL DEFAULT now(),
+		update_time timestamp with time zone NOT NULL DEFAULT now()
+		);
+		ALTER TABLE
+		public.exchange
+		ADD
+		CONSTRAINT exchange_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+		return
+	}
+
 	logger.Error("Done run migration")
 }
