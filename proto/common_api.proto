@@ -194,6 +194,7 @@ message LastClaimReward {
   int64 streak = 3;
   int64 last_spin_number = 4;
   bool reach_max_streak = 5;
+  int64 num_claim = 6;
 }
 
 message DailyRewardTemplate {
