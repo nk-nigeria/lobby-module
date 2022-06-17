@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
@@ -62,17 +63,21 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			logger.Error("ClaimGiftCode error %s", err.Error())
 			return "", err
 		}
-		wallet := entity.Wallet{
-			Chips: dbGiftCode.Value,
-		}
-		metadata := make(map[string]interface{})
-		metadata["action"] = "gift_code"
-		metadata["sender"] = constant.UUID_USER_SYSTEM
-		metadata["recv"] = userID
-		metadata["g_id"] = dbGiftCode.Id
-		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
-		if err != nil {
-			logger.Error("Update wallet chip by claim giftcode %s error %s", giftCode.GetCode(), err.Error())
+		if dbGiftCode.OpenToClaim && !dbGiftCode.AlreadyClaim && !dbGiftCode.GetReachMaxClaim() {
+			wallet := entity.Wallet{
+				Chips: dbGiftCode.Value,
+			}
+			metadata := make(map[string]interface{})
+			metadata["action"] = "gift_code"
+			metadata["sender"] = constant.UUID_USER_SYSTEM
+			metadata["recv"] = userID
+			// convert int64 to string because missing value when save to wallet metadata
+			// metadata save int64 as float64 cause missing value
+			metadata["g_id"] = strconv.FormatInt(dbGiftCode.Id, 10)
+			err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
+			if err != nil {
+				logger.Error("Update wallet chip by claim giftcode %s error %s", giftCode.GetCode(), err.Error())
+			}
 		}
 		out, _ := conf.MarshalerDefault.Marshal(dbGiftCode)
 		return string(out), nil

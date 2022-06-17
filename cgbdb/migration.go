@@ -29,7 +29,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
   `)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `
@@ -50,7 +50,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
   	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `
@@ -71,7 +71,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
   	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `CREATE TABLE public.freechip (
@@ -92,7 +92,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `CREATE TABLE
@@ -107,8 +107,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			end_time_unix timestamp,
 			message character varying(256) NOT NULL DEFAULT '',
 			vip integer NOT NULL DEFAULT 0,
-			gift_code_type smallint NOT NULL DEFAULT 1,
-			deleted smallint NOT NULL DEFAULT 0,
+			gift_code_type smallint NOT NULL DEFAULT 1,			
 			create_time timestamp
 
 			with
@@ -125,13 +124,14 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE
 		public.giftcodeclaim (
 			id bigint NOT NULL,
+			id_code bigint NOT NULL,
 			code character varying(128) NOT NULL DEFAULT '',
 			user_id character varying(128) NOT NULL,
 			create_time timestamp
@@ -149,7 +149,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+
 	}
 
 	_, err = db.ExecContext(ctx, `
@@ -179,7 +179,36 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
-		return
+	}
+
+	_, err = db.ExecContext(ctx, `CREATE TABLE
+		public.giftcodetombstone (
+			id bigint NOT NULL,
+			code character varying(128) NOT NULL DEFAULT '',
+			n_current integer NOT NULL DEFAULT 0,
+			n_max integer NOT NULL DEFAULT 0,
+			value integer NOT NULL DEFAULT 0,
+			start_time_unix timestamp,
+			end_time_unix timestamp,
+			message character varying(256) NOT NULL DEFAULT '',
+			vip integer NOT NULL DEFAULT 0,
+			gift_code_type smallint NOT NULL DEFAULT 1,
+			create_time timestamp
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+		ALTER TABLE
+		public.giftcodetombstone
+		ADD
+		CONSTRAINT giftcodetombstone_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+
 	}
 
 	logger.Error("Done run migration")

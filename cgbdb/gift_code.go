@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
@@ -29,9 +28,7 @@ import (
 //     message character varying(256) NOT NULL DEFAULT '',
 //     vip integer NOT NULL DEFAULT 0,
 //     gift_code_type smallint NOT NULL DEFAULT 1,
-//     deleted smallint NOT NULL DEFAULT 0,
 //     create_time timestamp
-
 //     with
 //       time zone NOT NULL DEFAULT now(),
 //       update_time timestamp
@@ -51,13 +48,13 @@ func AddNewGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gift
 		return nil, status.Error(codes.InvalidArgument, "Error add giftcode.")
 	}
 	giftCode.Id = conf.SnowlakeNode.Generate().Int64()
-	query := "INSERT INTO " + GiftCodeTableName + " (id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, deleted, create_time, update_time) VALUES ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7), $8, $9, $10, $11, now(), now())"
+	query := "INSERT INTO " + GiftCodeTableName + " (id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, create_time, update_time) VALUES ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7), $8, $9, $10, now(), now())"
 	// startTime := pgtype.Timestamptz
 	result, err := db.ExecContext(ctx, query,
 		giftCode.GetId(), giftCode.GetCode(), giftCode.GetNCurrent(),
 		giftCode.GetNMax(), giftCode.GetValue(), giftCode.GetStartTimeUnix(),
 		giftCode.GetEndTimeUnix(), giftCode.GetMessage(), giftCode.GetVip(),
-		giftCode.GetGiftCodeType().Number(), 0)
+		giftCode.GetGiftCodeType().Number())
 	if err != nil {
 		logger.Error("Add new giftcode %s, error %s",
 			giftCode.GetCode(), err.Error())
@@ -78,16 +75,16 @@ func GetGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCod
 	if giftCode == nil || giftCode.GetCode() == "" {
 		return nil, status.Error(codes.InvalidArgument, "Error query giftcode.")
 	}
-	query := "SELECT id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, deleted, create_time, update_time FROM " + GiftCodeTableName + " WHERE code=$1 and deleted=0"
+	query := "SELECT id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, create_time, update_time FROM " + GiftCodeTableName + " WHERE code=$1"
 	var dbID int64
 	var dbCode, dbMessage string
-	var dbNCurrent, dbNMax, dbValue, dbVip, dbGiftCodeType, dbDeteled int64
+	var dbNCurrent, dbNMax, dbValue, dbVip, dbGiftCodeType int64
 	var dbStartTime, dbEndTime, dbCreateTime, dbUpdateTime pgtype.Timestamptz
 	err := db.QueryRowContext(ctx, query, giftCode.Code).Scan(
 		&dbID, &dbCode, &dbNCurrent,
 		&dbNMax, &dbValue, &dbStartTime,
 		&dbEndTime, &dbMessage, &dbVip,
-		&dbGiftCodeType, &dbDeteled, &dbCreateTime, &dbUpdateTime)
+		&dbGiftCodeType, &dbCreateTime, &dbUpdateTime)
 	if err != nil {
 		logger.Error("Query giftcode %s,  error %s",
 			giftCode.GetCode(), err.Error())
@@ -104,7 +101,6 @@ func GetGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCod
 		Message:       dbMessage,
 		Vip:           dbVip,
 		GiftCodeType:  pb.GiftCodeType(dbGiftCodeType),
-		Deleted:       giftCode.Deleted,
 	}
 	if respGiftCode.GetNCurrent() == respGiftCode.GetNMax() {
 		respGiftCode.ReachMaxClaim = true
@@ -113,10 +109,10 @@ func GetGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCod
 }
 
 func GetListGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (pb.ListGiftCode, error) {
-	query := "SELECT id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, deleted, create_time, update_time FROM " + GiftCodeTableName + " WHERE deleted=0 order by id desc"
+	query := "SELECT id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, create_time, update_time FROM " + GiftCodeTableName + " order by id desc"
 	var dbID int64
 	var dbCode, dbMessage string
-	var dbNCurrent, dbNMax, dbValue, dbVip, dbGiftCodeType, dbDeteled int64
+	var dbNCurrent, dbNMax, dbValue, dbVip, dbGiftCodeType int64
 	var dbStartTime, dbEndTime, dbCreateTime, dbUpdateTime pgtype.Timestamptz
 	params := make([]interface{}, 0)
 	// params = append(params, giftCode.GetCode())
@@ -134,7 +130,7 @@ func GetListGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gif
 			&dbID, &dbCode, &dbNCurrent,
 			&dbNMax, &dbValue, &dbStartTime,
 			&dbEndTime, &dbMessage, &dbVip,
-			&dbGiftCodeType, &dbDeteled, &dbCreateTime, &dbUpdateTime)
+			&dbGiftCodeType, &dbCreateTime, &dbUpdateTime)
 		respGiftCode := pb.GiftCode{
 			Id:            dbID,
 			Code:          dbCode,
@@ -146,7 +142,6 @@ func GetListGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gif
 			Message:       dbMessage,
 			Vip:           dbVip,
 			GiftCodeType:  pb.GiftCodeType(dbGiftCodeType),
-			Deleted:       entity.IntToBool(int(dbDeteled)),
 		}
 		if respGiftCode.GetNCurrent() == respGiftCode.GetNMax() {
 			respGiftCode.ReachMaxClaim = true
@@ -162,7 +157,7 @@ func GetListGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gif
 }
 
 func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (*pb.GiftCode, error) {
-	if giftCode == nil || giftCode.GetCode() == "" {
+	if giftCode == nil || giftCode.GetCode() == "" || giftCode.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Error query giftcode.")
 	}
 	dbGiftCode, err := GetGiftCode(ctx, logger, db, giftCode)
@@ -170,16 +165,17 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 		return nil, err
 	}
 
+	dbGiftCode.UserId = giftCode.GetUserId()
 	nowUnix := time.Now().Unix()
 	dbGiftCode.OpenToClaim = true
 	if dbGiftCode.StartTimeUnix < nowUnix {
 		dbGiftCode.OpenToClaim = false
-		logger.Error("Giftcode %s not open", giftCode.Code)
+		logger.Error("Giftcode %s not open", dbGiftCode.Code)
 		return dbGiftCode, nil
 	}
 	if dbGiftCode.EndTimeUnix < nowUnix {
 		dbGiftCode.OpenToClaim = false
-		logger.Error("Giftcode %s close", giftCode.Code)
+		logger.Error("Giftcode %s close", dbGiftCode.Code)
 		return dbGiftCode, nil
 	}
 
@@ -188,9 +184,9 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 		return dbGiftCode, nil
 	}
 
-	giftCodeClaim, err := GetGiftCodeClaim(ctx, logger, db, giftCode)
+	giftCodeClaim, err := GetGiftCodeClaim(ctx, logger, db, dbGiftCode)
 	if err != nil {
-		logger.Error("GetGiftCodeClaim user %s error %s", giftCode.GetUserId(), err.Error())
+		logger.Error("GetGiftCodeClaim user %s error %s", dbGiftCode.GetUserId(), err.Error())
 		return nil, status.Error(codes.InvalidArgument, "Error query giftcodeclaim.")
 
 	} else if giftCodeClaim.Code != "" {
@@ -198,9 +194,9 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 		return dbGiftCode, nil
 	}
 
-	queryCheckCodeClaimByUser := "Select code from " + GiftCodeClaimTableName + " where user_id=$2 AND code=$3"
+	queryCheckCodeClaimByUser := "Select code from " + GiftCodeClaimTableName + " where user_id=$2 AND id_code=$3 AND code=$4"
 	query := `UPDATE ` + GiftCodeTableName + " SET n_current=n_current+1, update_time=now() where code=$1 AND n_current<n_max AND code NOT IN ( " + queryCheckCodeClaimByUser + " )"
-	result, err := db.ExecContext(ctx, query, giftCode.Code, giftCode.GetUserId(), giftCode.GetCode())
+	result, err := db.ExecContext(ctx, query, dbGiftCode.Code, dbGiftCode.GetUserId(), dbGiftCode.GetId(), dbGiftCode.GetCode())
 	if err != nil {
 		logger.Error("Cannot claim giftcode %s, err: %s",
 			giftCode.GetCode(), err.Error())
@@ -208,23 +204,28 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 	}
 
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
-		logger.Error("Did not update new user.")
-		return nil, status.Error(codes.Internal, "Error claim giftcode.")
+		logger.Error("Did not update gift code claim.")
+		return nil, status.Error(codes.Internal, " Error claim giftcode.")
 	}
 	dbGiftCode.NCurrent++
-	AddNewGiftCodeClaim(ctx, logger, db, giftCode)
+
+	AddNewGiftCodeClaim(ctx, logger, db, dbGiftCode)
 	return dbGiftCode, nil
 }
 
 func DeletedGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (*pb.GiftCode, error) {
 	dbGiftCode, err := GetGiftCode(ctx, logger, db, giftCode)
 	if err != nil {
+		logger.Error("GetGiftCode code %d before delete error %s", giftCode.GetCode(), err.Error())
 		return nil, err
 	}
-	if dbGiftCode.Deleted {
-		return dbGiftCode, nil
+	_, err = AddGiftCodeTombstone(ctx, logger, db, dbGiftCode)
+	if err != nil {
+		logger.Error("AddGiftCodeTombstone code %s error %s", giftCode.GetCode(), err.Error())
+		return nil, err
 	}
-	query := `UPDATE ` + GiftCodeTableName + " SET deleted=1, update_time=now() where code=$1"
+
+	query := `DELETE FROM ` + GiftCodeTableName + " WHERE code=$1"
 	result, err := db.ExecContext(ctx, query, giftCode.Code)
 	if err != nil {
 		logger.Error("Cannot deleted giftcode %s, err: %s",
@@ -236,6 +237,5 @@ func DeletedGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gif
 		logger.Error("Did not update new user.")
 		return nil, status.Error(codes.Internal, "Error deleted giftcode.")
 	}
-	dbGiftCode.Deleted = true
 	return dbGiftCode, nil
 }
