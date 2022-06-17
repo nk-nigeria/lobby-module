@@ -16,6 +16,7 @@ import (
 // CREATE TABLE
 //   public.giftcodeclaim (
 //      id bigint NOT NULL,
+// 	id_code bigint NOT NULL,
 //     code character varying(128) NOT NULL DEFAULT '',
 //     user_id character varying(128) NOT NULL,
 //     create_time timestamp
@@ -33,13 +34,16 @@ import (
 const GiftCodeClaimTableName = "giftcodeclaim"
 
 func AddNewGiftCodeClaim(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) error {
-	if giftCode == nil || giftCode.GetCode() == "" || giftCode.GetValue() <= 0 {
-
+	if giftCode == nil || giftCode.GetId() <= 0 || giftCode.GetCode() == "" || giftCode.GetValue() <= 0 {
+		return status.Error(codes.InvalidArgument, "Error add giftcode.")
 	}
-	query := "INSERT INTO " + GiftCodeClaimTableName + " (id, code, user_id, create_time, update_time) VALUES ($1, $2, $3, now(), now())"
+	query := "INSERT INTO " + GiftCodeClaimTableName + " (id, id_code, code, user_id, create_time, update_time) VALUES ($1, $2, $3, $4, now(), now())"
 	// startTime := pgtype.Timestamptz
 	result, err := db.ExecContext(ctx, query,
-		conf.SnowlakeNode.Generate().Int64(), giftCode.GetCode(), giftCode.GetUserId())
+		conf.SnowlakeNode.Generate().Int64(),
+		giftCode.GetId(),
+		giftCode.GetCode(),
+		giftCode.GetUserId())
 	if err != nil {
 		logger.Error("Add new giftcodeclaim %s, error %s",
 			giftCode.GetCode(), err.Error())
@@ -58,11 +62,11 @@ func GetGiftCodeClaim(ctx context.Context, logger runtime.Logger, db *sql.DB, gi
 	if giftCode == nil || giftCode.GetCode() == "" || giftCode.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "Error query giftcode.")
 	}
-	query := "SELECT id, code, user_id, create_time, update_time FROM " + GiftCodeClaimTableName + " WHERE user_id=$1 AND code=$2"
+	query := "SELECT id, code, user_id, create_time, update_time FROM " + GiftCodeClaimTableName + " WHERE user_id=$1 AND id_code=$2 AND code=$3"
 	var dbID int64
 	var dbCode, dbUserId string
 	var dbCreateTime, dbUpdateTime pgtype.Timestamptz
-	err := db.QueryRowContext(ctx, query, giftCode.GetUserId(), giftCode.GetCode()).Scan(
+	err := db.QueryRowContext(ctx, query, giftCode.GetUserId(), giftCode.GetId(), giftCode.GetCode()).Scan(
 		&dbID, &dbCode, &dbUserId,
 		&dbCreateTime, &dbUpdateTime)
 	if err != nil {

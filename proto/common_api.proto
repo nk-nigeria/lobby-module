@@ -209,7 +209,7 @@ message UserGroup {
 }
 
 message ListUserGroup {
-  repeated UserGroup userGroups = 1;
+  repeated UserGroup user_groups = 1;
   string next_cusor = 2;
   string prev_cusor = 3;
   int64 total = 4;
@@ -221,7 +221,6 @@ message UserGroupRequest {
   int64 limit = 1;
   string cusor = 2;
 }
-
 
 enum GiftCodeType {
   GIFT_CODE_TYPE_UNSPECIFIED = 0;
@@ -238,8 +237,7 @@ message GiftCode {
   int64 end_time_unix = 7;
   string message = 8;
   int64 vip = 9;
-  GiftCodeType gift_code_type = 10;
-  bool deleted = 11;
+  GiftCodeType gift_code_type = 10;  
   bool reach_max_claim = 12;
   bool already_claim = 13;
   string user_id = 14;
@@ -250,84 +248,83 @@ message ListGiftCode {
   repeated GiftCode gift_codes = 1;
 }
 
-
 enum TypeNotification {
-    RESERVED = 0;
-    MAIL_BOX = 1;
+  RESERVED = 0;
+  MAIL_BOX = 1;
 }
 
 message AddNotificationRequest {
-    repeated string recipient_ids = 1;
-    int64 user_group_id = 2;
-    TypeNotification type = 3;
-    string title = 4;
-    string content = 5;
-    string sender_id = 6;
+  repeated string recipient_ids = 1;
+  int64 user_group_id = 2;
+  TypeNotification type = 3;
+  string title = 4;
+  string content = 5;
+  string sender_id = 6;
 }
 
 message Notification {
-     int64 id = 1;
-     string recipient_id = 2;
-     TypeNotification type = 3;
-     string title = 4;
-     string content = 5;
-     string sender_id = 6;
-     bool read = 7;
- }
+  int64 id = 1;
+  string recipient_id = 2;
+  TypeNotification type = 3;
+  string title = 4;
+  string content = 5;
+  string sender_id = 6;
+  bool read = 7;
+}
 
 message NotificationRequest {
-    int64 limit = 1;
-    string cusor = 2;
-    TypeNotification type = 3;
+  int64 limit = 1;
+  string cusor = 2;
+  TypeNotification type = 3;
 }
 
 message ListNotification {
-    repeated Notification notifications = 1;
-    string next_cusor = 2;
-    string prev_cusor = 3;
-    int64 total = 4;
-    int64 offset = 5;
-    int64 limit = 6;
+  repeated Notification notifications = 1;
+  string next_cusor = 2;
+  string prev_cusor = 3;
+  int64 total = 4;
+  int64 offset = 5;
+  int64 limit = 6;
 }
 
 enum TypeInAppMessage {
-    HOT_NEWS = 0;
-    BANNER = 1;
+  HOT_NEWS = 0;
+  BANNER = 1;
 }
 
 enum InAppMessageAction {
-    NONE = 0;
-    NAVIGATE = 1;
-    OPEN_URL = 2;
+  NONE = 0;
+  NAVIGATE = 1;
+  OPEN_URL = 2;
 }
 
 message InAppMessageData {
-    InAppMessageAction action = 1;
-    string target = 2;
-    map<string, string> params = 3;
+  InAppMessageAction action = 1;
+  string target = 2;
+  map<string, string> params = 3;
 }
 
 message InAppMessage {
-    int64 id = 1;
-    int64 high_priority = 2;
-    int64 group_id = 3;
-    TypeInAppMessage type = 4;
-    InAppMessageData data = 5;
-    int64 startDate = 6;
-    int64 endDate = 7;
+  int64 id = 1;
+  int64 high_priority = 2;
+  int64 group_id = 3;
+  TypeInAppMessage type = 4;
+  InAppMessageData data = 5;
+  int64 start_date = 6;
+  int64 end_date = 7;
 }
 
 message InAppMessageRequest {
-    int64 limit = 1;
-    string cusor = 2;
-    TypeInAppMessage type = 3;
+  int64 limit = 1;
+  string cusor = 2;
+  TypeInAppMessage type = 3;
 }
 
 message ListInAppMessage {
-    repeated InAppMessage inAppMessages = 1;
-    string next_cusor = 2;
-    string prev_cusor = 3;
-    int64 total = 4;
-    int64 offset = 5;
-    int64 limit = 6;
+  repeated InAppMessage in_app_messages = 1;
+  string next_cusor = 2;
+  string prev_cusor = 3;
+  int64 total = 4;
+  int64 offset = 5;
+  int64 limit = 6;
 }
