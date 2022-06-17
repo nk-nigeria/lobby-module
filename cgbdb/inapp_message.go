@@ -154,22 +154,41 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	params := make([]interface{}, 0)
 	query := ""
 	params = append(params, typeInAppMessage)
-	params = append(params, time.Now().Unix())
-	params = append(params, time.Now().Unix())
+	userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	logger.Debug("UserId %v", userID)
 
-	if incomingCursor.Id > 0 {
-		if incomingCursor.IsNext {
-			query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id < $4 order by high_priority desc, id desc"
+	if userID != "" {
+		params = append(params, time.Now().Unix())
+		params = append(params, time.Now().Unix())
+		if incomingCursor.Id > 0 {
+			if incomingCursor.IsNext {
+				query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id < $4 order by high_priority desc, id desc"
+			} else {
+				query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id > $4 order by high_priority desc, id asc"
+			}
+			params = append(params, incomingCursor.Id)
+			query += "  limit $5"
+			params = append(params, limit)
 		} else {
-			query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id > $4 order by high_priority desc, id asc"
+			query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) order by high_priority desc, id desc limit $4"
+			params = append(params, limit)
 		}
-		params = append(params, incomingCursor.Id)
-		query += "  limit $5"
-		params = append(params, limit)
 	} else {
-		query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) order by high_priority desc, id desc limit $4"
-		params = append(params, limit)
+		if incomingCursor.Id > 0 {
+			if incomingCursor.IsNext {
+				query += " WHERE type=$1 and id < $2 order by high_priority desc, id desc"
+			} else {
+				query += " WHERE type=$1 and id > $2 order by high_priority desc, id asc"
+			}
+			params = append(params, incomingCursor.Id)
+			query += "  limit $3"
+			params = append(params, limit)
+		} else {
+			query += " WHERE type=$1 order by high_priority desc, id desc limit $2"
+			params = append(params, limit)
+		}
 	}
+
 	queryRow := "SELECT id, group_id, type, data, start_date, end_date, high_priority FROM " +
 		InAppMessageTableName + query
 
@@ -209,7 +228,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	var total int64 = incomingCursor.Total
 	if total <= 0 {
 		queryTotal := "Select count(*) as total FROM " + InAppMessageTableName +
-			strings.ReplaceAll(query, "high_priority desc, id desc", "")
+			strings.ReplaceAll(query, "order by high_priority desc, id desc", "")
 
 		_ = db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
 	}
