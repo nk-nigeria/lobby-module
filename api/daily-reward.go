@@ -169,24 +169,25 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		if !reward.CanClaim {
 			return RewardToString(reward, logger)
 		}
-		_, lastClaimObject, err := GetLastDailyRewardObject(ctx, logger, nk)
+		lastClaim, lastClaimObject, err := GetLastDailyRewardObject(ctx, logger, nk)
 		if err != nil {
 			logger.Error("GetLastDailyRewardObject error ", err.Error())
 			return "", err
 		}
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-		lastClaim := &pb.LastClaimReward{
+		savelastClaim := &pb.LastClaimReward{
 			LastClaimUnix:  time.Now().Unix(),
 			NextClaimUnix:  0,
 			Streak:         reward.Streak,
 			LastSpinNumber: 0,
 			ReachMaxStreak: reward.ReachMaxStreak,
+			NumClaim:       lastClaim.GetNumClaim() + 1,
 		}
 		version := ""
 		if lastClaimObject != nil {
 			version = lastClaimObject.GetVersion()
 		}
-		SaveLastClaimReward(ctx, nk, logger, lastClaim, version, userID)
+		SaveLastClaimReward(ctx, nk, logger, savelastClaim, version, userID)
 		wallet := entity.Wallet{
 			Chips: reward.TotalChip,
 		}
@@ -208,6 +209,11 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
 		return nil, presenter.ErrNoUserIdFound
+	}
+	profile, _, err := GetProfileUser(ctx, nk, userID, nil)
+	if err != nil {
+		logger.Error("Get account %s error %s", userID, err.Error())
+		return nil, presenter.ErrInternalError
 	}
 	lastClaim, lastClaimObject, err := GetLastDailyRewardObject(ctx, logger, nk)
 
@@ -231,26 +237,35 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 			LastClaimUnix: midnightUnix,
 		}
 	}
-	profile, _, err := GetProfileUser(ctx, nk, userID, nil)
-	if err != nil {
-		logger.Error("Get account %s error %s", userID, err.Error())
-		return nil, presenter.ErrInternalError
-	}
 
 	d := &pb.Reward{}
 	d.LastClaimUnix = lastClaim.GetLastClaimUnix()
 	d.NextClaimUnix = lastClaim.GetNextClaimUnix()
 	d.ReachMaxStreak = lastClaim.ReachMaxStreak
 	d.LastOnlineUnix = profile.GetLastOnlineTimeUnix()
+	d.NumClaim = lastClaim.GetNumClaim()
 	// streak on ui start at 1, on sv start at 0
 	d.Streak = lastClaim.GetStreak() + 1
-	if d.ReachMaxStreak || lastClaim.GetStreak() >= int64(len(DailyRewardTemplate.RewardTemplates)) {
+	if d.NumClaim >= int64(len(DailyRewardTemplate.RewardTemplates)) ||
+		d.ReachMaxStreak {
+		if !d.ReachMaxStreak {
+			needSaveLastClaim = true
+			d.ReachMaxStreak = true
+		}
+		d.NextClaimSec = 0
+		if needSaveLastClaim {
+			SaveLastClaimReward(ctx, nk, logger, lastClaim, version, userID)
+		}
+		return d, nil
+	}
+	if lastClaim.GetStreak() >= int64(len(DailyRewardTemplate.RewardTemplates)) {
 		d.NextClaimSec = 0
 		d.ReachMaxStreak = true
 		lastClaim.ReachMaxStreak = d.ReachMaxStreak
 		SaveLastClaimReward(ctx, nk, logger, lastClaim, version, userID)
 		return d, nil
 	}
+
 	rewardTemplate := DailyRewardTemplate.RewardTemplates[lastClaim.GetStreak()]
 	if lastClaim.LastSpinNumber > 0 {
 		d.BasicChip = rewardTemplate.GetBasicChips()[lastClaim.LastSpinNumber-1]
