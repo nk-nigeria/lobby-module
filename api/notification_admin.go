@@ -19,18 +19,20 @@ func RpcAddNotification(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 		}
 		request.SenderId = ""
 		// TODO get list user by group
-		notification := &pb.Notification{
-			RecipientId: request.RecipientIds[0],
-			Type:        request.Type,
-			Title:       request.Title,
-			Content:     request.Content,
-			SenderId:    "",
-			Read:        false,
-		}
-		err := cgbdb.AddNotification(ctx, logger, db, nk, notification)
-		if err != nil {
-			logger.Error("Add notification user %s, error: %s", request.SenderId, err.Error())
-			return "", err
+		for _, recipientId := range request.RecipientIds {
+			notification := &pb.Notification{
+				RecipientId: recipientId,
+				Type:        request.Type,
+				Title:       request.Title,
+				Content:     request.Content,
+				SenderId:    "",
+				Read:        false,
+			}
+			err := cgbdb.AddNotification(ctx, logger, db, nk, notification)
+			if err != nil {
+				logger.Error("Add notification user %s, error: %s", request.SenderId, err.Error())
+				return "", err
+			}
 		}
 		return "success", nil
 	}
