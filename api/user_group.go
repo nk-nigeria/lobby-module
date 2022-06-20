@@ -43,7 +43,7 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		userGroup.Data = removeSpace(userGroup.Data)
 		userGroup.Data = strings.Trim(userGroup.Data, " ")
-		err := cgbdb.AddUserGroup(ctx, logger, db, userGroup)
+		err := cgbdb.AddUserGroup(ctx, logger, db, userGroup, marshaler)
 		if err != nil {
 			return "", err
 		}
@@ -60,7 +60,7 @@ func RpcUpdateUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 			return "", presenter.ErrUnmarshal
 		}
 		var err error
-		userGroup, err = cgbdb.UpdateUserGroup(ctx, logger, db, userGroup.Id, userGroup)
+		userGroup, err = cgbdb.UpdateUserGroup(ctx, logger, db, marshaler, unmarshaler, userGroup.Id, userGroup)
 		if err != nil {
 			return "", err
 		}
@@ -78,7 +78,7 @@ func RpcListUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 				return "", presenter.ErrUnmarshal
 			}
 		}
-		list, err := cgbdb.GetListUserGroup(ctx, logger, db, userGroupRequest.Limit, userGroupRequest.Cusor)
+		list, err := cgbdb.GetListUserGroup(ctx, logger, db, unmarshaler, userGroupRequest.Limit, userGroupRequest.Cusor)
 		if err != nil {
 			return "", err
 		}
@@ -95,7 +95,7 @@ func RpcDeleteUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 			return "", presenter.ErrUnmarshal
 		}
 		var err error
-		err = cgbdb.DeleteUserGroup(ctx, logger, db, userGroup.Id)
+		err = cgbdb.DeleteUserGroup(ctx, logger, db, unmarshaler, userGroup.Id)
 		if err != nil {
 			return "", err
 		}

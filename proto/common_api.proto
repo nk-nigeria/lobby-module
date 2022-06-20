@@ -201,11 +201,17 @@ message DailyRewardTemplate {
   repeated RewardTemplate reward_templates = 1;
 }
 
+message UserGroupCondition {
+    string operator = 1;
+    string value = 2;
+}
+
 message UserGroup {
   int64 id = 1;
   string name = 2;
   string type = 3;
   string data = 4;
+  UserGroupCondition condition = 5;
 }
 
 message ListUserGroup {

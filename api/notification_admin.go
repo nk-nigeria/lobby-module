@@ -21,7 +21,7 @@ func RpcAddNotification(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 		recipientIds := request.RecipientIds
 		if request.UserGroupId > 0 {
 			var err error
-			recipientIds, err = cgbdb.GetListUserIdsByUserGroup(ctx, logger, db, request.UserGroupId)
+			recipientIds, err = cgbdb.GetListUserIdsByUserGroup(ctx, logger, db, unmarshaler, request.UserGroupId)
 			if err != nil {
 				logger.Error("GetListUserIdsByUserGroup error %s", err.Error())
 				return "", err
