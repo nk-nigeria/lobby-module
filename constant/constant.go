@@ -12,6 +12,7 @@ const NastEndpoint = "nats://nats:Admin123@103.226.250.195:4222"
 
 type UserGroupType string
 
+const UserGroupType_All UserGroupType = "all"
 const UserGroupType_Level UserGroupType = "level"
 const UserGroupType_VipLevel UserGroupType = "vip_level"
 const UserGroupType_WalletChips UserGroupType = "wallet_chips_amount"

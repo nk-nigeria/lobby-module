@@ -36,7 +36,8 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if typeUG != constant.UserGroupType_Level &&
 			typeUG != constant.UserGroupType_VipLevel &&
 			typeUG != constant.UserGroupType_WalletChips &&
-			typeUG != constant.UserGroupType_WalletChipsInbank {
+			typeUG != constant.UserGroupType_WalletChipsInbank &&
+			typeUG != constant.UserGroupType_All {
 			logger.Error("Error user group not valid")
 			return "", presenter.ErrUnmarshal
 		}

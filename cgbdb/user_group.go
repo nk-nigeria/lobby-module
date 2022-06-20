@@ -36,7 +36,7 @@ import (
 const UserGroupTableName = "user_group"
 
 func AddUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, userGroup *pb.UserGroup) error {
-	if userGroup == nil || userGroup.Name == "" || userGroup.Type == "" || userGroup.Data == "" {
+	if userGroup == nil || userGroup.Name == "" || userGroup.Type == "" {
 		return status.Error(codes.InvalidArgument, "Error add user group.")
 	}
 	query := "INSERT INTO " + UserGroupTableName + " (name, type, data, deleted, create_time, update_time) VALUES ($1, $2, $3, false, now(), now())"
