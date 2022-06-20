@@ -3,6 +3,7 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"regexp"
 	"strings"
 
@@ -111,10 +112,6 @@ AND (NOT EXISTS
 
 func FetchUserIDWithCondition(ctx context.Context, db *sql.DB, condition string, params []interface{}) ([]string, error) {
 	ids := make([]string, 0)
-	if len(condition) == 0 {
-		return ids, nil
-	}
-
 	query := "SELECT id FROM users " + condition
 	rows, err := db.QueryContext(ctx, query, params...)
 	if err != nil {
@@ -131,7 +128,9 @@ func FetchUserIDWithCondition(ctx context.Context, db *sql.DB, condition string,
 		if err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		if id != constant.UUID_USER_SYSTEM {
+			ids = append(ids, id)
+		}
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err

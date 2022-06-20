@@ -127,25 +127,26 @@ func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *s
 	operator := ""
 	param := ""
 
-	if strings.Contains(userGroup.Data, "=") {
-		operator = userGroup.Data[:2]
-		param = strings.Trim(userGroup.Data[2:len(userGroup.Data)], " ")
-	} else {
-		operator = string(userGroup.Data[0])
-		param = strings.Trim(userGroup.Data[1:len(userGroup.Data)], " ")
+	if userGroup.Data != "" {
+		if strings.Contains(userGroup.Data, "=") {
+			operator = userGroup.Data[:2]
+			param = strings.Trim(userGroup.Data[2:len(userGroup.Data)], " ")
+		} else {
+			operator = string(userGroup.Data[0])
+			param = strings.Trim(userGroup.Data[1:len(userGroup.Data)], " ")
+		}
+		if typeUG == constant.UserGroupType_WalletChips {
+			condition = fmt.Sprintf(" WHERE (wallet->>'chips')::bigint %s $1", operator)
+		} else if typeUG == constant.UserGroupType_WalletChipsInbank {
+			condition = fmt.Sprintf(" WHERE (wallet->>'chipsInBank')::bigint %s $1", operator)
+		} else if typeUG == constant.UserGroupType_Level {
+			condition = fmt.Sprintf(" WHERE (metadata->>'level')::bigint %s $1", operator)
+		} else if typeUG == constant.UserGroupType_VipLevel {
+			condition = fmt.Sprintf(" WHERE (metadata->>'vip_level')::bigint %s $1", operator)
+		}
+		paramN, _ := strconv.ParseInt(param, 10, 64)
+		params = append(params, paramN)
 	}
-
-	if typeUG == constant.UserGroupType_WalletChips {
-		condition = fmt.Sprintf(" WHERE (wallet->>'chips')::bigint %s $1", operator)
-	} else if typeUG == constant.UserGroupType_WalletChipsInbank {
-		condition = fmt.Sprintf(" WHERE (wallet->>'chipsInBank')::bigint %s $1", operator)
-	} else if typeUG == constant.UserGroupType_Level {
-		condition = fmt.Sprintf(" WHERE (metadata->>'level')::bigint %s $1", operator)
-	} else if typeUG == constant.UserGroupType_VipLevel {
-		condition = fmt.Sprintf(" WHERE (metadata->>'vip_level')::bigint %s $1", operator)
-	}
-	paramN, _ := strconv.ParseInt(param, 10, 64)
-	params = append(params, paramN)
 	logger.Info("FetchUserIDWithCondition %v %v", condition, params)
 	return FetchUserIDWithCondition(ctx, db, condition, params)
 }
