@@ -117,7 +117,7 @@ func UpdateUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, mar
 		Value:    value,
 	}
 	conditionStr, _ := marshaler.Marshal(userGroup.Condition)
-	query := "UPDATE " + UserGroupTableName + " SET name=$1, operator=$2, condition=$3 WHERE id=$5"
+	query := "UPDATE " + UserGroupTableName + " SET name=$1, condition=$2 WHERE id=$3"
 	result, err := db.ExecContext(ctx, query, userGroup.Name, conditionStr, id)
 	if err != nil {
 		logger.Error("Update user group id %d, user %s, error %s", id, err.Error())
