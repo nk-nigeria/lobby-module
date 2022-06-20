@@ -109,6 +109,37 @@ AND (NOT EXISTS
 	return nil
 }
 
+func FetchUserIDWithCondition(ctx context.Context, db *sql.DB, condition string, params []interface{}) ([]string, error) {
+	ids := make([]string, 0)
+	if len(condition) == 0 {
+		return ids, nil
+	}
+
+	query := "SELECT id FROM users " + condition
+	rows, err := db.QueryContext(ctx, query, params...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ids, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
 func GetAccount(ctx context.Context, logger runtime.Logger, db *sql.DB, userID string) (*entity.Account, error) {
 	var displayName sql.NullString
 	var username sql.NullString

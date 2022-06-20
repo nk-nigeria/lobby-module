@@ -18,8 +18,17 @@ func RpcAddNotification(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 			return "", presenter.ErrUnmarshal
 		}
 		request.SenderId = ""
-		// TODO get list user by group
-		for _, recipientId := range request.RecipientIds {
+		recipientIds := request.RecipientIds
+		if request.UserGroupId > 0 {
+			var err error
+			recipientIds, err = cgbdb.GetListUserIdsByUserGroup(ctx, logger, db, request.UserGroupId)
+			if err != nil {
+				logger.Error("GetListUserIdsByUserGroup error %s", err.Error())
+				return "", err
+			}
+			logger.Info("GetListUserIdsByUserGroup %v", recipientIds)
+		}
+		for _, recipientId := range recipientIds {
 			notification := &pb.Notification{
 				RecipientId: recipientId,
 				Type:        request.Type,

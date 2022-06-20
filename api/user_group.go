@@ -6,11 +6,24 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"strings"
+	"unicode"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func removeSpace(s string) string {
+	rr := make([]rune, 0, len(s))
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			rr = append(rr, r)
+		}
+	}
+	return string(rr)
+}
 
 func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
@@ -19,6 +32,16 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
+		typeUG := constant.UserGroupType(userGroup.Type)
+		if typeUG != constant.UserGroupType_Level &&
+			typeUG != constant.UserGroupType_VipLevel &&
+			typeUG != constant.UserGroupType_WalletChips &&
+			typeUG != constant.UserGroupType_WalletChipsInbank {
+			logger.Error("Error user group not valid")
+			return "", presenter.ErrUnmarshal
+		}
+		userGroup.Data = removeSpace(userGroup.Data)
+		userGroup.Data = strings.Trim(userGroup.Data, " ")
 		err := cgbdb.AddUserGroup(ctx, logger, db, userGroup)
 		if err != nil {
 			return "", err
