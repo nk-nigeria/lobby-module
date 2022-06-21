@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -37,6 +39,10 @@ import (
 const UserGroupTableName = "user_group"
 
 func parseOperator(condition string) (string, string) {
+	if len(strings.Trim(condition, " ")) == 0 {
+		return "", ""
+	}
+
 	operator := ""
 	value := ""
 	if strings.Contains(condition, "=") {
@@ -149,6 +155,86 @@ func DeleteUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unm
 		return status.Error(codes.Internal, "Error Delete user group")
 	}
 	return nil
+}
+
+func GetAllGroupByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userId string) ([]int64, error) {
+	condition := fmt.Sprintf("Where type = '%s' ", constant.UserGroupType_All)
+	params := make([]interface{}, 0)
+	result := make([]int64, 0)
+
+	account, err := nk.AccountGetId(ctx, userId)
+	if err != nil {
+		logger.Error("GetAccount error %s", err.Error())
+		return result, err
+	}
+	var metadata map[string]interface{}
+	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
+		return result, errors.New("Corrupted user metadata.")
+	}
+	var level int64 = 0
+	if levelStr, ok := metadata["level"]; ok {
+		level = levelStr.(int64)
+	}
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_Level, level)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_Level, level)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_Level, level)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_Level, level)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_Level, level)
+
+	var vipLevel int64 = 0
+	if vipLevelStr, ok := metadata["vip_level"]; ok {
+		vipLevel = vipLevelStr.(int64)
+	}
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+
+	var chips int64 = 0
+	var chipsInbank int64 = 0
+	wallet, err := entity.ParseWallet(account.Wallet)
+	if err == nil {
+		chips = wallet.Chips
+		chipsInbank = wallet.ChipsInBank
+	}
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_WalletChips, chips)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_WalletChips, chips)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_WalletChips, chips)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_WalletChips, chips)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_WalletChips, chips)
+
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+
+	ids := make([]int64, 0)
+	query := "SELECT id FROM " + UserGroupTableName + " " + condition
+	rows, err := db.QueryContext(ctx, query, params...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ids, nil
+		}
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var idStr string
+		err := rows.Scan(&idStr)
+		if err != nil {
+			return result, err
+		}
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+		ids = append(ids, id)
+	}
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+
+	return ids, nil
 }
 
 func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) ([]string, error) {

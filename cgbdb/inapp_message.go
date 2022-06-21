@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/gob"
+	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
 	"strings"
 	"time"
@@ -126,7 +127,7 @@ func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return oldInAppMessage, nil
 }
 
-func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, limit int64, cursor string, typeInAppMessage pb.TypeInAppMessage) (*pb.ListInAppMessage, error) {
+func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, nk runtime.NakamaModule, limit int64, cursor string, typeInAppMessage pb.TypeInAppMessage) (*pb.ListInAppMessage, error) {
 	var incomingCursor = &entity.InAppMessageListCursor{}
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)
@@ -158,19 +159,66 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	logger.Debug("UserId %v", userID)
 
 	if userID != "" {
+		allGroups, _ := GetAllGroupByUser(ctx, logger, db, nk, userID)
 		params = append(params, time.Now().Unix())
 		params = append(params, time.Now().Unix())
+		query += " WHERE type=$1 and start_date <= $2"
+		count := 0
 		if incomingCursor.Id > 0 {
+			count = 5
 			if incomingCursor.IsNext {
-				query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id < $4 order by high_priority desc, id desc"
+				query += " and (end_date = 0 or end_date >= $3) and id < $4 "
+				if len(allGroups) > 0 {
+					query += " and group_id in ("
+					for idx, idGroup := range allGroups {
+						if idx == 0 {
+							query += fmt.Sprintf(" $%d ", count)
+						} else {
+							query += fmt.Sprintf(", $%d ", count)
+						}
+						params = append(params, idGroup)
+						count++
+					}
+					query += " )"
+				}
+				query += "order by high_priority desc, id desc"
 			} else {
-				query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) and id > $4 order by high_priority desc, id asc"
+				query += " and (end_date = 0 or end_date >= $3) and id > $4 "
+				if len(allGroups) > 0 {
+					query += " and group_id in ("
+					for idx, idGroup := range allGroups {
+						if idx == 0 {
+							query += fmt.Sprintf(" $%d ", count)
+						} else {
+							query += fmt.Sprintf(", $%d ", count)
+						}
+						params = append(params, idGroup)
+						count++
+					}
+					query += " )"
+				}
+				query += "order by high_priority desc, id asc"
 			}
 			params = append(params, incomingCursor.Id)
-			query += "  limit $5"
+			query += fmt.Sprintf("  limit $%d", count)
 			params = append(params, limit)
 		} else {
-			query += " WHERE type=$1 and start_date <= $2 and (end_date = 0 or end_date >= $3) order by high_priority desc, id desc limit $4"
+			count = 4
+			query += " and (end_date = 0 or end_date >= $3)"
+			if len(allGroups) > 0 {
+				query += " and group_id in ("
+				for idx, idGroup := range allGroups {
+					if idx == 0 {
+						query += fmt.Sprintf(" $%d ", count)
+					} else {
+						query += fmt.Sprintf(", $%d ", count)
+					}
+					params = append(params, idGroup)
+					count++
+				}
+				query += " )"
+			}
+			query += fmt.Sprintf(" order by high_priority desc, id desc limit $%d", count)
 			params = append(params, limit)
 		}
 	} else {
@@ -192,6 +240,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	queryRow := "SELECT id, group_id, type, data, start_date, end_date, high_priority FROM " +
 		InAppMessageTableName + query
 
+	logger.Debug("queryRow %s %v", queryRow, params)
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
 		logger.Error("Query lists inAppMessage, error %s", err.Error())

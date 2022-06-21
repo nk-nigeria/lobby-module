@@ -54,7 +54,7 @@ func RpcListInAppMessage(marshaler *protojson.MarshalOptions, unmarshaler *proto
 				return "", presenter.ErrUnmarshal
 			}
 		}
-		list, err := cgbdb.GetListInAppMessage(ctx, logger, db, unmarshaler, inAppMessageRequest.Limit, inAppMessageRequest.Cusor, inAppMessageRequest.Type)
+		list, err := cgbdb.GetListInAppMessage(ctx, logger, db, unmarshaler, nk, inAppMessageRequest.Limit, inAppMessageRequest.Cusor, inAppMessageRequest.Type)
 		if err != nil {
 			return "", err
 		}
