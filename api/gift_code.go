@@ -57,13 +57,18 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			logger.Error("Invalid payload")
 			return "", presenter.ErrUnmarshal
 		}
+		profile, _, err := GetProfileUser(ctx, nk, userID, nil)
+		if err != nil {
+			logger.Error("Error when get user %s, err %s", userID, err.Error())
+			return "", presenter.ErrInternalError
+		}
 		giftCode.UserId = userID
-		dbGiftCode, err := cgbdb.ClaimGiftCode(ctx, logger, db, giftCode)
+		dbGiftCode, err := cgbdb.ClaimGiftCode(ctx, logger, db, giftCode, profile.GetVipLevel())
 		if err != nil {
 			logger.Error("ClaimGiftCode error %s", err.Error())
 			return "", err
 		}
-		if dbGiftCode.OpenToClaim && !dbGiftCode.AlreadyClaim && !dbGiftCode.GetReachMaxClaim() {
+		if dbGiftCode.ErrCode == 0 {
 			wallet := entity.Wallet{
 				Chips: dbGiftCode.Value,
 			}
