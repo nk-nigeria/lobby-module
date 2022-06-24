@@ -11,6 +11,51 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+func RpcReadAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		// parse request
+		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+
+		err := cgbdb.ReadAllNotification(ctx, logger, db, userId)
+		if err != nil {
+			logger.Error("RpcReadAllNotification error", err)
+		}
+
+		response := &pb.DefaultResponse{
+			Message: "success",
+			Code:    "200",
+			Status:  "success",
+		}
+		out, _ := conf.MarshalerDefault.Marshal(response)
+		return string(out), err
+	}
+}
+
+func RpcDeleteAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		// parse request
+		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+
+		err := cgbdb.DeleteAllNotification(ctx, logger, db, userId)
+		if err != nil {
+			logger.Error("RpcDeleteAllNotification error", err)
+		}
+		response := &pb.DefaultResponse{
+			Message: "success",
+			Code:    "200",
+			Status:  "success",
+		}
+		out, _ := conf.MarshalerDefault.Marshal(response)
+		return string(out), err
+	}
+}
+
 func RpcReadNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// parse request
@@ -29,7 +74,13 @@ func RpcReadNotification(marshaler *protojson.MarshalOptions, unmarshaler *proto
 			logger.Error("ReadNotification error", err)
 		}
 
-		return "success", err
+		response := &pb.DefaultResponse{
+			Message: "success",
+			Code:    "200",
+			Status:  "success",
+		}
+		out, _ := conf.MarshalerDefault.Marshal(response)
+		return string(out), err
 	}
 }
 
@@ -50,8 +101,13 @@ func RpcDeleteNotification(marshaler *protojson.MarshalOptions, unmarshaler *pro
 		if err != nil {
 			logger.Error("DeleteNotification error", err)
 		}
-
-		return "success", err
+		response := &pb.DefaultResponse{
+			Message: "success",
+			Code:    "200",
+			Status:  "success",
+		}
+		out, _ := conf.MarshalerDefault.Marshal(response)
+		return string(out), err
 	}
 }
 

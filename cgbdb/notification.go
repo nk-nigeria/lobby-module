@@ -114,6 +114,34 @@ func DeleteNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return nil
 }
 
+func ReadAllNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, user_id string) error {
+	query := "UPDATE " + NotificationTableName + " SET read=true WHERE recipient_id=$2"
+	result, err := db.ExecContext(ctx, query, user_id)
+	if err != nil {
+		logger.Error("Read all notification, user %s, error %s", err.Error())
+		return status.Error(codes.Internal, "Read all notification error")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not update notification")
+		return status.Error(codes.Internal, "Read notification group")
+	}
+	return nil
+}
+
+func DeleteAllNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string) error {
+	query := "DELETE FROM " + NotificationTableName + " WHERE recipient_id=$2"
+	result, err := db.ExecContext(ctx, query, userId)
+	if err != nil {
+		logger.Error("Delete all notification, error %s", err.Error())
+		return status.Error(codes.Internal, "Delete notification error")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did delete notification")
+		return status.Error(codes.Internal, "Error delete notification")
+	}
+	return nil
+}
+
 func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, cursor string, userId string, typeNotification pb.TypeNotification) (*pb.ListNotification, error) {
 	var incomingCursor = &entity.NotificationListCursor{}
 	if cursor != "" {

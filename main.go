@@ -76,10 +76,12 @@ const (
 	rpcIdDeleteGiftCode = "gift_code_delete"
 
 	// Notification
-	rpcIdListNotification   = "list_notification"
-	rpcIdAddNotification    = "add_notification"
-	rpcIdReadNotification   = "read_notification"
-	rpcIdDeleteNotification = "delete_notification"
+	rpcIdListNotification      = "list_notification"
+	rpcIdAddNotification       = "add_notification"
+	rpcIdReadNotification      = "read_notification"
+	rpcIdDeleteNotification    = "delete_notification"
+	rpcIdReadAllNotification   = "read_all_notification"
+	rpcIdDeleteAllNotification = "delete_all_notification"
 
 	// InAppMessage
 	rpcIdListInAppMessage   = "list_in_app_message"
@@ -279,6 +281,14 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 	if err := initializer.RegisterRpc(rpcIdDeleteNotification,
 		api.RpcDeleteNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdReadAllNotification,
+		api.RpcReadAllNotification(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdDeleteAllNotification,
+		api.RpcDeleteAllNotification(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

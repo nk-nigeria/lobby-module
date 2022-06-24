@@ -344,3 +344,9 @@ message ListInAppMessage {
   int64 offset = 5;
   int64 limit = 6;
 }
+
+message DefaultResponse {
+    string message = 1;
+    string code = 2;
+    string status = 3;
+}
