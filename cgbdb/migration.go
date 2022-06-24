@@ -57,7 +57,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		CREATE SEQUENCE IF NOT EXISTS in_app_message_id_seq;
 		CREATE TABLE IF NOT EXISTS public.in_app_message (
 			id bigint NOT NULL DEFAULT nextval('in_app_message_id_seq'),
-			group_id bigint NOT NULL,
+			group_ids jsonb NOT NULL,
 			type bigint  NOT NULL,
 			data jsonb NOT NULL,
 			start_date bigint,

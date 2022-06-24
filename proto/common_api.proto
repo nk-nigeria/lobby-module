@@ -323,7 +323,7 @@ message InAppMessageData {
 message InAppMessage {
   int64 id = 1;
   int64 high_priority = 2;
-  int64 group_id = 3;
+  repeated int64 group_ids = 3;
   TypeInAppMessage type = 4;
   InAppMessageData data = 5;
   int64 start_date = 6;

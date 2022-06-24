@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
 	"strings"
@@ -22,7 +23,7 @@ import (
 //CREATE SEQUENCE in_app_message_id_seq;
 //CREATE TABLE public.in_app_message (
 //	id bigint NOT NULL DEFAULT nextval('in_app_message_id_seq'),
-//	group_id bigint NOT NULL,
+//	group_ids jsonb NOT NULL,
 //	type bigint  NOT NULL,
 //	data jsonb NOT NULL,
 //	start_date bigint,
@@ -40,19 +41,30 @@ func AddInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, mar
 		return nil, status.Error(codes.InvalidArgument, "Error add inAppMessage.")
 	}
 	data, _ := marshaler.Marshal(inAppMessage.Data)
-	query := "INSERT INTO " + InAppMessageTableName + " (group_id, type, data, start_date, end_date, high_priority, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, now(), now())"
-	result, err := db.ExecContext(ctx, query, inAppMessage.GroupId, inAppMessage.Type, data,
+	group := "["
+	if len(inAppMessage.GroupIds) > 0 {
+		for idx, groupId := range inAppMessage.GroupIds {
+			if idx == 0 {
+				group += fmt.Sprintf(`%d`, groupId)
+			} else {
+				group += fmt.Sprintf(`, %d`, groupId)
+			}
+		}
+	}
+	group += "]"
+	query := "INSERT INTO " + InAppMessageTableName + " (group_ids, type, data, start_date, end_date, high_priority, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, now(), now())"
+	result, err := db.ExecContext(ctx, query, group, inAppMessage.Type, data,
 		inAppMessage.StartDate,
 		inAppMessage.EndDate,
 		inAppMessage.HighPriority)
 	if err != nil {
 		logger.Error("Add inAppMessage, type: %v, groupId: %v, data: %v, error %s",
-			inAppMessage.Type, inAppMessage.GroupId, inAppMessage.Data, err.Error())
+			inAppMessage.Type, inAppMessage.GroupIds, inAppMessage.Data, err.Error())
 		return nil, status.Error(codes.Internal, "Error add inAppMessage.")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
 		logger.Error("Did not insert inAppMessage, type: %v, groupId: %v, data: %v",
-			inAppMessage.Type, inAppMessage.GroupId, inAppMessage.Data)
+			inAppMessage.Type, inAppMessage.GroupIds, inAppMessage.Data)
 		return nil, status.Error(codes.Internal, "Error add inAppMessage.")
 	}
 	return inAppMessage, nil
@@ -62,12 +74,13 @@ func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id is empty")
 	}
-	query := "SELECT id, group_id, type, data, start_date, end_date, high_priority FROM " + InAppMessageTableName + " WHERE id=$1"
-	var dbID, dbGroupId int64
+	query := "SELECT id, group_ids, type, data, start_date, end_date, high_priority FROM " + InAppMessageTableName + " WHERE id=$1"
+	var dbID int64
 	var dbType int32
+	var groupIdsStr string
 	var dbData []byte
 	var dbStartDate, dbEndDate, dbHighPriority int64
-	err := db.QueryRowContext(ctx, query, id).Scan(&dbID, &dbGroupId, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
+	err := db.QueryRowContext(ctx, query, id).Scan(&dbID, &groupIdsStr, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
 	if err != nil {
 		logger.Error("Query inAppMessage by id %d, error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Query inAppMessage error")
@@ -78,9 +91,11 @@ func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		logger.Error("Unmarshal inAppMessage error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Query inAppMessage error")
 	}
+	var groupIds []int64
+	_ = json.Unmarshal([]byte(groupIdsStr), &groupIds)
 	inAppMessage := pb.InAppMessage{
 		Id:           dbID,
-		GroupId:      dbGroupId,
+		GroupIds:     groupIds,
 		Type:         pb.TypeInAppMessage(dbType),
 		Data:         data,
 		StartDate:    dbStartDate,
@@ -110,8 +125,20 @@ func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 		return nil, err
 	}
 	data, _ := marshaler.Marshal(inAppMessage.Data)
-	query := "UPDATE " + InAppMessageTableName + " SET group_id=$1, data=$2, start_date=$3, end_date=$4, high_priority=$5 WHERE id=$6"
-	result, err := db.ExecContext(ctx, query, inAppMessage.GroupId, data, inAppMessage.StartDate, inAppMessage.EndDate, inAppMessage.HighPriority, oldInAppMessage.Id)
+
+	group := "["
+	if len(inAppMessage.GroupIds) > 0 {
+		for idx, groupId := range inAppMessage.GroupIds {
+			if idx == 0 {
+				group += fmt.Sprintf(`%d`, groupId)
+			} else {
+				group += fmt.Sprintf(`, %d`, groupId)
+			}
+		}
+	}
+	group += "]"
+	query := "UPDATE " + InAppMessageTableName + " SET group_ids=$1, data=$2, start_date=$3, end_date=$4, high_priority=$5 WHERE id=$6"
+	result, err := db.ExecContext(ctx, query, group, data, inAppMessage.StartDate, inAppMessage.EndDate, inAppMessage.HighPriority, oldInAppMessage.Id)
 	if err != nil {
 		logger.Error("Update inAppMessage id %d, error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Update inAppMessage error")
@@ -120,7 +147,7 @@ func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 		logger.Error("Did not update inAppMessage")
 		return nil, status.Error(codes.Internal, "Error Update inAppMessage")
 	}
-	oldInAppMessage.GroupId = inAppMessage.GroupId
+	oldInAppMessage.GroupIds = inAppMessage.GroupIds
 	oldInAppMessage.StartDate = inAppMessage.StartDate
 	oldInAppMessage.EndDate = inAppMessage.EndDate
 	oldInAppMessage.Data = inAppMessage.Data
@@ -169,7 +196,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			if incomingCursor.IsNext {
 				query += " and (end_date = 0 or end_date >= $3) and id < $4 "
 				if len(allGroups) > 0 {
-					query += " and group_id in ("
+					query += " and group_ids <@ ARRAY["
 					for idx, idGroup := range allGroups {
 						if idx == 0 {
 							query += fmt.Sprintf(" $%d ", count)
@@ -179,13 +206,13 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 						params = append(params, idGroup)
 						count++
 					}
-					query += " )"
+					query += " ]"
 				}
 				query += "order by high_priority desc, id desc"
 			} else {
 				query += " and (end_date = 0 or end_date >= $3) and id > $4 "
 				if len(allGroups) > 0 {
-					query += " and group_id in ("
+					query += " and group_ids <@ ARRAY["
 					for idx, idGroup := range allGroups {
 						if idx == 0 {
 							query += fmt.Sprintf(" $%d ", count)
@@ -195,7 +222,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 						params = append(params, idGroup)
 						count++
 					}
-					query += " )"
+					query += " ]"
 				}
 				query += "order by high_priority desc, id asc"
 			}
@@ -206,7 +233,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			count = 4
 			query += " and (end_date = 0 or end_date >= $3)"
 			if len(allGroups) > 0 {
-				query += " and group_id in ("
+				query += " and group_ids <@ ARRAY["
 				for idx, idGroup := range allGroups {
 					if idx == 0 {
 						query += fmt.Sprintf(" $%d ", count)
@@ -216,7 +243,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 					params = append(params, idGroup)
 					count++
 				}
-				query += " )"
+				query += " ]"
 			}
 			query += fmt.Sprintf(" order by high_priority desc, id desc limit $%d", count)
 			params = append(params, limit)
@@ -237,7 +264,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		}
 	}
 
-	queryRow := "SELECT id, group_id, type, data, start_date, end_date, high_priority FROM " +
+	queryRow := "SELECT id, group_ids, type, data, start_date, end_date, high_priority FROM " +
 		InAppMessageTableName + query
 
 	logger.Debug("queryRow %s %v", queryRow, params)
@@ -247,25 +274,28 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		return nil, status.Error(codes.Internal, "Query lists inAppMessage")
 	}
 	ml := make([]*pb.InAppMessage, 0)
-	var dbID, dbGroupId int64
+	var dbID int64
 	var dbType int32
 	var dbData []byte
+	var groupIds []int64
 	var dbStartDate, dbEndDate, dbHighPriority int64
 	if err != nil {
 		logger.Error("Query inAppMessage error %s", err.Error())
 		return nil, status.Error(codes.Internal, "Query inAppMessage error")
 	}
 	for rows.Next() {
-		rows.Scan(&dbID, &dbGroupId, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
+		var groupIdsStr string
+		rows.Scan(&dbID, &groupIdsStr, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
 		var data = &pb.InAppMessageData{}
 		err = unmarshaler.Unmarshal(dbData, data)
 		if err != nil {
 			logger.Error("Unmarshal inAppMessage error %s", err.Error())
 			return nil, status.Error(codes.Internal, "Query inAppMessage error")
 		}
+		_ = json.Unmarshal([]byte(groupIdsStr), &groupIds)
 		inAppMessage := pb.InAppMessage{
 			Id:           dbID,
-			GroupId:      dbGroupId,
+			GroupIds:     groupIds,
 			Type:         pb.TypeInAppMessage(dbType),
 			Data:         data,
 			StartDate:    dbStartDate,

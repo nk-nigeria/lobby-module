@@ -8,6 +8,7 @@ require (
 	github.com/heroiclabs/nakama-common v1.22.0
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgtype v1.8.1
+	github.com/lib/pq v1.10.2
 	github.com/minio/minio-go/v7 v7.0.23
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.7.0
