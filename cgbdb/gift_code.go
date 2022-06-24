@@ -156,7 +156,7 @@ func GetListGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, gif
 	}, nil
 }
 
-func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (*pb.GiftCode, error) {
+func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode, lvVipUser int64) (*pb.GiftCode, error) {
 	if giftCode == nil || giftCode.GetCode() == "" || giftCode.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Error query giftcode.")
 	}
@@ -168,19 +168,27 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 	dbGiftCode.UserId = giftCode.GetUserId()
 	nowUnix := time.Now().Unix()
 	dbGiftCode.OpenToClaim = true
-	if dbGiftCode.StartTimeUnix < nowUnix {
+	if dbGiftCode.StartTimeUnix > nowUnix {
 		dbGiftCode.OpenToClaim = false
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_NOT_OPEN)
 		logger.Error("Giftcode %s not open", dbGiftCode.Code)
 		return dbGiftCode, nil
 	}
 	if dbGiftCode.EndTimeUnix < nowUnix {
 		dbGiftCode.OpenToClaim = false
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_HAS_CLOSED)
 		logger.Error("Giftcode %s close", dbGiftCode.Code)
 		return dbGiftCode, nil
 	}
 
 	if dbGiftCode.NCurrent >= dbGiftCode.GetNMax() {
 		dbGiftCode.ReachMaxClaim = true
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_REACH_MAX_CLAIMED)
+		return dbGiftCode, nil
+	}
+
+	if dbGiftCode.Vip > lvVipUser {
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_LV_VIP_NOT_MET_REQUIRE)
 		return dbGiftCode, nil
 	}
 
@@ -191,6 +199,7 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 
 	} else if giftCodeClaim.Code != "" {
 		dbGiftCode.AlreadyClaim = true
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_ALREADY_CLAIMED)
 		return dbGiftCode, nil
 	}
 
@@ -208,7 +217,6 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 		return nil, status.Error(codes.Internal, " Error claim giftcode.")
 	}
 	dbGiftCode.NCurrent++
-
 	AddNewGiftCodeClaim(ctx, logger, db, dbGiftCode)
 	return dbGiftCode, nil
 }
