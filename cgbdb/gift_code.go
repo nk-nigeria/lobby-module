@@ -188,7 +188,7 @@ func ClaimGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftC
 	}
 
 	if dbGiftCode.Vip > lvVipUser {
-		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_LV_VIP_NOT_MET_REQUIRE)
+		dbGiftCode.ErrCode = int32(pb.GiftCodeError_GIFT_CODE_ERROR_LV_VIP_NOT_MEET_REQUIRE)
 		return dbGiftCode, nil
 	}
 
