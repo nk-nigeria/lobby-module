@@ -350,3 +350,12 @@ message DefaultResponse {
     string code = 2;
     string status = 3;
 }
+
+message PreSignPutRequest {
+    string fileName = 1;
+    string bucketName = 2;
+}
+
+message PreSignPutResponse {
+    string url = 1;
+}

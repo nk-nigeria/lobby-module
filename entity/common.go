@@ -62,6 +62,7 @@ type Layout struct {
 
 const (
 	BucketAvatar   = "avatar"
+	BucketBanners  = "banners"
 	AvatarFileName = "%s_image"
 	LinkFanpageFB  = "https://www.facebook.com/"
 	LinkGroupFB    = "https://www.facebook.com/"

@@ -13,3 +13,6 @@ dev:
 	docker-compose up -d --build nakama
 dev-first-run:
 	docker-compose up --build nakama && docker restart lobby
+
+proto:
+	protoc -I ./ --go_out=$(pwd)/proto  ./proto/common_api.proto
