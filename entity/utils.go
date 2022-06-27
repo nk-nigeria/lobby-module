@@ -40,3 +40,12 @@ func RandomInt(min, max int) int {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(max-min+1) + min
 }
+
+func RangeWeekFromNow() (time.Time, time.Time) {
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	for t.Weekday() != time.Monday {
+		t = t.AddDate(0, 0, 1)
+	}
+	return t, t.AddDate(0, 0, 7)
+}

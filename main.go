@@ -88,6 +88,9 @@ const (
 	rpcIdAddInAppMessage    = "add_in_app_message"
 	rpcIdUpdateInAppMessage = "update_in_app_message"
 	rpcIdDeleteInAppMessage = "delete_in_app_message"
+
+	// refer user
+	rpcEstRewardReferInWeek = "est_reward_refer_in_week"
 )
 
 const (
@@ -117,6 +120,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
 	message_queue.InitNatsService(logger, constant.NastEndpoint)
 	api.InitExchangeList(ctx, logger, nk)
+	api.InitReferUserReward(ctx, logger, nk)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -362,6 +366,12 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(
 		rpcGetQuickChat,
 		api.RpcGetQuickChat(marshaler, unmarshaler),
+	); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(
+		rpcEstRewardReferInWeek,
+		api.RpcEstRewardThisWeek(),
 	); err != nil {
 		return err
 	}

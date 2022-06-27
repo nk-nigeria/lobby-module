@@ -252,7 +252,7 @@ message GiftCode {
   int64 end_time_unix = 7;
   string message = 8;
   int64 vip = 9;
-  GiftCodeType gift_code_type = 10;  
+  GiftCodeType gift_code_type = 10;
   bool reach_max_claim = 12;
   bool already_claim = 13;
   string user_id = 14;
@@ -346,7 +346,38 @@ message ListInAppMessage {
 }
 
 message DefaultResponse {
-    string message = 1;
-    string code = 2;
-    string status = 3;
+  string message = 1;
+  string code = 2;
+  string status = 3;
+}
+
+message ReferUser {
+  int64 id = 1;
+  string user_invitor = 2;
+  string user_invitee = 3;
+  int64 create_time_unix = 4;
+}
+
+message RewardReferTemplate {
+  int64 min = 1;
+  int64 max = 2;
+  float rate = 3;
+}
+
+message ListRewardReferTemplate {
+  repeated RewardReferTemplate reward_refers = 1;
+}
+
+message RewardRefer {
+  string user_id = 1;
+  int64 win_amt = 2;
+  int64 est_reward_lv = 3;
+  int64 est_reward = 4;
+  float est_rate_reward = 5;
+  repeated RewardRefer user_refers = 6;
+  repeated RewardReferTemplate list_rewards = 7;
+}
+
+message ListRewardRefer {
+  repeated RewardRefer user_refers = 1;
 }
