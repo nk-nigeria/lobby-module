@@ -242,6 +242,8 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 				win_amt bigint NOT NULL,
 				reward bigint NOT NULL,
 				data VARCHAR,		
+				from_unix bigint ,
+				to_unix bigint,
 				create_time timestamp
 			with
 			time zone NOT NULL DEFAULT now(),

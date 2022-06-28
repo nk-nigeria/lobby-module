@@ -90,7 +90,9 @@ const (
 	rpcIdDeleteInAppMessage = "delete_in_app_message"
 
 	// refer user
-	rpcEstRewardReferInWeek = "est_reward_refer_in_week"
+	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
+	// refer user
+	rpcRewardReferHistory = "reward_refer_history"
 )
 
 const (
@@ -370,8 +372,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 	if err := initializer.RegisterRpc(
-		rpcEstRewardReferInWeek,
+		rpcRewardReferEstInWeek,
 		api.RpcEstRewardThisWeek(),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcRewardReferHistory,
+		api.RpcRewardHistory(),
 	); err != nil {
 		return err
 	}

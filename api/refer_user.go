@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"sort"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
@@ -122,11 +124,11 @@ func RpcEstRewardThisWeek() func(context.Context, runtime.Logger, *sql.DB, runti
 		if !ok {
 			return "", errors.New("Missing user ID.")
 		}
-		beginWeek, endWeek := entity.RangeWeekFromNow()
+		beginWeek, endWeek := entity.RangeThisWeek()
 		req := &entity.FeeGameListCursor{
 			UserId: userID,
 			From:   beginWeek.Unix(),
-			To:     endWeek.Unix() - 1, // -1 sec
+			To:     endWeek.Unix(),
 		}
 		sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, req)
 		if err != nil {
@@ -157,8 +159,11 @@ func RpcEstRewardThisWeek() func(context.Context, runtime.Logger, *sql.DB, runti
 			r.EstReward = int64(float32(r.WinAmt) * rewardRefer.EstRateReward)
 			rewardRefer.EstReward += r.EstReward
 		}
+
+		rewardRefer.From = beginWeek.Unix()
+		rewardRefer.To = endWeek.Unix()
+		// cgbdb.AddNewHistoryRewardRefer(ctx, logger, db, rewardRefer)
 		out, _ := conf.MarshalerDefault.Marshal(rewardRefer)
-		cgbdb.AddNewHistoryRewardRefer(ctx, logger, db, rewardRefer)
 		return string(out), nil
 
 	}
@@ -183,8 +188,80 @@ func EstRewardFromReferredUser(ctx context.Context, logger runtime.Logger, db *s
 		rewardRefer := &pb.RewardRefer{
 			UserId: preferUser.UserInvitee,
 			WinAmt: sumFee.Fee,
+			From:   req.From,
+			To:     req.To,
 		}
 		listUserPreferReward = append(listUserPreferReward, rewardRefer)
 	}
 	return listUserPreferReward, nil
+}
+
+func RpcRewardHistory() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		historyRewardRequest := &pb.HistoryRewardRequest{}
+		if err := conf.Unmarshaler.Unmarshal([]byte(payload), historyRewardRequest); err != nil {
+			logger.Error("Error when unmarshal payload %s ", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		if historyRewardRequest.Time > pb.HistoryRewardTime_HISTORY_REWARD_TIME_LAST_MONTH {
+			historyRewardRequest.Time = pb.HistoryRewardTime_HISTORY_REWARD_TIME_THIS_WEEK
+		}
+
+		if historyRewardRequest.Time >= 0 {
+			var from time.Time
+			var to time.Time
+			switch historyRewardRequest.Time {
+			case pb.HistoryRewardTime_HISTORY_REWARD_TIME_THIS_WEEK:
+				from, to = entity.RangeThisWeek()
+			case pb.HistoryRewardTime_HISTORY_REWARD_TIME_LAST_WEEK:
+				from, to = entity.RangeLastWeek()
+			case pb.HistoryRewardTime_HISTORY_REWARD_TIME_THIS_MONTH:
+				from, to = entity.RangeThisMonth()
+			case pb.HistoryRewardTime_HISTORY_REWARD_TIME_LAST_MONTH:
+				from, to = entity.RangeLastMonth()
+			}
+			historyRewardRequest.From = from.Unix()
+			historyRewardRequest.To = to.Unix()
+		}
+		historyRewardRequest.UserId = userID
+		ml, err := cgbdb.GetHistoryRewardRefer(ctx, logger, db, historyRewardRequest)
+		if err != nil {
+			logger.Error("GetHistoryRewardRefer user %s , from %d --> %d, err %s",
+				userID, historyRewardRequest.GetFrom(), historyRewardRequest.GetTo(), err.Error())
+			return "", err
+		}
+		summary := &pb.RewardRefer{
+			UserId: userID,
+			From:   historyRewardRequest.From,
+			To:     historyRewardRequest.To,
+		}
+		for _, r := range ml {
+			summary.EstReward += r.GetEstReward()
+			summary.UserRefers = append(summary.UserRefers, r.GetUserRefers()...)
+		}
+		// count user refer last online < 60d
+		listUserRefer, _ := cgbdb.ListUserInvitedByUserId(ctx, logger, db, userID)
+		listUserReferId := make([]string, 0, len(listUserRefer))
+		for _, u := range listUserRefer {
+			listUserReferId = append(listUserReferId, u.UserInvitee)
+		}
+		listAccount, _ := nk.AccountsGetId(ctx, listUserReferId)
+		for _, ac := range listAccount {
+			var metadata map[string]interface{}
+			if err := json.Unmarshal([]byte(ac.User.GetMetadata()), &metadata); err != nil {
+				continue
+			}
+			lastOnlineUnix := entity.ToInt64(metadata["last_online_time_unix"], 0)
+			if time.Unix(lastOnlineUnix, 0).Add(60 * 24 * time.Hour).After(time.Now()) {
+				summary.TotalUserRefer++
+			}
+		}
+
+		out, _ := conf.MarshalerDefault.Marshal(summary)
+		return string(out), nil
+	}
 }

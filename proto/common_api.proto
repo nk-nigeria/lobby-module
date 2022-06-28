@@ -376,8 +376,26 @@ message RewardRefer {
   float est_rate_reward = 5;
   repeated RewardRefer user_refers = 6;
   repeated RewardReferTemplate list_rewards = 7;
+  int64 from = 8;
+  int64 to = 9;
+  int64 total_user_refer = 10;
 }
 
 message ListRewardRefer {
   repeated RewardRefer user_refers = 1;
+}
+
+enum HistoryRewardTime {
+  HISTORY_REWARD_TIME_UNSPECIFIED = 0;
+  HISTORY_REWARD_TIME_THIS_WEEK = 1;
+  HISTORY_REWARD_TIME_LAST_WEEK = 2;
+  HISTORY_REWARD_TIME_THIS_MONTH = 3;
+  HISTORY_REWARD_TIME_LAST_MONTH = 4;
+}
+
+message HistoryRewardRequest {
+  string user_id = 1;
+  HistoryRewardTime time = 2;
+  int64 from = 3;
+  int64 to = 4;
 }
