@@ -90,6 +90,8 @@ const (
 	rpcIdUpdateInAppMessage = "update_in_app_message"
 	rpcIdDeleteInAppMessage = "delete_in_app_message"
 
+	rpcIdGetPreSignPush = "pre_sign_put"
+
 	// refer user
 	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
 	// refer user
@@ -138,6 +140,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		objStorage = &objectstorage.EmptyStorage{}
 	} else {
 		objStorage.MakeBucket(entity.BucketAvatar)
+		objStorage.MakeBucket(entity.BucketBanners)
 	}
 
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
@@ -322,6 +325,12 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 	if err := initializer.RegisterRpc(rpcIdDeleteInAppMessage,
 		api.RpcDeleteInAppMessage(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+
+	// object storage
+	if err := initializer.RegisterRpc(rpcIdGetPreSignPush,
+		api.RpcGetPreSignPut(marshaler, unmarshaler, objStorage)); err != nil {
 		return err
 	}
 

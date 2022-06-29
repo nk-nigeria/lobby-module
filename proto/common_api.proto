@@ -351,6 +351,15 @@ message DefaultResponse {
   string status = 3;
 }
 
+message PreSignPutRequest {
+    string fileName = 1;
+    string bucketName = 2;
+}
+
+message PreSignPutResponse {
+    string url = 1;
+}
+
 message ReferUser {
   int64 id = 1;
   string user_invitor = 2;
