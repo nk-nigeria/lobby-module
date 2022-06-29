@@ -235,27 +235,32 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
-	_, err = db.ExecContext(ctx, `CREATE TABLE
-			public.history_reward_refer (
-				id bigint NOT NULL,
-				user_id character varying(128) NOT NULL,
-				win_amt bigint NOT NULL,
-				reward bigint NOT NULL,
-				data VARCHAR,		
-				from_unix bigint ,
-				to_unix bigint,
-				create_time timestamp
-			with
-			time zone NOT NULL DEFAULT now(),
-			update_time timestamp
-			with
-			time zone NOT NULL DEFAULT now()
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE
+		public.reward_refer (
+			id bigint NOT NULL,
+			user_id character varying(128) NOT NULL,
+			win_amt bigint NOT NULL,
+			reward bigint NOT NULL,
+			reward_lv integer NOT NULL,
+			reward_rate double precision NOT NULL DEFAULT 0,
+			data VARCHAR,
+		send_to_wallet smallint NOT NULL DEFAULT 0,
+		from_unix bigint ,
+			to_unix bigint,
+		UNIQUE (user_id, from_unix, to_unix),
+			create_time timestamp
+		with
+		time zone NOT NULL DEFAULT now(),
+		update_time timestamp
+		with
+		time zone NOT NULL DEFAULT now()
 		);
 
-			ALTER TABLE
-			public.history_reward_refer
-			ADD
-			CONSTRAINT history_reward_refer_pkey PRIMARY KEY (id)
+		ALTER TABLE
+		public.reward_refer
+		ADD
+		CONSTRAINT reward_refer_pkey PRIMARY KEY (id)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
