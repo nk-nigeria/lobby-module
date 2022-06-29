@@ -92,7 +92,7 @@ const (
 
 	rpcIdGetPreSignPush = "pre_sign_put"
 
-	// refer user
+		// refer user
 	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
 	// refer user
 	rpcRewardReferHistory = "reward_refer_history"
