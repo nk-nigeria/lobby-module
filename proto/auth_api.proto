@@ -32,6 +32,8 @@ message Profile {
   bool registrable = 14;
   int64 vip_level = 15;
   int64 last_online_time_unix = 16;
+  int64 create_time_unix = 17;
+  int64 remain_time_input_ref_code = 18;
 }
 
 message QuickChatUpdateRequest {

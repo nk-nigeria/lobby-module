@@ -10,6 +10,7 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/message_queue"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/go-co-op/gocron"
 
 	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -90,6 +91,11 @@ const (
 	rpcIdDeleteInAppMessage = "delete_in_app_message"
 
 	rpcIdGetPreSignPush = "pre_sign_put"
+
+		// refer user
+	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
+	// refer user
+	rpcRewardReferHistory = "reward_refer_history"
 )
 
 const (
@@ -119,6 +125,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
 	message_queue.InitNatsService(logger, constant.NastEndpoint)
 	api.InitExchangeList(ctx, logger, nk)
+	api.InitReferUserReward(ctx, logger, nk)
+
+	s := gocron.NewScheduler(time.Local)
+
+	s.Every(30).Minutes().Do(func() {
+		logger.Info("Start EstRewardThisWeek")
+		api.EstRewardThisWeek(ctx, logger, db, nk)
+	})
+	s.StartAsync()
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -371,6 +386,19 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(
 		rpcGetQuickChat,
 		api.RpcGetQuickChat(marshaler, unmarshaler),
+	); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(
+		rpcRewardReferEstInWeek,
+		api.RpcEstRewardThisWeek(),
+	); err != nil {
+		return err
+	}
+
+	if err := initializer.RegisterRpc(
+		rpcRewardReferHistory,
+		api.RpcRewardHistory(),
 	); err != nil {
 		return err
 	}

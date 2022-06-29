@@ -10,7 +10,7 @@ sync:
 	ssh root@cgpdev 'cd /root/cgp-server && docker restart nakama'
 
 dev:
-	docker-compose up -d --build nakama
+	docker-compose up -d --build nakama && docker logs -f lobby
 dev-first-run:
 	docker-compose up --build nakama && docker restart lobby
 

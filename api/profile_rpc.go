@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
@@ -68,8 +69,12 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			}
 			metadata["status"] = profile.Status
 		}
-		if profile.RefCode != "" {
-			metadata["ref_code"] = profile.RefCode
+		addNewReferUser := false
+		if profile.RemainTimeInputRefCode > 0 && metadata["ref_code"] == "" {
+			if profile.RefCode != "" {
+				metadata["ref_code"] = profile.RefCode
+				addNewReferUser = true
+			}
 		}
 		if profile.AppConfig != "" {
 			metadata["app_config"] = profile.AppConfig
@@ -97,6 +102,13 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		}
 
 		newProfile, _, err := GetProfileUser(ctx, nk, userID, objStorage)
+		if addNewReferUser {
+			userRefer := &pb.ReferUser{
+				UserInvitor: profile.RefCode,
+				UserInvitee: newProfile.UserId,
+			}
+			cgbdb.AddUserRefer(ctx, logger, db, userRefer)
+		}
 		marshaler.EmitUnpopulated = true
 		dataString, err := marshaler.Marshal(newProfile)
 		if err != nil {
@@ -180,6 +192,7 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		AvatarId:           entity.InterfaceToString(metadata["avatar_id"]),
 		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
 		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 0),
+		CreateTimeUnix:     user.GetCreateTime().Seconds,
 	}
 
 	if profile.DisplayName == "" {
@@ -207,5 +220,9 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		}
 	}
 
+	if profile.RefCode == "" {
+		profile.RemainTimeInputRefCode = entity.MaxIn64(int64(time.Unix(profile.CreateTimeUnix+7*86400, 0).
+			Sub(time.Now()).Seconds()), 0)
+	}
 	return &profile, metadata, nil
 }

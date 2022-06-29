@@ -211,5 +211,56 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
+	_, err = db.ExecContext(ctx, `CREATE TABLE
+		public.referuser (
+			id bigint NOT NULL,
+			user_invitor character varying(128) NOT NULL,
+			user_invitee character varying(128) NOT NULL,
+				UNIQUE(user_invitee),
+			create_time timestamp
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+		ALTER TABLE
+		public.referuser
+		ADD
+		CONSTRAINT referuser_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+
+	}
+
+	_, err = db.ExecContext(ctx, `CREATE TABLE
+			public.history_reward_refer (
+				id bigint NOT NULL,
+				user_id character varying(128) NOT NULL,
+				win_amt bigint NOT NULL,
+				reward bigint NOT NULL,
+				data VARCHAR,		
+				from_unix bigint ,
+				to_unix bigint,
+				create_time timestamp
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+			ALTER TABLE
+			public.history_reward_refer
+			ADD
+			CONSTRAINT history_reward_refer_pkey PRIMARY KEY (id)
+	`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+
+	}
+
 	logger.Error("Done run migration")
 }
