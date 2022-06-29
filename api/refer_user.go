@@ -125,75 +125,19 @@ func RpcEstRewardThisWeek() func(context.Context, runtime.Logger, *sql.DB, runti
 			return "", errors.New("Missing user ID.")
 		}
 		beginWeek, endWeek := entity.RangeThisWeek()
-		req := &entity.FeeGameListCursor{
+		req := &pb.HistoryRewardRequest{
 			UserId: userID,
 			From:   beginWeek.Unix(),
 			To:     endWeek.Unix(),
 		}
-		sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, req)
+		reward, err := cgbdb.GetRewardRefer(ctx, logger, db, req)
 		if err != nil {
 			return "", presenter.ErrInternalError
 		}
-		rewardRefer := &pb.RewardRefer{
-			UserId:      userID,
-			WinAmt:      sumFee.Fee,
-			ListRewards: ListReferReward.GetRewardRefers(),
-		}
-		for idx, r := range ListReferReward.RewardRefers {
-			if rewardRefer.WinAmt >= r.Min {
-				rewardRefer.EstRewardLv = int64(idx + 1)
-				rewardRefer.EstRateReward = r.Rate
-				continue
-			}
-			if rewardRefer.WinAmt < r.Min {
-				break
-			}
-		}
-		rewardRefer.UserRefers, err = EstRewardFromReferredUser(ctx, logger, db, nk, req)
-		if err != nil {
-			logger.Error("EstRewardFromReferredUser %s err %s", userID, err.Error())
-			return "", errors.New("Est reward from referred user error")
-		}
-		for _, r := range rewardRefer.GetUserRefers() {
-			r.EstRewardLv = rewardRefer.EstRewardLv
-			r.EstReward = int64(float32(r.WinAmt) * rewardRefer.EstRateReward)
-			rewardRefer.EstReward += r.EstReward
-		}
-
-		rewardRefer.From = beginWeek.Unix()
-		rewardRefer.To = endWeek.Unix()
-		// cgbdb.AddNewHistoryRewardRefer(ctx, logger, db, rewardRefer)
-		out, _ := conf.MarshalerDefault.Marshal(rewardRefer)
+		out, _ := conf.MarshalerDefault.Marshal(reward)
+		// EstRewardThisWeek(ctx, logger, db, nk, userID)
 		return string(out), nil
-
 	}
-}
-
-func EstRewardFromReferredUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *entity.FeeGameListCursor) ([]*pb.RewardRefer, error) {
-	listReferUser, err := cgbdb.ListUserInvitedByUserId(ctx, logger, db, req.UserId)
-	if err != nil {
-		logger.Error("Get list user prefer by user %s err %s", req.UserId, err.Error())
-		return nil, err
-	}
-	listUserPreferReward := make([]*pb.RewardRefer, 0, len(listReferUser))
-	for _, preferUser := range listReferUser {
-		sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, &entity.FeeGameListCursor{
-			UserId: preferUser.UserInvitee,
-			From:   req.From,
-			To:     req.To,
-		})
-		if err != nil {
-			return nil, presenter.ErrInternalError
-		}
-		rewardRefer := &pb.RewardRefer{
-			UserId: preferUser.UserInvitee,
-			WinAmt: sumFee.Fee,
-			From:   req.From,
-			To:     req.To,
-		}
-		listUserPreferReward = append(listUserPreferReward, rewardRefer)
-	}
-	return listUserPreferReward, nil
 }
 
 func RpcRewardHistory() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
@@ -235,9 +179,9 @@ func RpcRewardHistory() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			return "", err
 		}
 		summary := &pb.RewardRefer{
-			UserId: userID,
-			From:   historyRewardRequest.From,
-			To:     historyRewardRequest.To,
+			UserId:   userID,
+			FromUnix: historyRewardRequest.From,
+			ToUnix:   historyRewardRequest.To,
 		}
 		for _, r := range ml {
 			summary.EstReward += r.GetEstReward()
@@ -263,5 +207,88 @@ func RpcRewardHistory() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 
 		out, _ := conf.MarshalerDefault.Marshal(summary)
 		return string(out), nil
+	}
+}
+
+func EstRewardThisWeekByUserId(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string) {
+	beginWeek, endWeek := entity.RangeThisWeek()
+	req := &entity.FeeGameListCursor{
+		UserId: userID,
+		From:   beginWeek.Unix(),
+		To:     endWeek.Unix(),
+	}
+	sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, req)
+	if err != nil {
+		// return "", presenter.ErrInternalError
+	}
+	rewardRefer := &pb.RewardRefer{
+		UserId:      userID,
+		WinAmt:      sumFee.Fee,
+		ListRewards: ListReferReward.GetRewardRefers(),
+	}
+	for idx, r := range ListReferReward.RewardRefers {
+		if rewardRefer.WinAmt >= r.Min {
+			rewardRefer.EstRewardLv = int64(idx + 1)
+			rewardRefer.EstRateReward = r.Rate
+			continue
+		}
+		if rewardRefer.WinAmt < r.Min {
+			break
+		}
+	}
+	rewardRefer.UserRefers, err = EstRewardFromReferredUser(ctx, logger, db, nk, req)
+	if err != nil {
+		logger.Error("EstRewardFromReferredUser %s err %s", userID, err.Error())
+		// return "", errors.New("Est reward from referred user error")
+		return
+	}
+	for _, r := range rewardRefer.GetUserRefers() {
+		r.EstRewardLv = rewardRefer.EstRewardLv
+		r.EstReward = int64(float32(r.WinAmt) * rewardRefer.EstRateReward)
+		rewardRefer.EstReward += r.EstReward
+	}
+
+	rewardRefer.FromUnix = beginWeek.Unix()
+	rewardRefer.ToUnix = endWeek.Unix()
+	cgbdb.AddOrUpdateIfExistRewardRefer(ctx, logger, db, rewardRefer)
+}
+
+func EstRewardFromReferredUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *entity.FeeGameListCursor) ([]*pb.RewardRefer, error) {
+	listReferUser, err := cgbdb.ListUserInvitedByUserId(ctx, logger, db, req.UserId)
+	if err != nil {
+		logger.Error("Get list user prefer by user %s err %s", req.UserId, err.Error())
+		return nil, err
+	}
+	listUserPreferReward := make([]*pb.RewardRefer, 0, len(listReferUser))
+	for _, preferUser := range listReferUser {
+		sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, &entity.FeeGameListCursor{
+			UserId: preferUser.UserInvitee,
+			From:   req.From,
+			To:     req.To,
+		})
+		if err != nil {
+			return nil, presenter.ErrInternalError
+		}
+		rewardRefer := &pb.RewardRefer{
+			UserId:   preferUser.UserInvitee,
+			WinAmt:   sumFee.Fee,
+			FromUnix: req.From,
+			ToUnix:   req.To,
+		}
+		listUserPreferReward = append(listUserPreferReward, rewardRefer)
+	}
+	return listUserPreferReward, nil
+}
+
+func EstRewardThisWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db)
+	if err != nil {
+		return
+	}
+	if len(listUser) == 0 {
+		return
+	}
+	for _, u := range listUser {
+		EstRewardThisWeekByUserId(ctx, logger, db, nk, u.UserInvitor)
 	}
 }

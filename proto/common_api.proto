@@ -376,9 +376,11 @@ message RewardRefer {
   float est_rate_reward = 5;
   repeated RewardRefer user_refers = 6;
   repeated RewardReferTemplate list_rewards = 7;
-  int64 from = 8;
-  int64 to = 9;
+  int64 from_unix = 8;
+  int64 to_unix = 9;
   int64 total_user_refer = 10;
+  int64 update_time_unix = 11;
+  bool send_to_wallet = 12;
 }
 
 message ListRewardRefer {

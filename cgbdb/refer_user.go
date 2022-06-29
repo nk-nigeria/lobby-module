@@ -79,3 +79,23 @@ func ListUserInvitedByUserId(ctx context.Context, logger runtime.Logger, db *sql
 	}
 	return ml, err
 }
+
+func GetAllUserHasReferLeastOneUser(ctx context.Context, logger runtime.Logger, db *sql.DB) ([]*pb.ReferUser, error) {
+	query := "Select DISTINCT user_invitor FROM " + ReferUserTableName
+	var dbUserId string
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		logger.Error("GetAllUserHasReferLeastOneUser error %s", err.Error())
+		return nil, nil
+	}
+	ml := make([]*pb.ReferUser, 0)
+	for rows.Next() {
+		if rows.Scan(&dbUserId) == nil {
+			r := &pb.ReferUser{
+				UserInvitor: dbUserId,
+			}
+			ml = append(ml, r)
+		}
+	}
+	return ml, nil
+}
