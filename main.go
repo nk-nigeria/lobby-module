@@ -92,7 +92,7 @@ const (
 
 	rpcIdGetPreSignPush = "pre_sign_put"
 
-		// refer user
+	// refer user
 	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
 	// refer user
 	rpcRewardReferHistory = "reward_refer_history"
@@ -316,7 +316,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	// in app message
 	if err := initializer.RegisterRpc(rpcIdListInAppMessage,
-		api.RpcListInAppMessage(marshaler, unmarshaler)); err != nil {
+		api.RpcListInAppMessage(marshaler, unmarshaler, objStorage)); err != nil {
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcIdAddInAppMessage,
