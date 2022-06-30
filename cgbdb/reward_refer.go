@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
@@ -43,8 +44,8 @@ const RewardReferTableName = "reward_refer"
 func AddOrUpdateIfExistRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, reward *pb.RewardRefer) (int64, error) {
 	dbId := conf.SnowlakeNode.Generate().Int64()
 	query := "INSERT INTO " + RewardReferTableName +
-		" (id, user_id, win_amt, reward, reward_lv, reward_rate, data, from_unix, to_unix, send_to_wallet, create_time, update_time) " +
-		" SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, 0, now(), now()" +
+		" (id, user_id, win_amt, reward, reward_lv, reward_rate, data, from_unix, to_unix, create_time, update_time) " +
+		" SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now()" +
 		" WHERE NOT EXISTS (SELECT id FROM " + RewardReferTableName + " WHERE user_id=$10 AND from_unix=$11 AND to_unix=$12) "
 	l := pb.ListRewardRefer{
 		UserRefers: reward.UserRefers,
@@ -65,8 +66,7 @@ func AddOrUpdateIfExistRewardRefer(ctx context.Context, logger runtime.Logger, d
 		return 0, status.Error(codes.Internal, "Error  update reward refer user.")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
-		logger.Error("Do update reward refer user, user : %s",
-			reward.UserId)
+
 		// return 0, status.Error(codes.Internal, "Error update reward refer user.")
 		return UpdateRewardRefer(ctx, logger, db, reward)
 	}
@@ -77,7 +77,7 @@ func UpdateRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, r
 	dbId := conf.SnowlakeNode.Generate().Int64()
 	query := "UPDATE  " + RewardReferTableName +
 		" SET win_amt=$1, reward=$2, reward_lv=$3, reward_rate=$4, data=$5, update_time=now() " +
-		" WHERE user_id=$6 AND from_unix=$7 AND to_unix=$8 AND send_to_wallet=$9"
+		" WHERE user_id=$6 AND from_unix=$7 AND to_unix=$8 AND time_send_to_wallet is null"
 	l := pb.ListRewardRefer{
 		UserRefers: reward.UserRefers,
 	}
@@ -86,10 +86,12 @@ func UpdateRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, r
 		logger.Error("Marshalerd data error %s", err.Error())
 		return 0, err
 	}
+	logger.Error("Do update reward refer user, user : %s, SET win_amt= %d, reward=%d, reward_lv=%d, reward_rate=%f, data=%s",
+		reward.UserId, reward.GetWinAmt(), reward.GetEstReward(),
+		reward.GetEstRewardLv(), reward.GetEstRateReward(), string(data))
 	result, err := db.ExecContext(ctx, query,
 		reward.GetWinAmt(), reward.GetEstReward(), reward.EstRewardLv, reward.GetEstRateReward(), data,
-		reward.GetUserId(), reward.GetFromUnix(), reward.GetToUnix(),
-		0)
+		reward.GetUserId(), reward.GetFromUnix(), reward.GetToUnix())
 	if err != nil {
 		logger.Error("Error when update reward refer user, user : %s, error %s",
 			reward.UserId, err.Error())
@@ -129,6 +131,7 @@ func GetRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, req 
 	}
 
 	r := &pb.RewardRefer{
+		Id:            dbID,
 		UserId:        dbUserId,
 		WinAmt:        dbWinAmt,
 		EstReward:     dbReward,
@@ -151,10 +154,9 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 		return nil, status.Error(codes.InvalidArgument, "Invalid time")
 	}
 	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
-		RewardReferTableName + " WHERE user_id=$1 AND send_to_wallet=$2 AND from_unix >= $3 AND to_unix <= $4"
+		RewardReferTableName + " WHERE user_id=$1 AND time_send_to_wallet NOT NULL AND from_unix >= $2 AND to_unix <= $3"
 	rows, err := db.QueryContext(ctx, query,
-		req.GetUserId(), 1, req.From,
-		req.To)
+		req.GetUserId(), req.From, req.To)
 	if err != nil {
 		logger.Error("Query history reward refer user %s error %s", req.GetUserId(), err.Error())
 		return nil, status.Error(codes.Internal, "Query history reward refer error")
@@ -168,6 +170,7 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 	for rows.Next() {
 		if rows.Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo) == nil {
 			r := &pb.RewardRefer{
+				Id:            dbID,
 				UserId:        dbUserId,
 				WinAmt:        dbWinAmt,
 				EstReward:     dbReward,
@@ -184,4 +187,58 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 		}
 	}
 	return ml, nil
+}
+
+func GetListRewardReferNotSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
+	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
+		RewardReferTableName + " WHERE time_send_to_wallet IS NULL AND to_unix <= $1 limit $2 offset $3"
+	rows, err := db.QueryContext(ctx, query, time.Now().Unix(), limit, offset)
+	if err != nil {
+		logger.Error("Query list reward refer not send to wallet err %s", err.Error())
+		return nil, status.Error(codes.Internal, "Query list reward refer not send to wallet error")
+	}
+	ml := make([]*pb.RewardRefer, 0)
+	var dbID int64
+	var dbUserId, dbData string
+	var dbWinAmt, dbReward, dbRewardLv int64
+	var dbRewardRate float64
+	var dbFrom, dbTo int64
+	for rows.Next() {
+		if rows.Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo) == nil {
+			r := &pb.RewardRefer{
+				Id:            dbID,
+				UserId:        dbUserId,
+				WinAmt:        dbWinAmt,
+				EstReward:     dbReward,
+				EstRewardLv:   dbRewardLv,
+				EstRateReward: float32(dbRewardRate),
+				FromUnix:      dbFrom,
+				ToUnix:        dbTo,
+			}
+			l := pb.ListRewardRefer{}
+			if conf.Unmarshaler.Unmarshal([]byte(dbData), &l) == nil {
+				r.UserRefers = l.GetUserRefers()
+			}
+			ml = append(ml, r)
+		}
+	}
+	return ml, nil
+}
+
+func UpdateRewardReferHasSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, rewardReferID int64) error {
+	query := "UPDATE  " + RewardReferTableName +
+		" SET time_send_to_wallet=now() " +
+		" WHERE id=$1 AND time_send_to_wallet is null"
+	result, err := db.ExecContext(ctx, query,
+		rewardReferID)
+	if err != nil {
+		logger.Error("Error when update reward refer have send to wallet user, id %d, error %s",
+			rewardReferID, err.Error())
+		return status.Error(codes.Internal, "Error update reward has send to refer user.")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not update reward has send to refer user, id", rewardReferID)
+		return status.Error(codes.Internal, "Error update reward has send to refer user.")
+	}
+	return nil
 }

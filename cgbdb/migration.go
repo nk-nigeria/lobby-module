@@ -245,7 +245,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			reward_lv integer NOT NULL,
 			reward_rate double precision NOT NULL DEFAULT 0,
 			data VARCHAR,
-		send_to_wallet smallint NOT NULL DEFAULT 0,
+		time_send_to_wallet timestamp with time zone DEFAULT NULL,
 		from_unix bigint ,
 			to_unix bigint,
 		UNIQUE (user_id, from_unix, to_unix),

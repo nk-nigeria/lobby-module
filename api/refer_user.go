@@ -11,6 +11,7 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -99,8 +100,8 @@ func InitReferUserReward(ctx context.Context, logger runtime.Logger, nk runtime.
 
 	writeObjects := []*runtime.StorageWrite{
 		{
-			Collection:      kExchangeCollection,
-			Key:             kExchangeKey,
+			Collection:      kReferRewardCollection,
+			Key:             kReferRewardKey,
 			Value:           string(exChangedealsJson),
 			PermissionRead:  2,
 			PermissionWrite: 0,
@@ -290,5 +291,36 @@ func EstRewardThisWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	}
 	for _, u := range listUser {
 		EstRewardThisWeekByUserId(ctx, logger, db, nk, u.UserInvitor)
+	}
+}
+
+func SendReferRewardToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	limit := int64(100)
+	offset := int64(0)
+	for {
+		listReward, err := cgbdb.GetListRewardReferNotSendToWallet(ctx, logger, db, limit, offset)
+		if err != nil {
+			return
+		}
+		if len(listReward) == 0 {
+			return
+		}
+		metadata := make(map[string]interface{})
+		metadata["action"] = "refer-reward"
+		metadata["sender"] = constant.UUID_USER_SYSTEM
+
+		wallet := entity.Wallet{}
+		for _, reward := range listReward {
+			wallet.UserId = reward.UserId
+			wallet.Chips = reward.EstReward
+			metadata["recv"] = reward.UserId
+			err = entity.AddChipWalletUser(ctx, nk, logger, reward.UserId, wallet, metadata)
+			if err != nil {
+				logger.Error("AddChipWalletUser for reward refer error %s", err.Error())
+				return
+			}
+			logger.Info("Send %d chips for refer reward id %d", wallet.Chips, reward.Id)
+			cgbdb.UpdateRewardReferHasSendToWallet(ctx, logger, db, reward.Id)
+		}
 	}
 }
