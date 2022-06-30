@@ -66,8 +66,7 @@ func AddOrUpdateIfExistRewardRefer(ctx context.Context, logger runtime.Logger, d
 		return 0, status.Error(codes.Internal, "Error  update reward refer user.")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
-		logger.Error("Do update reward refer user, user : %s",
-			reward.UserId)
+
 		// return 0, status.Error(codes.Internal, "Error update reward refer user.")
 		return UpdateRewardRefer(ctx, logger, db, reward)
 	}
@@ -87,6 +86,9 @@ func UpdateRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, r
 		logger.Error("Marshalerd data error %s", err.Error())
 		return 0, err
 	}
+	logger.Error("Do update reward refer user, user : %s, SET win_amt= %d, reward=%d, reward_lv=%d, reward_rate=%f, data=%s",
+		reward.UserId, reward.GetWinAmt(), reward.GetEstReward(),
+		reward.GetEstRewardLv(), reward.GetEstRateReward(), string(data))
 	result, err := db.ExecContext(ctx, query,
 		reward.GetWinAmt(), reward.GetEstReward(), reward.EstRewardLv, reward.GetEstRateReward(), data,
 		reward.GetUserId(), reward.GetFromUnix(), reward.GetToUnix())
