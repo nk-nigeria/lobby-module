@@ -302,6 +302,9 @@ func SendReferRewardToWallet(ctx context.Context, logger runtime.Logger, db *sql
 		if err != nil {
 			return
 		}
+		if len(listReward) == 0 {
+			return
+		}
 		metadata := make(map[string]interface{})
 		metadata["action"] = "refer-reward"
 		metadata["sender"] = constant.UUID_USER_SYSTEM
