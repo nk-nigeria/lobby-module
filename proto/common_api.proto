@@ -314,10 +314,16 @@ enum InAppMessageAction {
   OPEN_URL = 2;
 }
 
+message RangeTime {
+    int32 from = 1;
+    int32 to = 2;
+}
+
 message InAppMessageData {
   InAppMessageAction action = 1;
   string target = 2;
   map<string, string> params = 3;
+  repeated RangeTime showTimes = 4;
 }
 
 message InAppMessage {
