@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
@@ -154,7 +155,7 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 		return nil, status.Error(codes.InvalidArgument, "Invalid time")
 	}
 	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
-		RewardReferTableName + " WHERE user_id=$1 AND time_send_to_wallet NOT NULL AND from_unix >= $2 AND to_unix <= $3"
+		RewardReferTableName + " WHERE user_id=$1 AND time_send_to_wallet IS NOT NULL AND from_unix >= $2 AND to_unix <= $3"
 	rows, err := db.QueryContext(ctx, query,
 		req.GetUserId(), req.From, req.To)
 	if err != nil {
@@ -189,13 +190,50 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 	return ml, nil
 }
 
-func GetListRewardReferNotSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
+func GetListRewardCompleteReferNotSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
 	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
 		RewardReferTableName + " WHERE time_send_to_wallet IS NULL AND to_unix <= $1 limit $2 offset $3"
 	rows, err := db.QueryContext(ctx, query, time.Now().Unix(), limit, offset)
 	if err != nil {
 		logger.Error("Query list reward refer not send to wallet err %s", err.Error())
 		return nil, status.Error(codes.Internal, "Query list reward refer not send to wallet error")
+	}
+	ml := make([]*pb.RewardRefer, 0)
+	var dbID int64
+	var dbUserId, dbData string
+	var dbWinAmt, dbReward, dbRewardLv int64
+	var dbRewardRate float64
+	var dbFrom, dbTo int64
+	for rows.Next() {
+		if rows.Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo) == nil {
+			r := &pb.RewardRefer{
+				Id:            dbID,
+				UserId:        dbUserId,
+				WinAmt:        dbWinAmt,
+				EstReward:     dbReward,
+				EstRewardLv:   dbRewardLv,
+				EstRateReward: float32(dbRewardRate),
+				FromUnix:      dbFrom,
+				ToUnix:        dbTo,
+			}
+			l := pb.ListRewardRefer{}
+			if conf.Unmarshaler.Unmarshal([]byte(dbData), &l) == nil {
+				r.UserRefers = l.GetUserRefers()
+			}
+			ml = append(ml, r)
+		}
+	}
+	return ml, nil
+}
+
+func GetListRewardReferNotComplete(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
+	_, endLastWeek := entity.RangeLastWeek()
+	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
+		RewardReferTableName + " WHERE time_send_to_wallet IS NULL AND to_unix <= $1 AND update_time < $2 limit $3 offset $4"
+	rows, err := db.QueryContext(ctx, query, endLastWeek.Unix(), endLastWeek, limit, offset)
+	if err != nil {
+		logger.Error("Query list reward refer not complete err %s", err.Error())
+		return nil, status.Error(codes.Internal, "Query list reward refer not complete error")
 	}
 	ml := make([]*pb.RewardRefer, 0)
 	var dbID int64
