@@ -196,33 +196,33 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			if incomingCursor.IsNext {
 				query += " and (end_date = 0 or end_date >= $3) and id < $4 "
 				if len(allGroups) > 0 {
-					query += " and group_ids <@ ARRAY["
+					query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
 					for idx, idGroup := range allGroups {
 						if idx == 0 {
-							query += fmt.Sprintf(" $%d ", count)
+							query += fmt.Sprintf(" $%d ", idGroup)
 						} else {
-							query += fmt.Sprintf(", $%d ", count)
+							query += fmt.Sprintf(", $%d ", idGroup)
 						}
-						params = append(params, idGroup)
-						count++
+						//params = append(params, idGroup)
+						//count++
 					}
-					query += " ]"
+					query += " ]')::jsonb)"
 				}
 				query += "order by high_priority desc, id desc"
 			} else {
 				query += " and (end_date = 0 or end_date >= $3) and id > $4 "
 				if len(allGroups) > 0 {
-					query += " and group_ids <@ ARRAY["
+					query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
 					for idx, idGroup := range allGroups {
 						if idx == 0 {
-							query += fmt.Sprintf(" $%d ", count)
+							query += fmt.Sprintf(" $%d ", idGroup)
 						} else {
-							query += fmt.Sprintf(", $%d ", count)
+							query += fmt.Sprintf(", $%d ", idGroup)
 						}
-						params = append(params, idGroup)
-						count++
+						//params = append(params, idGroup)
+						//count++
 					}
-					query += " ]"
+					query += " ]')::jsonb)"
 				}
 				query += "order by high_priority desc, id asc"
 			}
@@ -233,17 +233,17 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			count = 4
 			query += " and (end_date = 0 or end_date >= $3)"
 			if len(allGroups) > 0 {
-				query += " and group_ids <@ ARRAY["
+				query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
 				for idx, idGroup := range allGroups {
 					if idx == 0 {
-						query += fmt.Sprintf(" $%d ", count)
+						query += fmt.Sprintf(" %d ", idGroup)
 					} else {
-						query += fmt.Sprintf(", $%d ", count)
+						query += fmt.Sprintf(", %d ", idGroup)
 					}
-					params = append(params, idGroup)
-					count++
+					//params = append(params, idGroup)
+					//count++
 				}
-				query += " ]"
+				query += " ]')::jsonb)"
 			}
 			query += fmt.Sprintf(" order by high_priority desc, id desc limit $%d", count)
 			params = append(params, limit)
