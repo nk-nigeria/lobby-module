@@ -20,8 +20,9 @@ func TestAddNewFeeGame(t *testing.T) {
 	connStr := "postgresql://postgres:localdb@127.0.0.1/nakama?sslmode=disable"
 	mdb, _ := sql.Open("postgres", connStr)
 	// userId := "b06fb31e-6fba-44ae-b08f-01286eaf9b79"
-	userId := "115343e1-5e87-4774-976a-f5c6923b80be"
-	beginW, _ := entity.RangeLastWeek()
+	// userId := "115343e1-5e87-4774-976a-f5c6923b80be"
+	userId := "548b7190-b8e3-47d6-8b2f-6321c35cacb2"
+	beginW, _ := entity.RangeThisWeek()
 	tests := []struct {
 		name    string
 		args    args

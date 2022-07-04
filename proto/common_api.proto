@@ -397,6 +397,7 @@ message RewardRefer {
   int64 total_user_refer = 11;
   int64 update_time_unix = 12;
   bool send_to_wallet = 13;
+  int64 create_time_unix = 14;
 }
 
 message ListRewardRefer {

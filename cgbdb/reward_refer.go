@@ -10,6 +10,7 @@ import (
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/jackc/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -106,39 +107,42 @@ func UpdateRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, r
 	return dbId, nil
 }
 
-func GetRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, req *pb.HistoryRewardRequest) (*pb.RewardRefer, error) {
-	if req.GetUserId() == "" {
+func GetRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, req *entity.FeeGameListCursor) (*pb.RewardRefer, error) {
+	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Missing user id")
 	}
-	if req.GetFrom() <= 0 || req.GetTo() <= 0 || req.GetFrom() >= req.GetTo() {
+	if req.From <= 0 || req.To <= 0 || req.From >= req.To {
 		return nil, status.Error(codes.InvalidArgument, "Invalid time")
 	}
-	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
+	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix, create_time, update_time FROM " +
 		RewardReferTableName + " WHERE user_id=$1 AND from_unix >= $2 AND to_unix <= $3"
 	var dbID int64
 	var dbUserId, dbData string
 	var dbWinAmt, dbReward, dbRewardLv int64
 	var dbRewardRate float64
 	var dbFrom, dbTo int64
+	var dbCreateTime, dbUpdateTime pgtype.Timestamptz
 	err := db.QueryRowContext(ctx, query,
-		req.GetUserId(), req.From,
-		req.To).Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo)
+		req.UserId, req.From,
+		req.To).Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo, &dbCreateTime, &dbUpdateTime)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			return &pb.RewardRefer{}, nil
 		}
-		logger.Error("Query history reward refer user %s error %s", req.GetUserId(), err.Error())
+		logger.Error("Query history reward refer user %s error %s", req.UserId, err.Error())
 		return nil, status.Error(codes.Internal, "Query history reward refer error")
 	}
 
 	r := &pb.RewardRefer{
-		Id:            dbID,
-		UserId:        dbUserId,
-		WinAmt:        dbWinAmt,
-		EstReward:     dbReward,
-		FromUnix:      dbFrom,
-		ToUnix:        dbTo,
-		EstRateReward: float32(dbRewardRate),
+		Id:             dbID,
+		UserId:         dbUserId,
+		WinAmt:         dbWinAmt,
+		EstReward:      dbReward,
+		FromUnix:       dbFrom,
+		ToUnix:         dbTo,
+		EstRateReward:  float32(dbRewardRate),
+		CreateTimeUnix: dbCreateTime.Time.Unix(),
+		UpdateTimeUnix: dbUpdateTime.Time.Unix(),
 	}
 	l := pb.ListRewardRefer{}
 	if conf.Unmarshaler.Unmarshal([]byte(dbData), &l) == nil {
