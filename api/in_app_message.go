@@ -68,6 +68,9 @@ func RpcListInAppMessage(marshaler *protojson.MarshalOptions, unmarshaler *proto
 					lstImageTmp := make([]string, 0)
 					for _, img := range lstImage {
 						sepIdx := strings.Index(img, "/")
+						if sepIdx < 0 {
+							continue
+						}
 						bucketName := img[:sepIdx]
 						fileName := img[sepIdx+1:]
 						if url, err := wrapper.PresignGetObject(bucketName, fileName, 24*time.Hour, nil); err == nil {
