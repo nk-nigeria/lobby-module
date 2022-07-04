@@ -126,12 +126,15 @@ func RpcEstRewardThisWeek() func(context.Context, runtime.Logger, *sql.DB, runti
 			return "", errors.New("Missing user ID.")
 		}
 		beginWeek, endWeek := entity.RangeThisWeek()
-		req := &pb.HistoryRewardRequest{
+		req := &entity.FeeGameListCursor{
 			UserId: userID,
 			From:   beginWeek.Unix(),
 			To:     endWeek.Unix(),
 		}
 		reward, err := cgbdb.GetRewardRefer(ctx, logger, db, req)
+		if reward.Id == 0 || reward.UpdateTimeUnix < time.Now().Add(-1*time.Hour).Unix() {
+			reward, err = EstRewardByUserId(ctx, logger, db, nk, req)
+		}
 		if err != nil {
 			return "", presenter.ErrInternalError
 		}
@@ -218,10 +221,25 @@ func EstRewardThisWeekByUserId(ctx context.Context, logger runtime.Logger, db *s
 		From:   beginWeek.Unix(),
 		To:     endWeek.Unix(),
 	}
+	EstRewardByUserId(ctx, logger, db, nk, req)
+}
+
+func EstRewardLastWeekByUserId(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string) {
+	beginWeek, endWeek := entity.RangeLastWeek()
+	req := &entity.FeeGameListCursor{
+		UserId: userID,
+		From:   beginWeek.Unix(),
+		To:     endWeek.Unix(),
+	}
+	EstRewardByUserId(ctx, logger, db, nk, req)
+}
+
+func EstRewardByUserId(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *entity.FeeGameListCursor) (*pb.RewardRefer, error) {
 	sumFee, err := cgbdb.GetSumFeeByUserId(ctx, logger, db, req)
 	if err != nil {
-		// return "", presenter.ErrInternalError
+		return nil, presenter.ErrInternalError
 	}
+	userID := req.UserId
 	rewardRefer := &pb.RewardRefer{
 		UserId:      userID,
 		WinAmt:      sumFee.Fee,
@@ -240,8 +258,8 @@ func EstRewardThisWeekByUserId(ctx context.Context, logger runtime.Logger, db *s
 	rewardRefer.UserRefers, err = EstRewardFromReferredUser(ctx, logger, db, nk, req)
 	if err != nil {
 		logger.Error("EstRewardFromReferredUser %s err %s", userID, err.Error())
-		// return "", errors.New("Est reward from referred user error")
-		return
+		// return "",
+		return nil, errors.New("Est reward from referred user error")
 	}
 	for _, r := range rewardRefer.GetUserRefers() {
 		r.EstRewardLv = rewardRefer.EstRewardLv
@@ -249,9 +267,10 @@ func EstRewardThisWeekByUserId(ctx context.Context, logger runtime.Logger, db *s
 		rewardRefer.EstReward += r.EstReward
 	}
 
-	rewardRefer.FromUnix = beginWeek.Unix()
-	rewardRefer.ToUnix = endWeek.Unix()
-	cgbdb.AddOrUpdateIfExistRewardRefer(ctx, logger, db, rewardRefer)
+	rewardRefer.FromUnix = req.From
+	rewardRefer.ToUnix = req.To
+	_, err = cgbdb.AddOrUpdateIfExistRewardRefer(ctx, logger, db, rewardRefer)
+	return rewardRefer, err
 }
 
 func EstRewardFromReferredUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *entity.FeeGameListCursor) ([]*pb.RewardRefer, error) {
@@ -294,11 +313,27 @@ func EstRewardThisWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	}
 }
 
+// run when go to new week
+// est all reward refer user
+func EstRewardLastWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db)
+	if err != nil {
+		return
+	}
+	if len(listUser) == 0 {
+		return
+	}
+	for _, u := range listUser {
+		EstRewardLastWeekByUserId(ctx, logger, db, nk, u.UserInvitor)
+	}
+}
+
 func SendReferRewardToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	EstRewardLastWeek(ctx, logger, db, nk)
 	limit := int64(100)
 	offset := int64(0)
 	for {
-		listReward, err := cgbdb.GetListRewardReferNotSendToWallet(ctx, logger, db, limit, offset)
+		listReward, err := cgbdb.GetListRewardCompleteReferNotSendToWallet(ctx, logger, db, limit, offset)
 		if err != nil {
 			return
 		}

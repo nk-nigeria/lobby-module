@@ -129,11 +129,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	s := gocron.NewScheduler(time.Local)
 
-	s.Every(30).Seconds().Do(func() {
-		logger.Info("Start EstRewardThisWeek")
-		api.EstRewardThisWeek(ctx, logger, db, nk)
-	})
-	s.Every(1).Minute().Do(func() {
+	s.Every(1).Day().Do(func() {
 		logger.Info("Start SendReferRewardToWallet")
 		api.SendReferRewardToWallet(ctx, logger, db, nk)
 	})

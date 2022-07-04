@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/jackc/pgtype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -105,39 +107,42 @@ func UpdateRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, r
 	return dbId, nil
 }
 
-func GetRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, req *pb.HistoryRewardRequest) (*pb.RewardRefer, error) {
-	if req.GetUserId() == "" {
+func GetRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.DB, req *entity.FeeGameListCursor) (*pb.RewardRefer, error) {
+	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Missing user id")
 	}
-	if req.GetFrom() <= 0 || req.GetTo() <= 0 || req.GetFrom() >= req.GetTo() {
+	if req.From <= 0 || req.To <= 0 || req.From >= req.To {
 		return nil, status.Error(codes.InvalidArgument, "Invalid time")
 	}
-	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
+	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix, create_time, update_time FROM " +
 		RewardReferTableName + " WHERE user_id=$1 AND from_unix >= $2 AND to_unix <= $3"
 	var dbID int64
 	var dbUserId, dbData string
 	var dbWinAmt, dbReward, dbRewardLv int64
 	var dbRewardRate float64
 	var dbFrom, dbTo int64
+	var dbCreateTime, dbUpdateTime pgtype.Timestamptz
 	err := db.QueryRowContext(ctx, query,
-		req.GetUserId(), req.From,
-		req.To).Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo)
+		req.UserId, req.From,
+		req.To).Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo, &dbCreateTime, &dbUpdateTime)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			return &pb.RewardRefer{}, nil
 		}
-		logger.Error("Query history reward refer user %s error %s", req.GetUserId(), err.Error())
+		logger.Error("Query history reward refer user %s error %s", req.UserId, err.Error())
 		return nil, status.Error(codes.Internal, "Query history reward refer error")
 	}
 
 	r := &pb.RewardRefer{
-		Id:            dbID,
-		UserId:        dbUserId,
-		WinAmt:        dbWinAmt,
-		EstReward:     dbReward,
-		FromUnix:      dbFrom,
-		ToUnix:        dbTo,
-		EstRateReward: float32(dbRewardRate),
+		Id:             dbID,
+		UserId:         dbUserId,
+		WinAmt:         dbWinAmt,
+		EstReward:      dbReward,
+		FromUnix:       dbFrom,
+		ToUnix:         dbTo,
+		EstRateReward:  float32(dbRewardRate),
+		CreateTimeUnix: dbCreateTime.Time.Unix(),
+		UpdateTimeUnix: dbUpdateTime.Time.Unix(),
 	}
 	l := pb.ListRewardRefer{}
 	if conf.Unmarshaler.Unmarshal([]byte(dbData), &l) == nil {
@@ -154,7 +159,7 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 		return nil, status.Error(codes.InvalidArgument, "Invalid time")
 	}
 	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
-		RewardReferTableName + " WHERE user_id=$1 AND time_send_to_wallet NOT NULL AND from_unix >= $2 AND to_unix <= $3"
+		RewardReferTableName + " WHERE user_id=$1 AND time_send_to_wallet IS NOT NULL AND from_unix >= $2 AND to_unix <= $3"
 	rows, err := db.QueryContext(ctx, query,
 		req.GetUserId(), req.From, req.To)
 	if err != nil {
@@ -189,13 +194,50 @@ func GetHistoryRewardRefer(ctx context.Context, logger runtime.Logger, db *sql.D
 	return ml, nil
 }
 
-func GetListRewardReferNotSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
+func GetListRewardCompleteReferNotSendToWallet(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
 	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
 		RewardReferTableName + " WHERE time_send_to_wallet IS NULL AND to_unix <= $1 limit $2 offset $3"
 	rows, err := db.QueryContext(ctx, query, time.Now().Unix(), limit, offset)
 	if err != nil {
 		logger.Error("Query list reward refer not send to wallet err %s", err.Error())
 		return nil, status.Error(codes.Internal, "Query list reward refer not send to wallet error")
+	}
+	ml := make([]*pb.RewardRefer, 0)
+	var dbID int64
+	var dbUserId, dbData string
+	var dbWinAmt, dbReward, dbRewardLv int64
+	var dbRewardRate float64
+	var dbFrom, dbTo int64
+	for rows.Next() {
+		if rows.Scan(&dbID, &dbUserId, &dbWinAmt, &dbReward, &dbRewardLv, &dbRewardRate, &dbData, &dbFrom, &dbTo) == nil {
+			r := &pb.RewardRefer{
+				Id:            dbID,
+				UserId:        dbUserId,
+				WinAmt:        dbWinAmt,
+				EstReward:     dbReward,
+				EstRewardLv:   dbRewardLv,
+				EstRateReward: float32(dbRewardRate),
+				FromUnix:      dbFrom,
+				ToUnix:        dbTo,
+			}
+			l := pb.ListRewardRefer{}
+			if conf.Unmarshaler.Unmarshal([]byte(dbData), &l) == nil {
+				r.UserRefers = l.GetUserRefers()
+			}
+			ml = append(ml, r)
+		}
+	}
+	return ml, nil
+}
+
+func GetListRewardReferNotComplete(ctx context.Context, logger runtime.Logger, db *sql.DB, limit int64, offset int64) ([]*pb.RewardRefer, error) {
+	_, endLastWeek := entity.RangeLastWeek()
+	query := "SELECT id, user_id, win_amt, reward,reward_lv, reward_rate, data, from_unix, to_unix FROM " +
+		RewardReferTableName + " WHERE time_send_to_wallet IS NULL AND to_unix <= $1 AND update_time < $2 limit $3 offset $4"
+	rows, err := db.QueryContext(ctx, query, endLastWeek.Unix(), endLastWeek, limit, offset)
+	if err != nil {
+		logger.Error("Query list reward refer not complete err %s", err.Error())
+		return nil, status.Error(codes.Internal, "Query list reward refer not complete error")
 	}
 	ml := make([]*pb.RewardRefer, 0)
 	var dbID int64

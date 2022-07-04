@@ -33,6 +33,37 @@ const FeeGameTableName = "feegame"
 //   public.feegame
 // ADD
 //   CONSTRAINT feegame_pkey PRIMARY KEY (id)
+
+func AddNewFeeGame(ctx context.Context, logger runtime.Logger, db *sql.DB, feeGame entity.FeeGame) (int64, error) {
+	feeGame.Id = time.Now().UnixNano()
+	if feeGame.Game == "" {
+		feeGame.Game = entity.ModuleName
+	}
+
+	var createTime time.Time
+	if feeGame.CreateTimeUnix <= 0 {
+		createTime = time.Now()
+	} else {
+		createTime = time.Unix(feeGame.CreateTimeUnix, 0)
+	}
+	query := "INSERT INTO " + FeeGameTableName +
+		" (id, user_id, game, fee,create_time, update_time) " +
+		" VALUES ( $1, $2, $3, $4, $5, now())"
+	result, err := db.ExecContext(ctx, query,
+		feeGame.Id, feeGame.UserID, feeGame.Game, feeGame.Fee, createTime)
+	if err != nil {
+		logger.Error("Add new fee game user %s, game %s, fee %d err %s",
+			feeGame.UserID, feeGame.Game, feeGame.Fee, err.Error())
+		return 0, status.Error(codes.Internal, "Error add fee game.")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not insert new free game, user %s, game %s, fee %d ",
+			feeGame.UserID, feeGame.Game, feeGame.Fee)
+		return 0, status.Error(codes.Internal, "Error add fee game.")
+	}
+	return feeGame.Id, nil
+}
+
 func GetListFeeGame(ctx context.Context, logger runtime.Logger, db *sql.DB, req *entity.FeeGameListCursor) ([]entity.FeeGame, error) {
 	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Missing user id")
