@@ -138,6 +138,7 @@ func RpcEstRewardThisWeek() func(context.Context, runtime.Logger, *sql.DB, runti
 		if err != nil {
 			return "", presenter.ErrInternalError
 		}
+		reward.ListRewards = ListReferReward.GetRewardRefers()
 		out, _ := conf.MarshalerDefault.Marshal(reward)
 		// EstRewardThisWeek(ctx, logger, db, nk, userID)
 		return string(out), nil
