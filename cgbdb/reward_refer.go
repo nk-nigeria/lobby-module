@@ -16,30 +16,31 @@ import (
 )
 
 // CREATE TABLE
-// public.reward_refer (
-// 	id bigint NOT NULL,
-// 	user_id character varying(128) NOT NULL,
-// 	win_amt bigint NOT NULL,
-// 	reward bigint NOT NULL,
-// 	reward_lv integer NOT NULL,
-// 	reward_rate double precision NOT NULL DEFAULT 0,
-// 	data VARCHAR,
-//  send_to_wallet smallint NOT NULL DEFAULT 0,
-//  from_unix bigint ,
-// 	to_unix bigint,
-// UNIQUE (user_id, from_unix, to_unix),
-// 	create_time timestamp
-// with
-// time zone NOT NULL DEFAULT now(),
-// update_time timestamp
-// with
-// time zone NOT NULL DEFAULT now()
-// );
+//   public.reward_refer (
+//     id bigint NOT NULL,
+//     user_id character varying(128) NOT NULL,
+//     win_amt bigint NOT NULL,
+//     reward bigint NOT NULL,
+//     reward_lv integer NOT NULL,
+//     reward_rate double precision NOT NULL DEFAULT 0,
+//     data character varying NULL,
+//     time_send_to_wallet timestamp
+//     with
+//       time zone NULL,
+//       from_unix bigint NULL,
+//       to_unix bigint NULL,
+//       create_time timestamp
+//     with
+//       time zone NOT NULL DEFAULT now(),
+//       update_time timestamp
+//     with
+//       time zone NOT NULL DEFAULT now()
+//   );
 
 // ALTER TABLE
-// public.reward_refer
+//   public.reward_refer
 // ADD
-// CONSTRAINT reward_refer_pkey PRIMARY KEY (id)
+//   CONSTRAINT reward_refer_pkey PRIMARY KEY (id)
 
 const RewardReferTableName = "reward_refer"
 
