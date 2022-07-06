@@ -302,7 +302,21 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			EndDate:      dbEndDate,
 			HighPriority: dbHighPriority,
 		}
-		ml = append(ml, &inAppMessage)
+		if data.ShowTimes != nil && len(data.ShowTimes) > 0 {
+			hours, _, _ := time.Now().Clock()
+			isTimeValid := false
+			for _, showTime := range data.ShowTimes {
+				if showTime.From <= int32(hours) && showTime.To >= int32(hours) {
+					isTimeValid = true
+					break
+				}
+			}
+			if isTimeValid {
+				ml = append(ml, &inAppMessage)
+			}
+		} else {
+			ml = append(ml, &inAppMessage)
+		}
 	}
 	var total int64 = incomingCursor.Total
 	if total <= 0 {
