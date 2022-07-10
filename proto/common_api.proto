@@ -398,6 +398,7 @@ message RewardRefer {
   int64 update_time_unix = 12;
   bool send_to_wallet = 13;
   int64 create_time_unix = 14;
+  int64 remain_time_reset_sec = 15;
 }
 
 message ListRewardRefer {
