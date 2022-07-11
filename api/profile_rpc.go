@@ -55,7 +55,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", presenter.ErrUnmarshal
 		}
 		// metadata := make(map[string]interface{}, 0)
-		_, metadata, err := GetProfileUser(ctx, nk, userID, objStorage)
+		currentProfile, metadata, err := GetProfileUser(ctx, nk, userID, objStorage)
 		if err != nil {
 			logger.Error("get profile user %s, error: %s", userID, err.Error())
 			return "", err
@@ -70,7 +70,8 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			metadata["status"] = profile.Status
 		}
 		addNewReferUser := false
-		if profile.RemainTimeInputRefCode > 0 && metadata["ref_code"] == "" {
+		if currentProfile.RemainTimeInputRefCode > 0 &&
+			entity.InterfaceToString(metadata["ref_code"]) == "" {
 			if profile.RefCode != "" {
 				metadata["ref_code"] = profile.RefCode
 				addNewReferUser = true
