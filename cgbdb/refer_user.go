@@ -3,6 +3,7 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
@@ -80,10 +81,15 @@ func ListUserInvitedByUserId(ctx context.Context, logger runtime.Logger, db *sql
 	return ml, err
 }
 
-func GetAllUserHasReferLeastOneUser(ctx context.Context, logger runtime.Logger, db *sql.DB) ([]*pb.ReferUser, error) {
+func GetAllUserHasReferLeastOneUser(ctx context.Context, logger runtime.Logger, db *sql.DB, timeCreated *time.Time) ([]*pb.ReferUser, error) {
 	query := "Select DISTINCT user_invitor FROM " + ReferUserTableName
+	args := make([]interface{}, 0)
+	if timeCreated != nil {
+		query += " WHERE create_time <=$1"
+		args = append(args, timeCreated)
+	}
 	var dbUserId string
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		logger.Error("GetAllUserHasReferLeastOneUser error %s", err.Error())
 		return nil, nil

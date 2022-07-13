@@ -303,7 +303,8 @@ func EstRewardFromReferredUser(ctx context.Context, logger runtime.Logger, db *s
 }
 
 func EstRewardThisWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
-	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db)
+	_, endWeek := entity.RangeThisWeek()
+	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db, &endWeek)
 	if err != nil {
 		return
 	}
@@ -318,7 +319,9 @@ func EstRewardThisWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 // run when go to new week
 // est all reward refer user
 func EstRewardLastWeek(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
-	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db)
+	_, endWeek := entity.RangeLastWeek()
+
+	listUser, err := cgbdb.GetAllUserHasReferLeastOneUser(ctx, logger, db, &endWeek)
 	if err != nil {
 		return
 	}
