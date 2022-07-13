@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
@@ -73,6 +76,15 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if currentProfile.RemainTimeInputRefCode > 0 &&
 			entity.InterfaceToString(metadata["ref_code"]) == "" {
 			if profile.RefCode != "" {
+				// check valid ref code
+				if profile.RefCode == currentProfile.UserId {
+					return "", status.Error(codes.InvalidArgument, "Can not ref yourself")
+				}
+				_, err = nk.AccountGetId(ctx, profile.RefCode)
+				if err != nil {
+					logger.Error("Error when valid ref code %s err %s", profile.RefCode, err.Error())
+					return "", status.Error(codes.InvalidArgument, "Invalid ref code")
+				}
 				metadata["ref_code"] = profile.RefCode
 				addNewReferUser = true
 			}
