@@ -187,6 +187,19 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 
 	if userID != "" {
 		allGroups, _ := GetAllGroupByUser(ctx, logger, db, nk, userID)
+		queryGroup := ""
+		if len(allGroups) > 0 {
+			arrayGroup := "ARRAY(SELECT json_array_elements('["
+			for idx, idGroup := range allGroups {
+				if idx == 0 {
+					arrayGroup += fmt.Sprintf(" %d ", idGroup)
+				} else {
+					arrayGroup += fmt.Sprintf(", %d ", idGroup)
+				}
+			}
+			arrayGroup += " ]')::jsonb)"
+			queryGroup += fmt.Sprintf(" and (ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ %s or ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) = %s)", arrayGroup, arrayGroup)
+		}
 		params = append(params, time.Now().Unix())
 		params = append(params, time.Now().Unix())
 		query += " WHERE type=$1 and start_date <= $2"
@@ -196,33 +209,13 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			if incomingCursor.IsNext {
 				query += " and (end_date = 0 or end_date >= $3) and id < $4 "
 				if len(allGroups) > 0 {
-					query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
-					for idx, idGroup := range allGroups {
-						if idx == 0 {
-							query += fmt.Sprintf(" $%d ", idGroup)
-						} else {
-							query += fmt.Sprintf(", $%d ", idGroup)
-						}
-						//params = append(params, idGroup)
-						//count++
-					}
-					query += " ]')::jsonb)"
+					query += queryGroup
 				}
 				query += "order by high_priority desc, id desc"
 			} else {
 				query += " and (end_date = 0 or end_date >= $3) and id > $4 "
 				if len(allGroups) > 0 {
-					query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
-					for idx, idGroup := range allGroups {
-						if idx == 0 {
-							query += fmt.Sprintf(" $%d ", idGroup)
-						} else {
-							query += fmt.Sprintf(", $%d ", idGroup)
-						}
-						//params = append(params, idGroup)
-						//count++
-					}
-					query += " ]')::jsonb)"
+					query += queryGroup
 				}
 				query += "order by high_priority desc, id asc"
 			}
@@ -233,17 +226,7 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			count = 4
 			query += " and (end_date = 0 or end_date >= $3)"
 			if len(allGroups) > 0 {
-				query += " and ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ ARRAY(SELECT json_array_elements('["
-				for idx, idGroup := range allGroups {
-					if idx == 0 {
-						query += fmt.Sprintf(" %d ", idGroup)
-					} else {
-						query += fmt.Sprintf(", %d ", idGroup)
-					}
-					//params = append(params, idGroup)
-					//count++
-				}
-				query += " ]')::jsonb)"
+				query += queryGroup
 			}
 			query += fmt.Sprintf(" order by high_priority desc, id desc limit $%d", count)
 			params = append(params, limit)
