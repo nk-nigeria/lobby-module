@@ -157,6 +157,16 @@ func DeleteUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unm
 	return nil
 }
 
+func createCondition(condition string, conditionType constant.UserGroupType, value interface{}) string {
+	conditionTmp := condition
+	conditionTmp = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", conditionTmp, conditionType, value)
+	conditionTmp = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", conditionTmp, conditionType, value)
+	conditionTmp = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", conditionTmp, conditionType, value)
+	conditionTmp = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", conditionTmp, conditionType, value)
+	conditionTmp = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", conditionTmp, conditionType, value)
+	return conditionTmp
+}
+
 func GetAllGroupByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userId string) ([]int64, error) {
 	condition := fmt.Sprintf("Where type = '%s' ", constant.UserGroupType_All)
 	params := make([]interface{}, 0)
@@ -175,21 +185,13 @@ func GetAllGroupByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	if levelStr, ok := metadata["level"]; ok {
 		level = levelStr.(int64)
 	}
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_Level, level)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_Level, level)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_Level, level)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_Level, level)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_Level, level)
+	condition = createCondition(condition, constant.UserGroupType_Level, level)
 
 	var vipLevel int64 = 0
 	if vipLevelStr, ok := metadata["vip_level"]; ok {
 		vipLevel = vipLevelStr.(int64)
 	}
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_VipLevel, vipLevel)
+	condition = createCondition(condition, constant.UserGroupType_VipLevel, vipLevel)
 
 	var chips int64 = 0
 	var chipsInbank int64 = 0
@@ -198,17 +200,8 @@ func GetAllGroupByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 		chips = wallet.Chips
 		chipsInbank = wallet.ChipsInBank
 	}
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_WalletChips, chips)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_WalletChips, chips)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_WalletChips, chips)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_WalletChips, chips)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_WalletChips, chips)
-
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>=' and (condition->>'value')::bigint <= %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '=' and (condition->>'value')::bigint = %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<=' and (condition->>'value')::bigint >= %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '<' and (condition->>'value')::bigint > %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
-	condition = fmt.Sprintf("%s or (type = '%s' and condition->>'operator' = '>' and (condition->>'value')::bigint < %v)", condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
+	condition = createCondition(condition, constant.UserGroupType_WalletChips, chips)
+	condition = createCondition(condition, constant.UserGroupType_WalletChipsInbank, chipsInbank)
 
 	ids := make([]int64, 0)
 	query := "SELECT id FROM " + UserGroupTableName + " " + condition
