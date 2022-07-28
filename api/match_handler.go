@@ -31,12 +31,13 @@ import (
 const kDefaultMaxSize = 3
 
 type MatchLabel struct {
-	Open     int32  `json:"open"`
-	Bet      int32  `json:"bet"`
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	MaxSize  int32  `json:"max_size"`
+	Open         int32  `json:"open"`
+	Bet          int32  `json:"bet"`
+	Code         string `json:"code"`
+	Name         string `json:"name"`
+	Password     string `json:"password"`
+	MaxSize      int32  `json:"max_size"`
+	MockCodeCard int32  `json:"mock_code_card"`
 }
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
@@ -61,6 +62,10 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			query = fmt.Sprintf("+label.open:>0 +label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 		}
 
+		if request.MockCodeCard > 0 {
+			query += fmt.Sprintf("+label.mock_code_card:%d", request.MockCodeCard)
+		}
+
 		logger.Info("match query %v", query)
 
 		resMatches := &pb.RpcFindMatchResponse{}
@@ -83,11 +88,12 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 					return "", presenter.ErrInternalError
 				}
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId:  matchID,
-					Size:     1,
-					MaxSize:  int32(maxSize),
-					MarkUnit: request.MarkUnit,
-					Open:     true,
+					MatchId:      matchID,
+					Size:         1,
+					MaxSize:      int32(maxSize),
+					MarkUnit:     request.MarkUnit,
+					Open:         true,
+					MockCodeCard: request.MockCodeCard,
 				})
 			}
 		} else {
@@ -103,12 +109,13 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				logger.Debug("find match %v", match.Size)
 
 				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId:  match.MatchId,
-					Size:     match.Size,
-					MaxSize:  label.MaxSize, // Get from label
-					Name:     label.Name,
-					MarkUnit: label.Bet,
-					Open:     label.Open > 0,
+					MatchId:      match.MatchId,
+					Size:         match.Size,
+					MaxSize:      label.MaxSize, // Get from label
+					Name:         label.Name,
+					MarkUnit:     label.Bet,
+					Open:         label.Open > 0,
+					MockCodeCard: label.MockCodeCard,
 				})
 			}
 		}
