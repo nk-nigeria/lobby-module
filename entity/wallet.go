@@ -25,6 +25,18 @@ func ParseWallet(payload string) (Wallet, error) {
 	return w, err
 }
 
+func ReadWalletUser(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userId string) (Wallet, error) {
+	// logger.Info("Read wauserIds %v", nk, ctx, userIds)
+	account, err := nk.AccountGetId(ctx, userId)
+	if err != nil {
+		logger.Error("Error when read account, error: %s, userId %s",
+			err.Error(), userId)
+		return Wallet{}, err
+	}
+	w, e := ParseWallet(account.Wallet)
+	return w, e
+}
+
 func ReadWalletUsers(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userIds ...string) ([]Wallet, error) {
 	// logger.Info("Read wauserIds %v", nk, ctx, userIds)
 	accounts, err := nk.AccountsGetId(ctx, userIds)

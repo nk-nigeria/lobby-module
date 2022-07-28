@@ -11,4 +11,6 @@ var (
 
 	ErrBetNotFound   = runtime.NewError("cannot find bet", 101) // INTERNAL
 	ErrMatchNotFound = runtime.NewError("cannot find match", 102)
+	ErrNotEnoughChip = runtime.NewError("not enough chip", 103) // INTERNAL
+
 )

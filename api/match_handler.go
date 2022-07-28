@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -43,14 +44,25 @@ type MatchLabel struct {
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		logger.Info("rpc find match: %v", payload)
-		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
+		}
+		wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
+		if err != nil {
+			logger.Error("read wallet user %s error %s",
+				userID, err.Error())
+			return "", presenter.ErrInternalError
 		}
 
 		request := &pb.RpcFindMatchRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
+		}
+		if wallet.Chips < int64(request.MarkUnit) {
+			logger.Error("User %s not enough chip [%d] to join game bet [%d]",
+				userID, wallet.Chips, request.MarkUnit)
+			return "", presenter.ErrNotEnoughChip
 		}
 
 		maxSize := kDefaultMaxSize
