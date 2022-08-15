@@ -74,8 +74,9 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			query = fmt.Sprintf("+label.open:>0 +label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 		}
 
+		request.MockCodeCard = 0
 		if request.MockCodeCard > 0 {
-			query += fmt.Sprintf("+label.mock_code_card:%d", request.MockCodeCard)
+			query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
 		}
 
 		logger.Info("match query %v", query)
@@ -90,11 +91,15 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		logger.Debug("find match result %v", matches)
 		if len(matches) <= 0 {
 			if request.Create {
-				// No available matches found, create a new one.
-				matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
+				arg := map[string]interface{}{
 					"bet":       request.MarkUnit,
 					"game_code": request.GameCode,
-				})
+				}
+				if request.GetMockCodeCard() > 0 {
+					arg["mock_code_card"] = request.GetMockCodeCard()
+				}
+				// No available matches found, create a new one.
+				matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
 				if err != nil {
 					logger.Error("error creating match: %v", err)
 					return "", presenter.ErrInternalError
