@@ -48,21 +48,13 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
 		}
-		wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
-		if err != nil {
-			logger.Error("read wallet user %s error %s",
-				userID, err.Error())
-			return "", presenter.ErrInternalError
-		}
 
 		request := &pb.RpcFindMatchRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		if wallet.Chips < int64(request.MarkUnit) {
-			logger.Error("User %s not enough chip [%d] to join game bet [%d]",
-				userID, wallet.Chips, request.MarkUnit)
-			return "", presenter.ErrNotEnoughChip
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+			return "", err
 		}
 
 		maxSize := kDefaultMaxSize
@@ -158,7 +150,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		logger.Info("rpc find match: %v", payload)
-		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
 		}
@@ -166,6 +158,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		request := &pb.RpcCreateMatchRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
+		}
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+			return "", err
 		}
 		maxSize := kDefaultMaxSize
 		query := fmt.Sprintf("+label.code:%s +label.open:true", request.GameCode)
@@ -190,6 +185,9 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			sort.Slice(bets.Bets, func(i, j int) bool {
 				return bets.Bets[i].MarkUnit < bets.Bets[j].MarkUnit
 			})
+			if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(bets.Bets[0].MarkUnit)); err != nil {
+				return "", err
+			}
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
 				"bet":      bets.Bets[0].MarkUnit,
@@ -254,7 +252,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		logger.Info("rpc create match: %v", payload)
 
-		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
 		}
@@ -264,7 +262,9 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			logger.Error("unmarshal create match error %v", err)
 			return "", presenter.ErrUnmarshal
 		}
-
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+			return "", err
+		}
 		// No available matches found, create a new one.
 		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
 			"bet":      request.MarkUnit,
@@ -287,4 +287,19 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 
 		return string(response), nil
 	}
+}
+
+func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, bet int64) error {
+	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
+	if err != nil {
+		logger.Error("read wallet user %s error %s",
+			userID, err.Error())
+		return presenter.ErrInternalError
+	}
+	if wallet.Chips <= 0 || wallet.Chips < bet {
+		logger.Error("User %s not enough chip [%d] to join game bet [%d]",
+			userID, wallet.Chips, bet)
+		return presenter.ErrNotEnoughChip
+	}
+	return nil
 }
