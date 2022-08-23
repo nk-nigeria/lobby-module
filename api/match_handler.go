@@ -149,7 +149,8 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 
 func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		logger.Info("rpc find match: %v", payload)
+		defer Recovery(logger)
+		logger.Info("rpc quick match: %v", payload)
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
@@ -163,10 +164,11 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", err
 		}
 		maxSize := kDefaultMaxSize
-		query := fmt.Sprintf("+label.code:%s +label.open:true", request.GameCode)
+		query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
 
 		resMatches := &pb.RpcFindMatchResponse{}
-		matches, err := nk.MatchList(ctx, -1, true, "", nil, &maxSize, query)
+
+		matches, err := nk.MatchList(ctx, 100, true, "", nil, &maxSize, query)
 		if err != nil {
 			logger.Error("error listing matches: %v", err)
 			return "", presenter.ErrInternalError
