@@ -89,52 +89,60 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		}
 
 		logger.Debug("find match result %v", matches)
-		if len(matches) <= 0 {
-			if request.Create {
-				arg := map[string]interface{}{
-					"bet":       request.MarkUnit,
-					"game_code": request.GameCode,
-				}
-				if request.GetMockCodeCard() > 0 {
-					arg["mock_code_card"] = request.GetMockCodeCard()
-				}
-				// No available matches found, create a new one.
-				matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
-				if err != nil {
-					logger.Error("error creating match: %v", err)
-					return "", presenter.ErrInternalError
-				}
-				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId:      matchID,
-					Size:         1,
-					MaxSize:      int32(maxSize),
-					MarkUnit:     request.MarkUnit,
-					Open:         true,
-					MockCodeCard: request.MockCodeCard,
-				})
-			}
-		} else {
-			// There are one or more ongoing matches the user could join.
-			for _, match := range matches {
-				var label MatchLabel
-				err = json.Unmarshal([]byte(match.Label.GetValue()), &label)
-				if err != nil {
-					logger.Error("unmarshal label error %v", err)
-					continue
-				}
 
-				logger.Debug("find match %v", match.Size)
-
-				resMatches.Matches = append(resMatches.Matches, &pb.Match{
-					MatchId:      match.MatchId,
-					Size:         match.Size,
-					MaxSize:      label.MaxSize, // Get from label
-					Name:         label.Name,
-					MarkUnit:     label.Bet,
-					Open:         label.Open > 0,
-					MockCodeCard: label.MockCodeCard,
-				})
+		for _, match := range matches {
+			var label MatchLabel
+			err = json.Unmarshal([]byte(match.Label.GetValue()), &label)
+			if err != nil {
+				logger.Error("unmarshal label error %v", err)
+				continue
 			}
+
+			logger.Debug("find match size: %v", match.Size)
+			if match.Size >= label.MaxSize {
+				continue
+			}
+			resMatches.Matches = append(resMatches.Matches, &pb.Match{
+				MatchId:      match.MatchId,
+				Size:         match.Size,
+				MaxSize:      label.MaxSize, // Get from label
+				Name:         label.Name,
+				MarkUnit:     label.Bet,
+				Open:         label.Open > 0,
+				MockCodeCard: label.MockCodeCard,
+			})
+		}
+		if len(resMatches.Matches) <= 0 && request.Create {
+			// not found match, auto create match if request need
+			arg := map[string]interface{}{
+				"bet":      int32(request.MarkUnit),
+				"code":     request.GameCode,
+				"max_size": int32(2),
+				"name":     request.GameCode,
+			}
+			if request.GetMockCodeCard() > 0 {
+				arg["mock_code_card"] = request.GetMockCodeCard()
+			}
+			// No available matches found, create a new one.
+			matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
+			if err != nil {
+				logger.Error("error creating match: %v", err)
+				return "", presenter.ErrInternalError
+			}
+			logger.Info("Create new match with arg %v", arg)
+			resMatches.Matches = append(resMatches.Matches, &pb.Match{
+				MatchId:      matchID,
+				Size:         1,
+				MaxSize:      arg["max_size"].(int32),
+				MarkUnit:     arg["bet"].(int32),
+				Open:         true,
+				MockCodeCard: request.MockCodeCard,
+			})
+		}
+		//  not found match,
+		if len(resMatches.Matches) <= 0 {
+			logger.Error("Not found match for user %s", userID)
+			return "", presenter.ErrMatchNotFound
 		}
 
 		response, err := marshaler.Marshal(resMatches)
@@ -184,10 +192,10 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			})
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-				"bet":       bets.Bets[0].MarkUnit,
-				"game_code": request.GameCode,
-				"name":      request.Name,
-				"password":  request.Password,
+				"bet":      bets.Bets[0].MarkUnit,
+				"code":     request.GameCode,
+				"name":     request.Name,
+				"password": request.Password,
 			})
 			if err != nil {
 				logger.Error("error creating match: %v", err)
@@ -259,10 +267,10 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 
 		// No available matches found, create a new one.
 		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-			"bet":       request.MarkUnit,
-			"game_code": request.GameCode,
-			"name":      request.Name,
-			"password":  request.Password,
+			"bet":      request.MarkUnit,
+			"code":     request.GameCode,
+			"name":     request.Name,
+			"password": request.Password,
 		})
 		if err != nil {
 			logger.Error("error creating match: %v", err)
