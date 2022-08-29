@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
@@ -90,6 +91,7 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 		if !ok {
 			queryParms = make(map[string][]string)
 		}
+
 		limit := 100
 		if arr := queryParms["limit"]; len(arr) > 0 {
 			if l, err := strconv.Atoi(arr[0]); err == nil {
@@ -100,8 +102,22 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 		if arr := queryParms["cusor"]; len(arr) > 0 {
 			cusor = arr[0]
 		}
+		metaAction := make([]string, 0)
+		logger.Info("%v", queryParms["meta_action"])
+		if arr := queryParms["meta_action"]; len(arr) > 0 {
+			list := strings.Split(arr[0], ",")
+			for _, s := range list {
+				s = strings.ToLower(strings.TrimSpace(s))
+				// if _, exist := entity.MapWalletAction[s]; exist {
+				metaAction = append(metaAction, s)
+				// }
+			}
+		}
+		if len(metaAction) == 0 {
+			metaAction = append(metaAction, entity.WalletActionBankTopup.String())
+		}
 		userUuid, _ := uuid.FromString(userID)
-		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, &limit, cusor)
+		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, metaAction, &limit, cusor)
 		// list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)
 		if err != nil {
 			logger.Error("WalletLedgerList  user: %s, error: %s", userID, err.Error())

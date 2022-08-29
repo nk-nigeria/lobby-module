@@ -73,7 +73,7 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 				Chips: dbGiftCode.Value,
 			}
 			metadata := make(map[string]interface{})
-			metadata["action"] = "gift_code"
+			metadata["action"] = entity.WalletActionGiftCode
 			metadata["sender"] = constant.UUID_USER_SYSTEM
 			metadata["recv"] = userID
 			// convert int64 to string because missing value when save to wallet metadata

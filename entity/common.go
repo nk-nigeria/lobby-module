@@ -17,6 +17,16 @@ const (
 	MIN_LENGTH_PASSWORD = 6
 )
 
+func init() {
+	MapWalletAction := make(map[WalletAction]bool, 0)
+	MapWalletAction[WalletActionBankTopup] = true
+	MapWalletAction[WalletActionDailyReward] = true
+	MapWalletAction[WalletActionFreeChip] = true
+	MapWalletAction[WalletActionGiftCode] = true
+	MapWalletAction[WalletActionIAPTopUp] = true
+	MapWalletAction[WalletActionReferReward] = true
+}
+
 type CustomUser struct {
 	Id       string
 	UserId   string
@@ -99,3 +109,20 @@ func ToInt64(inf interface{}, def int64) int64 {
 	}
 	return def
 }
+
+type WalletAction string
+
+const (
+	WalletActionBankTopup   WalletAction = "bank_topup"
+	WalletActionDailyReward WalletAction = "daily_reward"
+	WalletActionFreeChip    WalletAction = "free_chip"
+	WalletActionGiftCode    WalletAction = "gift_code"
+	WalletActionIAPTopUp    WalletAction = "iap_topup"
+	WalletActionReferReward WalletAction = "refer_reward"
+)
+
+func (w WalletAction) String() string {
+	return string(w)
+}
+
+var MapWalletAction map[string]bool

@@ -55,7 +55,7 @@ func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, d
 
 func topupChipByIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, purchasenk *nkapi.ValidatedPurchase) error {
 	metadata := make(map[string]interface{})
-	metadata["action"] = "iap_topup"
+	metadata["action"] = entity.WalletActionIAPTopUp
 	metadata["sender"] = constant.UUID_USER_SYSTEM
 	metadata["recv"] = userID
 	metadata["iap_type"] = "google"

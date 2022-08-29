@@ -62,7 +62,7 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			UserId: userID,
 		}
 		metadata := make(map[string]interface{})
-		metadata["action"] = "free_chip"
+		metadata["action"] = entity.WalletActionFreeChip
 		metadata["sender"] = freeChip.GetSenderId()
 		metadata["recv"] = freeChip.GetRecipientId()
 		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)

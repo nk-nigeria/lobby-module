@@ -161,7 +161,7 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 		return nil, err
 	}
 	logger.Info("Sender %s, send %d chips --> recv %s, fee %d (%d chips)",
-		bank.GetSenderId(), bank.GetChips(),
+		bank.GetSenderId(), bank.GetChipsInBank(),
 		bank.RecipientId, bank.PercenFee, bank.AmountFee)
 	newSenderBank.ChipsInBank = senderNewWallet.ChipsInBank - newSenderBank.ChipsInBank
 	return &newSenderBank, nil
@@ -175,7 +175,7 @@ func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Log
 	metadata["bank_action"] = bank.GetAction().String()
 	metadata["sender"] = bank.GetSenderId()
 	metadata["recv"] = bank.GetRecipientId()
-	metadata["action"] = "bank_topup"
+	metadata["action"] = WalletActionBankTopup
 
 	wallet := Wallet{
 		Chips:       bank.GetChips(),
