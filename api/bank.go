@@ -103,21 +103,38 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 			cusor = arr[0]
 		}
 		metaAction := make([]string, 0)
-		logger.Info("%v", queryParms["meta_action"])
+
 		if arr := queryParms["meta_action"]; len(arr) > 0 {
 			list := strings.Split(arr[0], ",")
 			for _, s := range list {
 				s = strings.ToLower(strings.TrimSpace(s))
-				// if _, exist := entity.MapWalletAction[s]; exist {
-				metaAction = append(metaAction, s)
-				// }
+				if len(s) > 0 {
+					metaAction = append(metaAction, s)
+				}
 			}
 		}
+
 		if len(metaAction) == 0 {
 			metaAction = append(metaAction, entity.WalletActionBankTopup.String())
 		}
+
+		metaBankAction := make([]string, 0)
+		if arr := queryParms["meta_bank_action"]; len(arr) > 0 {
+			list := strings.Split(arr[0], ",")
+			for _, s := range list {
+				s = strings.TrimSpace(s)
+				if len(s) > 0 {
+					if num, err := strconv.Atoi(s); err == nil {
+						metaBankAction = append(metaBankAction, pb.Bank_Action(num).String())
+					} else {
+						metaBankAction = append(metaBankAction, s)
+					}
+				}
+			}
+		}
+
 		userUuid, _ := uuid.FromString(userID)
-		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, metaAction, &limit, cusor)
+		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, metaAction, metaBankAction, &limit, cusor)
 		// list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)
 		if err != nil {
 			logger.Error("WalletLedgerList  user: %s, error: %s", userID, err.Error())

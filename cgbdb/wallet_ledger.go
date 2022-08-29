@@ -22,7 +22,7 @@ var (
 	ErrWalletLedgerInvalidCursor = errors.New("wallet ledger cursor invalid")
 )
 
-func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, userID uuid.UUID, metaAction []string, limit *int, cursor string) ([]runtime.WalletLedgerItem, string, string, error) {
+func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, userID uuid.UUID, metaAction, metaBankAction []string, limit *int, cursor string) ([]runtime.WalletLedgerItem, string, string, error) {
 	var incomingCursor *entity.WalletLedgerListCursor
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)
@@ -47,27 +47,44 @@ func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, us
 		params[1] = incomingCursor.CreateTime
 		params[2], _ = uuid.FromString(incomingCursor.Id)
 		metaAction = incomingCursor.MetaAction
+		metaBankAction = incomingCursor.MetaBankAction
 	}
-	inParam := ""
+	inMetaActionParam := ""
 	for _, action := range metaAction {
-		inParam += fmt.Sprintf(`'%s',`, action)
+		inMetaActionParam += fmt.Sprintf(`'%s',`, action)
 	}
-	inParam = inParam[:len(inParam)-1]
+	if len(inMetaActionParam) > 0 {
+		inMetaActionParam = inMetaActionParam[:len(inMetaActionParam)-1]
+	}
+
+	inMetaBankActionParam := ""
+	for _, action := range metaBankAction {
+		inMetaBankActionParam += fmt.Sprintf(`'%s',`, action)
+	}
+	if len(inMetaBankActionParam) > 0 {
+		inMetaBankActionParam = inMetaBankActionParam[:len(inMetaBankActionParam)-1]
+	}
 	// params = append(params, inParam)
 
 	query := `SELECT id, changeset, metadata, create_time, update_time 
 	FROM wallet_ledger 
 	WHERE user_id = $1::UUID 
 	AND (user_id, create_time, id) < ($1::UUID, $2, $3::UUID) 
-	AND metadata ->> 'action' IN  ( ` + inParam + `) 
-	ORDER BY create_time DESC`
+	AND metadata ->> 'action' IN  ( ` + inMetaActionParam + " ) "
+	if len(inMetaBankActionParam) > 0 {
+		query += `AND metadata ->> 'bank_action' IN  ( ` + inMetaBankActionParam + " ) "
+	}
+	query += ` ORDER BY create_time DESC`
 	if incomingCursor != nil && !incomingCursor.IsNext {
 		query = `SELECT id, changeset, metadata, create_time, update_time 
 		FROM wallet_ledger 
 		WHERE user_id = $1::UUID
 		AND (user_id, create_time, id) > ($1::UUID, $2, $3::UUID) 
-		AND metadata ->> 'action' IN  ( ` + inParam + `)  
-		ORDER BY create_time ASC`
+		AND metadata ->> 'action' IN  ( ` + inMetaActionParam + " ) "
+		if len(inMetaBankActionParam) > 0 {
+			query += `AND metadata ->> 'bank_action' IN  ( ` + inMetaBankActionParam + " ) "
+		}
+		query += ` ORDER BY create_time ASC`
 	}
 
 	if limit != nil {
@@ -94,11 +111,12 @@ func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, us
 	for rows.Next() {
 		if limit != nil && len(results) >= *limit {
 			nextCursor = &entity.WalletLedgerListCursor{
-				UserId:     userID.String(),
-				Id:         id,
-				CreateTime: createTime.Time,
-				IsNext:     true,
-				MetaAction: metaAction,
+				UserId:         userID.String(),
+				Id:             id,
+				CreateTime:     createTime.Time,
+				IsNext:         true,
+				MetaAction:     metaAction,
+				MetaBankAction: metaBankAction,
 			}
 			break
 		}
@@ -133,11 +151,12 @@ func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, us
 
 		if incomingCursor != nil && prevCursor == nil {
 			prevCursor = &entity.WalletLedgerListCursor{
-				UserId:     userID.String(),
-				Id:         id,
-				CreateTime: createTime.Time,
-				IsNext:     false,
-				MetaAction: metaAction,
+				UserId:         userID.String(),
+				Id:             id,
+				CreateTime:     createTime.Time,
+				IsNext:         false,
+				MetaAction:     metaAction,
+				MetaBankAction: metaBankAction,
 			}
 		}
 	}

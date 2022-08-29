@@ -3,11 +3,12 @@ package entity
 import "time"
 
 type WalletLedgerListCursor struct {
-	UserId     string
-	CreateTime time.Time
-	Id         string
-	IsNext     bool
-	MetaAction []string
+	UserId         string
+	CreateTime     time.Time
+	Id             string
+	IsNext         bool
+	MetaAction     []string
+	MetaBankAction []string
 }
 
 type WalletLedger struct {
