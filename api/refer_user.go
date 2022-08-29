@@ -346,7 +346,7 @@ func SendReferRewardToWallet(ctx context.Context, logger runtime.Logger, db *sql
 			return
 		}
 		metadata := make(map[string]interface{})
-		metadata["action"] = "refer-reward"
+		metadata["action"] = entity.WalletActionReferReward
 		metadata["sender"] = constant.UUID_USER_SYSTEM
 
 		wallet := entity.Wallet{}

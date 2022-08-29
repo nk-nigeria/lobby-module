@@ -193,7 +193,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		}
 
 		metadata := make(map[string]interface{})
-		metadata["action"] = "daily-reward"
+		metadata["action"] = entity.WalletActionDailyReward
 		metadata["sender"] = constant.UUID_USER_SYSTEM
 		metadata["recv"] = userID
 		entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)

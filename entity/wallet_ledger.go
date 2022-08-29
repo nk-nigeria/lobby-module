@@ -7,6 +7,7 @@ type WalletLedgerListCursor struct {
 	CreateTime time.Time
 	Id         string
 	IsNext     bool
+	MetaAction []string
 }
 
 type WalletLedger struct {
