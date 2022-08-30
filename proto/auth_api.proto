@@ -34,7 +34,7 @@ message Profile {
   int64 last_online_time_unix = 16;
   int64 create_time_unix = 17;
   int64 remain_time_input_ref_code = 18;
-  repeated string lang_availables = 19;
+  repeated LangCode lang_availables = 19;
 }
 
 message QuickChatUpdateRequest {
@@ -43,4 +43,10 @@ message QuickChatUpdateRequest {
 
 message QuickChatResponse {
   repeated string texts = 1;
+}
+
+message LangCode {
+  string iso_code = 1;
+  string display_name = 2;
+  string source_url = 3;
 }
