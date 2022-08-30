@@ -206,7 +206,23 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
 		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 0),
 		CreateTimeUnix:     user.GetCreateTime().Seconds,
-		LangAvailables:     []string{"en", "vi"},
+		// LangAvailables:     []string{"en", "phi"},
+	}
+	profile.LangAvailables = append(profile.LangAvailables,
+		&pb.LangCode{
+			IsoCode:     "en-US",
+			DisplayName: "English",
+		},
+		&pb.LangCode{
+			IsoCode:     "tl-PH",
+			DisplayName: "Philippines",
+		},
+	)
+	if objStorage != nil {
+		for _, s := range profile.LangAvailables {
+			sourceUrl, _ := objStorage.PresignGetObject("lang", s.IsoCode, 24*time.Hour, nil)
+			s.SourceUrl = sourceUrl
+		}
 	}
 
 	if profile.DisplayName == "" {
