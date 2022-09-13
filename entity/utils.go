@@ -79,3 +79,10 @@ func RangeLastMonth() (time.Time, time.Time) {
 		0, 0, 0, 0, endLastMonth.Location())
 	return beginLastMonth, endLastMonth
 }
+
+func AbsInt64(num int64) int64 {
+	if num > 0 {
+		return num
+	}
+	return -num
+}

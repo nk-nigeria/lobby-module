@@ -119,7 +119,7 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	}
 
 	senderNewWallet := Wallet{}
-	senderNewWallet.ChipsInBank = -bank.ChipsInBank - bank.AmountFee
+	senderNewWallet.ChipsInBank = -bank.ChipsInBank - AbsInt64(bank.AmountFee)
 	newSenderBank := pb.Bank{
 		SenderId:    bank.GetSenderId(),
 		RecipientId: bank.GetRecipientId(),
