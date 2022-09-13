@@ -220,8 +220,8 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 	)
 	if objStorage != nil {
 		for _, s := range profile.LangAvailables {
-			sourceUrl, _ := objStorage.PresignGetObject("lang", s.IsoCode, 24*time.Hour, nil)
-			s.SourceUrl = sourceUrl
+			sourceUrl, _ := objStorage.PresignGetObject("lang", s.IsoCode+".json", 24*time.Hour, nil)
+			s.SourceUrl = strings.Split(sourceUrl, ".json")[0] + ".json"
 		}
 	}
 
