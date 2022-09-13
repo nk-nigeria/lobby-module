@@ -82,6 +82,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		content character varying(128) NOT NULL,
 		chips integer NOT NULL DEFAULT 0,
 		claimable smallint NOT NULL DEFAULT 1,
+		action character varying(128) NOT NULL,
 		create_time timestamp with time zone NOT NULL DEFAULT now(),
 		update_time timestamp with time zone NOT NULL DEFAULT now()
 		);

@@ -79,6 +79,18 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if err != nil {
 			return "", err
 		}
+		freeChip := &pb.FreeChip{
+			SenderId:    bank.SenderId,
+			RecipientId: bank.RecipientId,
+			Title:       "User send gift",
+			Content:     "User send gift",
+			Chips:       bank.ChipsInBank,
+			Action:      entity.WalletActionUserGift.String(),
+		}
+		err = cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
+		if err != nil {
+			return "", err
+		}
 		return "", nil
 	}
 }

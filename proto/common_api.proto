@@ -66,6 +66,7 @@ message FreeChip {
   string content = 5;
   int64 chips = 6;
   bool claimable = 7;
+  string action = 8;
 }
 
 message FreeChipRequest {

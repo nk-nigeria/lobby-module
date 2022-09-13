@@ -19,20 +19,26 @@ import (
 )
 
 // CREATE TABLE public.freechip (
-//   id bigint NOT NULL,
-//   sender_id character varying(128) NOT NULL,
-//   recipient_id character varying(128) NOT NULL,
-//   title character varying(128) NOT NULL,
-//   content character varying(128) NOT NULL,
-//   chips integer NOT NULL DEFAULT 0,
-//   claimable smallint NOT NULL DEFAULT 1,
-//   create_time timestamp with time zone NOT NULL DEFAULT now(),
-//   update_time timestamp with time zone NOT NULL DEFAULT now()
+//
+//	id bigint NOT NULL,
+//	sender_id character varying(128) NOT NULL,
+//	recipient_id character varying(128) NOT NULL,
+//	title character varying(128) NOT NULL,
+//	content character varying(128) NOT NULL,
+//	chips integer NOT NULL DEFAULT 0,
+//	claimable smallint NOT NULL DEFAULT 1,
+//	action character varying(128) NOT NULL,
+//	create_time timestamp with time zone NOT NULL DEFAULT now(),
+//	update_time timestamp with time zone NOT NULL DEFAULT now()
+//
 // );
 // ALTER TABLE
-//   public.freechip
+//
+//	public.freechip
+//
 // ADD
-//   CONSTRAINT freechip_pkey PRIMARY KEY (id)
+//
+//	CONSTRAINT freechip_pkey PRIMARY KEY (id)
 const FreeChipTableName = "freechip"
 
 func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, freeChip *pb.FreeChip) error {
@@ -40,9 +46,9 @@ func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB
 		return status.Error(codes.InvalidArgument, "Error add claimable freechip.")
 	}
 	freeChip.Id = conf.SnowlakeNode.Generate().Int64()
-	query := "INSERT INTO " + FreeChipTableName + " (id, sender_id, recipient_id, title, content, chips, claimable, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())"
+	query := "INSERT INTO " + FreeChipTableName + " (id, sender_id, recipient_id, title, content, chips, claimable, action, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())"
 	result, err := db.ExecContext(ctx, query, freeChip.Id, freeChip.SenderId, freeChip.RecipientId, freeChip.Title, freeChip.Content,
-		freeChip.Chips, 1)
+		freeChip.Chips, 1, freeChip.GetAction())
 	if err != nil {
 		logger.Error("Add new claimable, sender: %s, recv: %s, chips: %d, error %s",
 			freeChip.SenderId, freeChip.RecipientId, freeChip.Chips, err.Error())
@@ -81,12 +87,12 @@ func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.D
 	if id <= 0 || userId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
-	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " WHERE id=$1 AND recipient_id=$2"
+	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE id=$1 AND recipient_id=$2"
 	var dbID int64
-	var dbSenderId, dbRecvId, dbTitle, dbContent string
+	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
-	err := db.QueryRowContext(ctx, query, id, userId).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable)
+	err := db.QueryRowContext(ctx, query, id, userId).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
 	if err != nil {
 		logger.Error("Query free chip id %, user %s, error %s", id, userId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip error")
@@ -98,6 +104,7 @@ func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.D
 		Title:       dbTitle,
 		Content:     dbContent,
 		Chips:       dbChips,
+		Action:      dbAction,
 	}
 	if dbClaimable == 1 {
 		freeChip.Claimable = true
@@ -109,7 +116,7 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	if userId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
-	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " WHERE claimable=$1 AND recipient_id=$2"
+	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE claimable=$1 AND recipient_id=$2"
 
 	rows, err := db.QueryContext(ctx, query, 1, userId)
 	if err != nil {
@@ -118,11 +125,11 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	}
 	ml := make([]*pb.FreeChip, 0)
 	var dbID int64
-	var dbSenderId, dbRecvId, dbTitle, dbContent string
+	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
 	for rows.Next() {
-		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable)
+		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
 		freeChip := pb.FreeChip{
 			Id:          dbID,
 			SenderId:    dbSenderId,
@@ -130,6 +137,7 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 			Title:       dbTitle,
 			Content:     dbContent,
 			Chips:       dbChips,
+			Action:      dbAction,
 		}
 		if dbClaimable == 1 {
 			freeChip.Claimable = true
@@ -231,7 +239,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 			params = append(params, limit)
 		}
 	}
-	queryRow := "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " +
+	queryRow := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " +
 		FreeChipTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
@@ -240,11 +248,11 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 	}
 	ml := make([]*pb.FreeChip, 0)
 	var dbID int64
-	var dbSenderId, dbRecvId, dbTitle, dbContent string
+	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
 	for rows.Next() {
-		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable)
+		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
 		freeChip := pb.FreeChip{
 			Id:          dbID,
 			SenderId:    dbSenderId,
@@ -252,6 +260,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 			Title:       dbTitle,
 			Content:     dbContent,
 			Chips:       dbChips,
+			Action:      dbAction,
 		}
 		if dbClaimable == 1 {
 			freeChip.Claimable = true

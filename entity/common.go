@@ -119,6 +119,7 @@ const (
 	WalletActionGiftCode    WalletAction = "gift_code"
 	WalletActionIAPTopUp    WalletAction = "iap_topup"
 	WalletActionReferReward WalletAction = "refer_reward"
+	WalletActionUserGift    WalletAction = "user_gift"
 )
 
 func (w WalletAction) String() string {

@@ -131,39 +131,40 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 		bank.GetSenderId(),
 		&newSenderBank)
 	if err != nil {
-		logger.Error("Update wallet sender %s error: %s", bank.GetSenderId(), err.Error())
+		data, _ := protojson.Marshal(&newSenderBank)
+		logger.Error("Update wallet sender %s error: %s, data %s", bank.GetSenderId(), err.Error(), string(data))
 		return nil, err
 	}
-	reciverNewWallet := Wallet{}
-	reciverNewWallet.ChipsInBank = bank.ChipsInBank
-	newRecvBank := pb.Bank{
-		SenderId:    bank.GetSenderId(),
-		RecipientId: bank.GetRecipientId(),
-		Chips:       0,
-		ChipsInBank: reciverNewWallet.ChipsInBank,
-		Action:      pb.Bank_ACTION_RECV_GIFT,
-	}
+	// reciverNewWallet := Wallet{}
+	// reciverNewWallet.ChipsInBank = bank.ChipsInBank
+	// newRecvBank := pb.Bank{
+	// 	SenderId:    bank.GetSenderId(),
+	// 	RecipientId: bank.GetRecipientId(),
+	// 	Chips:       0,
+	// 	ChipsInBank: reciverNewWallet.ChipsInBank,
+	// 	Action:      pb.Bank_ACTION_RECV_GIFT,
+	// }
 	// add chip recv wallet
-	err = updateBank(ctx, nk, logger,
-		bank.GetRecipientId(),
-		&newRecvBank)
-	if err != nil {
-		logger.Error("Update wallet recv %s error: %s", bank.GetSenderId(), err.Error())
-		// revert sender wallet
-		newSenderBank.Action = pb.Bank_ACTION_REVERT_SEND_GIF
-		newRecvBank.ChipsInBank *= -1
-		if e := updateBank(ctx, nk, logger,
-			bank.GetSenderId(),
-			&newRecvBank,
-		); e != nil {
-			logger.Error("Revert sender wallet %s error:%s", bank.GetSenderId(), e.Error())
-		}
-		return nil, err
-	}
-	logger.Info("Sender %s, send %d chips --> recv %s, fee %d (%d chips)",
-		bank.GetSenderId(), bank.GetChipsInBank(),
-		bank.RecipientId, bank.PercenFee, bank.AmountFee)
-	newSenderBank.ChipsInBank = senderNewWallet.ChipsInBank - newSenderBank.ChipsInBank
+	// err = updateBank(ctx, nk, logger,
+	// 	bank.GetRecipientId(),
+	// 	&newRecvBank)
+	// if err != nil {
+	// 	logger.Error("Update wallet recv %s error: %s", bank.GetSenderId(), err.Error())
+	// 	// revert sender wallet
+	// newSenderBank.Action = pb.Bank_ACTION_REVERT_SEND_GIF
+	// 	newRecvBank.ChipsInBank *= -1
+	// 	if e := updateBank(ctx, nk, logger,
+	// 		bank.GetSenderId(),
+	// 		&newRecvBank,
+	// 	); e != nil {
+	// 		logger.Error("Revert sender wallet %s error:%s", bank.GetSenderId(), e.Error())
+	// 	}
+	// 	return nil, err
+	// }
+	// logger.Info("Sender %s, send %d chips --> recv %s, fee %d (%d chips)",
+	// 	bank.GetSenderId(), bank.GetChipsInBank(),
+	// 	bank.RecipientId, bank.PercenFee, bank.AmountFee)
+	newSenderBank.ChipsInBank = senderWallet.ChipsInBank + newSenderBank.ChipsInBank
 	return &newSenderBank, nil
 }
 

@@ -32,6 +32,7 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 			return "", presenter.ErrUnmarshal
 		}
 		freeChip.SenderId = constant.UUID_USER_SYSTEM
+		freeChip.Action = entity.WalletActionFreeChip.String()
 		err := cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
 		if err != nil {
 			return "", err
@@ -63,8 +64,12 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		}
 		metadata := make(map[string]interface{})
 		metadata["action"] = entity.WalletActionFreeChip
+		if freeChip.GetAction() != "" {
+			metadata["action"] = freeChip.GetAction()
+		}
 		metadata["sender"] = freeChip.GetSenderId()
 		metadata["recv"] = freeChip.GetRecipientId()
+
 		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 		if err != nil {
 			logger.Error("Add chip user %s, after claim freechip error %s", userID, err.Error())
