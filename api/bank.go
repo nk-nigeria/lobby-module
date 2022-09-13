@@ -9,6 +9,7 @@ import (
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/gofrs/uuid"
@@ -73,6 +74,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		unmarshaler.Unmarshal([]byte(payload), bank)
 		bank.SenderId = userID
+		// bank.AmountFee = 3
 		_, err := entity.BankSendGift(ctx, logger, nk, bank)
 		if err != nil {
 			return "", err
@@ -87,6 +89,13 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 		if !ok {
 			return "", presenter.ErrNoUserIdFound
 		}
+		walletTransReq := &pb.WalletTransRequest{}
+		if len(payload) > 0 {
+			err := conf.Unmarshaler.Unmarshal([]byte(payload), walletTransReq)
+			if err != nil {
+				return "", presenter.ErrMarshal
+			}
+		}
 		queryParms, ok := ctx.Value(runtime.RUNTIME_CTX_QUERY_PARAMS).(map[string][]string)
 		if !ok {
 			queryParms = make(map[string][]string)
@@ -97,15 +106,27 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 			if l, err := strconv.Atoi(arr[0]); err == nil {
 				limit = l
 			}
+		} else {
+			limit = int(walletTransReq.GetLimit())
+		}
+		if limit <= 0 {
+			limit = 10
 		}
 		cusor := ""
 		if arr := queryParms["cusor"]; len(arr) > 0 {
 			cusor = arr[0]
+		} else {
+			cusor = walletTransReq.GetCusor()
 		}
 		metaAction := make([]string, 0)
-
-		if arr := queryParms["meta_action"]; len(arr) > 0 {
-			list := strings.Split(arr[0], ",")
+		{
+			arr := queryParms["meta_action"]
+			var list []string
+			if len(arr) > 0 {
+				list = strings.Split(arr[0], ",")
+			} else {
+				list = strings.Split(walletTransReq.GetMetaAction(), ",")
+			}
 			for _, s := range list {
 				s = strings.ToLower(strings.TrimSpace(s))
 				if len(s) > 0 {
@@ -117,22 +138,27 @@ func RpcWalletTransaction(marshaler *protojson.MarshalOptions, unmarshaler *prot
 		if len(metaAction) == 0 {
 			metaAction = append(metaAction, entity.WalletActionBankTopup.String())
 		}
-
 		metaBankAction := make([]string, 0)
-		if arr := queryParms["meta_bank_action"]; len(arr) > 0 {
-			list := strings.Split(arr[0], ",")
+		{
+			arr := queryParms["meta_bank_action"]
+			var list []string
+			if len(arr) > 0 {
+				list = strings.Split(arr[0], ",")
+			} else {
+				list = strings.Split(walletTransReq.GetMetaBankAction(), ",")
+			}
 			for _, s := range list {
 				s = strings.TrimSpace(s)
 				if len(s) > 0 {
 					if num, err := strconv.Atoi(s); err == nil {
-						metaBankAction = append(metaBankAction, pb.Bank_Action(num).String())
+						metaBankAction = append(metaBankAction,
+							pb.Bank_Action(num).String())
 					} else {
 						metaBankAction = append(metaBankAction, s)
 					}
 				}
 			}
 		}
-
 		userUuid, _ := uuid.FromString(userID)
 		list, cusor, _, err := cgbdb.ListWalletLedger(ctx, logger, db, userUuid, metaAction, metaBankAction, &limit, cusor)
 		// list, cusor, err := nk.WalletLedgerList(ctx, userID, limit, cusor)

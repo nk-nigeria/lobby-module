@@ -420,4 +420,9 @@ message HistoryRewardRequest {
   int64 to = 4;
 }
 
-
+message WalletTransRequest{
+  int64 limit = 1;
+  string cusor = 2;
+  string meta_action = 3;
+  string meta_bank_action = 4;
+}
