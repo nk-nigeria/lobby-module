@@ -66,7 +66,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			query = fmt.Sprintf("+label.open:>0 +label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
 		}
 
-		request.MockCodeCard = 0
+		// request.MockCodeCard = 0
 		if request.MockCodeCard > 0 {
 			query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
 		}
