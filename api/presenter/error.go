@@ -13,4 +13,10 @@ var (
 	ErrMatchNotFound = runtime.NewError("cannot find match", 102)
 	ErrNotEnoughChip = runtime.NewError("not enough chip", 103) // INTERNAL
 
+	ErrUserNameLenthTooShort       = runtime.NewError("Invalid username address, must be 8-255 bytes.", 1000)
+	ErrUserNameLenthTooLong        = runtime.NewError("Invalid username address, must be 8-255 bytes.", 1001)
+	ErrUserPasswordLenthTooShort   = runtime.NewError("Password must be at least 8 characters long.", 1002)
+	ErrUserNameAndPasswordRequired = runtime.NewError("Username address and password is required", 1003)
+	ErrUserNameExist               = runtime.NewError("Username already exist", 1004)
+	ErrUserNameInvalid             = runtime.NewError("Invalid username, no spaces or control characters allowed.", 1005)
 )

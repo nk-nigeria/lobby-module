@@ -3,9 +3,11 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 	"regexp"
 	"strings"
+
+	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	"github.com/heroiclabs/nakama-common/api"
@@ -77,13 +79,19 @@ WHERE id=$2`, hashedNewPassword, userId)
 func LinkUsername(ctx context.Context, logger runtime.Logger, db *sql.DB, userID, username, password string) error {
 	logger.Info("begin link username")
 	if username == "" || password == "" {
-		return status.Error(codes.InvalidArgument, "Username address and password is required.")
+		return presenter.ErrUserNameAndPasswordRequired
 	} else if invalidUsernameRegex.MatchString(username) {
-		return status.Error(codes.InvalidArgument, "Invalid username, no spaces or control characters allowed.")
+		return presenter.ErrUserNameInvalid
 	} else if len(password) < 8 {
-		return status.Error(codes.InvalidArgument, "Password must be at least 8 characters long.")
-	} else if len(username) < 8 || len(username) > 255 {
-		return status.Error(codes.InvalidArgument, "Invalid username address, must be 10-255 bytes.")
+		return presenter.ErrUserPasswordLenthTooShort
+	} else {
+		lUserName := len(username)
+		if lUserName < 8 {
+			return presenter.ErrUserNameLenthTooShort
+		}
+		if lUserName > 255 {
+			return presenter.ErrUserNameLenthTooLong
+		}
 	}
 
 	cleanUsername := strings.ToLower(username)
@@ -105,7 +113,7 @@ AND (NOT EXISTS
 		logger.Error("Could not link username.", zap.Error(err), zap.Any("input", username))
 		return status.Error(codes.Internal, "Error while trying to link username.")
 	} else if count, _ := res.RowsAffected(); count == 0 {
-		return status.Error(codes.AlreadyExists, "Username is already in use.")
+		return presenter.ErrUserNameExist
 	}
 	return nil
 }
