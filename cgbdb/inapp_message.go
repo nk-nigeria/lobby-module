@@ -8,20 +8,23 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
 	"strings"
 	"time"
+
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/jackc/pgtype"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-//CREATE SEQUENCE in_app_message_id_seq;
-//CREATE TABLE public.in_app_message (
+// CREATE SEQUENCE in_app_message_id_seq;
+// CREATE TABLE public.in_app_message (
+//
 //	id bigint NOT NULL DEFAULT nextval('in_app_message_id_seq'),
 //	group_ids jsonb NOT NULL,
 //	type bigint  NOT NULL,
@@ -32,8 +35,9 @@ import (
 //	create_time timestamp with time zone NOT NULL DEFAULT now(),
 //	update_time timestamp with time zone NOT NULL DEFAULT now(),
 //	constraint in_app_message_pk primary key (id)
-//);
-//ALTER SEQUENCE in_app_message_id_seq OWNED BY public.in_app_message.id;
+//
+// );
+// ALTER SEQUENCE in_app_message_id_seq OWNED BY public.in_app_message.id;
 const InAppMessageTableName = "in_app_message"
 
 func AddInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *protojson.MarshalOptions, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
@@ -74,13 +78,21 @@ func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id is empty")
 	}
-	query := "SELECT id, group_ids, type, data, start_date, end_date, high_priority FROM " + InAppMessageTableName + " WHERE id=$1"
+	query := `SELECT id, group_ids, type,
+	 data, start_date, end_date, 
+	 high_priority, create_time FROM ` +
+		InAppMessageTableName + " WHERE id=$1"
+
 	var dbID int64
 	var dbType int32
 	var groupIdsStr string
 	var dbData []byte
 	var dbStartDate, dbEndDate, dbHighPriority int64
-	err := db.QueryRowContext(ctx, query, id).Scan(&dbID, &groupIdsStr, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
+	var dbCreateTime pgtype.Timestamptz
+	err := db.QueryRowContext(ctx, query, id).
+		Scan(&dbID, &groupIdsStr, &dbType,
+			&dbData, &dbStartDate, &dbEndDate,
+			&dbHighPriority, &dbCreateTime)
 	if err != nil {
 		logger.Error("Query inAppMessage by id %d, error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Query inAppMessage error")
@@ -94,13 +106,14 @@ func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	var groupIds []int64
 	_ = json.Unmarshal([]byte(groupIdsStr), &groupIds)
 	inAppMessage := pb.InAppMessage{
-		Id:           dbID,
-		GroupIds:     groupIds,
-		Type:         pb.TypeInAppMessage(dbType),
-		Data:         data,
-		StartDate:    dbStartDate,
-		EndDate:      dbEndDate,
-		HighPriority: dbHighPriority,
+		Id:             dbID,
+		GroupIds:       groupIds,
+		Type:           pb.TypeInAppMessage(dbType),
+		Data:           data,
+		StartDate:      dbStartDate,
+		EndDate:        dbEndDate,
+		HighPriority:   dbHighPriority,
+		CreateTimeUnix: dbCreateTime.Time.Unix(),
 	}
 	return &inAppMessage, nil
 }
@@ -247,7 +260,8 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		}
 	}
 
-	queryRow := "SELECT id, group_ids, type, data, start_date, end_date, high_priority FROM " +
+	queryRow := `SELECT id, group_ids, type, data, start_date, 
+		end_date, high_priority, create_time FROM ` +
 		InAppMessageTableName + query
 
 	logger.Debug("queryRow %s %v", queryRow, params)
@@ -262,13 +276,16 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	var dbData []byte
 	var groupIds []int64
 	var dbStartDate, dbEndDate, dbHighPriority int64
+	var dbCreateTime pgtype.Timestamptz
 	if err != nil {
 		logger.Error("Query inAppMessage error %s", err.Error())
 		return nil, status.Error(codes.Internal, "Query inAppMessage error")
 	}
 	for rows.Next() {
 		var groupIdsStr string
-		rows.Scan(&dbID, &groupIdsStr, &dbType, &dbData, &dbStartDate, &dbEndDate, &dbHighPriority)
+		rows.Scan(&dbID, &groupIdsStr, &dbType,
+			&dbData, &dbStartDate, &dbEndDate,
+			&dbHighPriority, &dbCreateTime)
 		var data = &pb.InAppMessageData{}
 		err = unmarshaler.Unmarshal(dbData, data)
 		if err != nil {
@@ -277,13 +294,14 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		}
 		_ = json.Unmarshal([]byte(groupIdsStr), &groupIds)
 		inAppMessage := pb.InAppMessage{
-			Id:           dbID,
-			GroupIds:     groupIds,
-			Type:         pb.TypeInAppMessage(dbType),
-			Data:         data,
-			StartDate:    dbStartDate,
-			EndDate:      dbEndDate,
-			HighPriority: dbHighPriority,
+			Id:             dbID,
+			GroupIds:       groupIds,
+			Type:           pb.TypeInAppMessage(dbType),
+			Data:           data,
+			StartDate:      dbStartDate,
+			EndDate:        dbEndDate,
+			HighPriority:   dbHighPriority,
+			CreateTimeUnix: dbCreateTime.Time.Unix(),
 		}
 		if data.ShowTimes != nil && len(data.ShowTimes) > 0 {
 			hours, _, _ := time.Now().Clock()

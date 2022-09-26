@@ -37,6 +37,19 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 		if err != nil {
 			return "", err
 		}
+		noti := pb.Notification{
+			RecipientId: freeChip.RecipientId,
+			Type:        pb.TypeNotification_GIFT,
+			Title:       "Freechip",
+			Content:     "Freechip",
+			SenderId:    "",
+			Read:        false,
+		}
+		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
+		if err != nil {
+			logger.Warn("Add freechip noti err %s, body %s",
+				err.Error(), freeChip.String())
+		}
 		freeChipStr, _ := conf.MarshalerDefault.Marshal(freeChip)
 		return string(freeChipStr), nil
 	}

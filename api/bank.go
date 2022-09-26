@@ -94,6 +94,20 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if err != nil {
 			return "", err
 		}
+		// todo send noti
+		noti := pb.Notification{
+			RecipientId: freeChip.RecipientId,
+			Type:        pb.TypeNotification_GIFT,
+			Title:       "Gift",
+			Content:     freeChip.GetContent(),
+			SenderId:    bank.SenderId,
+			Read:        false,
+		}
+		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
+		if err != nil {
+			logger.Warn("Add freechip noti err %s, body %s",
+				err.Error(), freeChip.String())
+		}
 		jsonStr, _ := marshaler.Marshal(freeChip)
 		return string(jsonStr), nil
 	}
