@@ -37,6 +37,9 @@ message Profile {
   repeated LangCode lang_availables = 19;
 }
 
+message ListProfile {
+  repeated Profile profiles = 1;
+}
 message QuickChatUpdateRequest {
   repeated string texts = 1;
 }
