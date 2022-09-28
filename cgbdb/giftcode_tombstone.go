@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,9 +34,12 @@ import (
 //   );
 
 // ALTER TABLE
-//   public.giftcodetombstone
+//
+//	public.giftcodetombstone
+//
 // ADD
-//   CONSTRAINT giftcodetombstone_pkey PRIMARY KEY (id)
+//
+//	CONSTRAINT giftcodetombstone_pkey PRIMARY KEY (id)
 const GiftCodeTombstoneTableName = "giftcodetombstone"
 
 func AddGiftCodeTombstone(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (*pb.GiftCode, error) {

@@ -1,6 +1,6 @@
 package entity
 
-import pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+import pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 
 type Bet struct {
 	Amount  int  `json:"amount"`

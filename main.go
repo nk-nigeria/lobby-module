@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/message_queue"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/message_queue"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/go-co-op/gocron"
 
 	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
 )
 
 const (
@@ -106,7 +106,7 @@ var (
 	node *snowflake.Node
 )
 
-//noinspection GoUnusedExportedFunction
+// noinspection GoUnusedExportedFunction
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
 	initStart := time.Now()
 	conf.Init()

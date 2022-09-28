@@ -9,33 +9,36 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
-	"google.golang.org/protobuf/encoding/protojson"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-//CREATE SEQUENCE user_group_id_seq;
-//CREATE TABLE public.user_group (
-//  id bigint NOT NULL DEFAULT nextval('user_group_id_seq'),
-//  name character varying(256)  NOT NULL,
-//  type character varying(128) NOT NULL,
-//  condition jsonb NOT NULL,
-//  deleted boolean NOT NULL,
-//  create_time timestamp with time zone NOT NULL DEFAULT now(),
-//  update_time timestamp with time zone NOT NULL DEFAULT now(),
-//	constraint user_group_pk primary key (id),
-//	UNIQUE (name)
-//);
-//ALTER SEQUENCE user_group_id_seq OWNED BY public.user_group.id;
+// CREATE SEQUENCE user_group_id_seq;
+// CREATE TABLE public.user_group (
+//
+//	 id bigint NOT NULL DEFAULT nextval('user_group_id_seq'),
+//	 name character varying(256)  NOT NULL,
+//	 type character varying(128) NOT NULL,
+//	 condition jsonb NOT NULL,
+//	 deleted boolean NOT NULL,
+//	 create_time timestamp with time zone NOT NULL DEFAULT now(),
+//	 update_time timestamp with time zone NOT NULL DEFAULT now(),
+//		constraint user_group_pk primary key (id),
+//		UNIQUE (name)
+//
+// );
+// ALTER SEQUENCE user_group_id_seq OWNED BY public.user_group.id;
 const UserGroupTableName = "user_group"
 
 func parseOperator(condition string) (string, string) {

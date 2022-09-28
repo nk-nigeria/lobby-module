@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"google.golang.org/grpc/codes"
@@ -28,9 +28,12 @@ import (
 //   );
 
 // ALTER TABLE
-//   public.giftcodeclaim
+//
+//	public.giftcodeclaim
+//
 // ADD
-//   CONSTRAINT giftcodeclaim_pkey PRIMARY KEY (id)
+//
+//	CONSTRAINT giftcodeclaim_pkey PRIMARY KEY (id)
 const GiftCodeClaimTableName = "giftcodeclaim"
 
 func AddNewGiftCodeClaim(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) error {

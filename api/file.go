@@ -3,12 +3,13 @@ package api
 import (
 	"context"
 	"database/sql"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"time"
+
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
-	"time"
 )
 
 func RpcGetPreSignPut(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, wrapper objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {

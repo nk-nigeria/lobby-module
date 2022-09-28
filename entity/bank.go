@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )

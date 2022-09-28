@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"

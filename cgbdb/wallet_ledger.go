@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"

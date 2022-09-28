@@ -1,4 +1,4 @@
-PROJECT_NAME=github.com/ciaolink-game-platform/cgp-lobby-module
+PROJECT_NAME=github.com/ciaolink-game-platform/cgb-lobby-module
 APP_NAME=lobby.so
 APP_PATH=$(PWD)
 

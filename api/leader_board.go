@@ -2,8 +2,9 @@ package api
 
 import (
 	"context"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )

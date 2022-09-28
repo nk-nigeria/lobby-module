@@ -15,11 +15,11 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	objectstorage "github.com/ciaolink-game-platform/cgp-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 )
 
 const DefaultLevel = 0

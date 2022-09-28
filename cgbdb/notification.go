@@ -9,16 +9,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-//CREATE SEQUENCE cgb_notification_id_seq;
-//CREATE TABLE public.cgb_notification (
+// CREATE SEQUENCE cgb_notification_id_seq;
+// CREATE TABLE public.cgb_notification (
+//
 //	id bigint NOT NULL DEFAULT nextval('notification_id_seq'),
 //	title character varying(256)  NOT NULL,
 //	content text NOT NULL,
@@ -29,8 +30,9 @@ import (
 //	create_time timestamp with time zone NOT NULL DEFAULT now(),
 //	update_time timestamp with time zone NOT NULL DEFAULT now(),
 //	constraint cgb_notification_pk primary key (id)
-//);
-//ALTER SEQUENCE cgb_notification_id_seq OWNED BY public.cgb_notification.id;
+//
+// );
+// ALTER SEQUENCE cgb_notification_id_seq OWNED BY public.cgb_notification.id;
 const NotificationTableName = "cgb_notification"
 
 func AddNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, notification *pb.Notification) error {
@@ -87,13 +89,16 @@ func GetNotificationById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 }
 
 func ReadNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, user_id string) error {
-	query := "UPDATE " + NotificationTableName + " SET read=true WHERE id=$1 and recipient_id=$2"
-	result, err := db.ExecContext(ctx, query, id, user_id)
+	if !IsExistNotificationNotRead(ctx, logger, db, user_id) {
+		return nil
+	}
+	query := "UPDATE " + NotificationTableName + " SET read=$1 WHERE id=$2 and recipient_id=$3"
+	result, err := db.ExecContext(ctx, query, true, id, user_id)
 	if err != nil {
 		logger.Error("Update user group id %d, user %s, error %s", id, err.Error())
 		return status.Error(codes.Internal, "Read notification error")
 	}
-	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount == 0 {
 		logger.Error("Did not update notification")
 		return status.Error(codes.Internal, "Read notification group")
 	}
@@ -115,13 +120,16 @@ func DeleteNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 }
 
 func ReadAllNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, user_id string) error {
-	query := "UPDATE " + NotificationTableName + " SET read=true WHERE recipient_id=$2"
-	result, err := db.ExecContext(ctx, query, user_id)
+	if !IsExistNotificationNotRead(ctx, logger, db, user_id) {
+		return nil
+	}
+	query := "UPDATE " + NotificationTableName + " SET read=$1 WHERE recipient_id=$2"
+	result, err := db.ExecContext(ctx, query, true, user_id)
 	if err != nil {
-		logger.Error("Read all notification, user %s, error %s", err.Error())
+		logger.Error("Read all notification, user %s, error %s", user_id, err.Error())
 		return status.Error(codes.Internal, "Read all notification error")
 	}
-	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount == 0 {
 		logger.Error("Did not update notification")
 		return status.Error(codes.Internal, "Read notification group")
 	}
@@ -129,7 +137,7 @@ func ReadAllNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 }
 
 func DeleteAllNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string) error {
-	query := "DELETE FROM " + NotificationTableName + " WHERE recipient_id=$2"
+	query := "DELETE FROM " + NotificationTableName + " WHERE recipient_id=$1"
 	result, err := db.ExecContext(ctx, query, userId)
 	if err != nil {
 		logger.Error("Delete all notification, error %s", err.Error())
@@ -280,4 +288,19 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		Offset:        incomingCursor.Offset,
 		Limit:         limit,
 	}, nil
+}
+
+func IsExistNotificationNotRead(ctx context.Context, logger runtime.Logger, db *sql.DB, user_id string) bool {
+	query := "SELECT id FROM " + NotificationTableName + " WHERE recipient_id=$1 and read=false LIMIT 1"
+	var dbID int64
+
+	err := db.QueryRowContext(ctx, query, user_id).Scan(&dbID)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	if err != nil {
+		logger.Error("Query IsExistNotificationNotRead user id %s, error %s", user_id, err.Error())
+		return false
+	}
+	return true
 }

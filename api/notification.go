@@ -3,10 +3,11 @@ package api
 import (
 	"context"
 	"database/sql"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )

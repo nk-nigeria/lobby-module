@@ -17,7 +17,7 @@ syntax = "proto3";
 // The realtime protocol for the template match engine.
 package api;
 
-option go_package = "github.com/ciaolink-game-platform/cgp-lobby-module/api";
+option go_package = "github.com/ciaolink-game-platform/cgb-lobby-module/api";
 
 // The complete set of rpc used for communication between clients and server.
 enum RPCCode {

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	"github.com/heroiclabs/nakama-common/runtime"
 	_ "github.com/lib/pq"
 )

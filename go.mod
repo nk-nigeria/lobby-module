@@ -1,4 +1,4 @@
-module github.com/ciaolink-game-platform/cgp-lobby-module
+module github.com/ciaolink-game-platform/cgb-lobby-module
 
 go 1.18
 

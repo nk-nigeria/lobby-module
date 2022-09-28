@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"

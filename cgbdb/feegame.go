@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"google.golang.org/grpc/codes"

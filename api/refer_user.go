@@ -8,12 +8,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/constant"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/entity"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 

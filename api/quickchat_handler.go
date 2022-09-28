@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ciaolink-game-platform/cgp-lobby-module/api/presenter"
-	pb "github.com/ciaolink-game-platform/cgp-lobby-module/proto"
+	"time"
+
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
-	"time"
 )
 
 func RpcUpdateQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
