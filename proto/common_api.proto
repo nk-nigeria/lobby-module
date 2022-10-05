@@ -268,7 +268,7 @@ message ListGiftCode {
 enum TypeNotification {
   RESERVED = 0;
   MAIL_BOX = 1;
-  GIFT = 2 ;
+  GIFT = 2;
 }
 
 message AddNotificationRequest {
@@ -288,6 +288,7 @@ message Notification {
   string content = 5;
   string sender_id = 6;
   bool read = 7;
+  int64 create_time_unix = 8;
 }
 
 message NotificationRequest {
@@ -317,8 +318,8 @@ enum InAppMessageAction {
 }
 
 message RangeTime {
-    int32 from = 1;
-    int32 to = 2;
+  int32 from = 1;
+  int32 to = 2;
 }
 
 message InAppMessageData {
@@ -361,12 +362,12 @@ message DefaultResponse {
 }
 
 message PreSignPutRequest {
-    string fileName = 1;
-    string bucketName = 2;
+  string fileName = 1;
+  string bucketName = 2;
 }
 
 message PreSignPutResponse {
-    string url = 1;
+  string url = 1;
 }
 
 message ReferUser {
@@ -423,7 +424,7 @@ message HistoryRewardRequest {
   int64 to = 4;
 }
 
-message WalletTransRequest{
+message WalletTransRequest {
   int64 limit = 1;
   string cusor = 2;
   string meta_action = 3;

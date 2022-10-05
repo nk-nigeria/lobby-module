@@ -12,6 +12,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/jackc/pgtype"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -66,24 +67,30 @@ func GetNotificationById(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id is empty")
 	}
-	query := "SELECT id, title, content, sender_id, recipient_id, type, read FROM " + NotificationTableName + " WHERE id=$1 and recipient_id=$2"
+	query := "SELECT id, title, content, sender_id, recipient_id, type, read, create_time FROM " + NotificationTableName + " WHERE id=$1 and recipient_id=$2"
 	var dbID int64
 	var dbTitle, dbContent, dbSenderId, dbRecipientId string
 	var dbType int32
 	var dbRead bool
-	err := db.QueryRowContext(ctx, query, id, user_id).Scan(&dbID, &dbTitle, &dbContent, &dbSenderId, &dbRecipientId, &dbType, &dbRead)
+	var dbCreateTime pgtype.Timestamptz
+
+	err := db.QueryRowContext(ctx, query, id, user_id).
+		Scan(&dbID, &dbTitle, &dbContent,
+			&dbSenderId, &dbRecipientId, &dbType,
+			&dbRead, &dbCreateTime)
 	if err != nil {
 		logger.Error("Query notification by id %, error %s", id, err.Error())
 		return nil, status.Error(codes.Internal, "Query notification error")
 	}
 	notification := pb.Notification{
-		Id:          dbID,
-		Title:       dbTitle,
-		Content:     dbContent,
-		SenderId:    dbSenderId,
-		RecipientId: dbRecipientId,
-		Type:        (pb.TypeNotification)(dbType),
-		Read:        dbRead,
+		Id:             dbID,
+		Title:          dbTitle,
+		Content:        dbContent,
+		SenderId:       dbSenderId,
+		RecipientId:    dbRecipientId,
+		Type:           (pb.TypeNotification)(dbType),
+		Read:           dbRead,
+		CreateTimeUnix: dbCreateTime.Time.Unix(),
 	}
 	return &notification, nil
 }
@@ -196,7 +203,7 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		query += " WHERE recipient_id=$1 and type=$2 order by id desc limit $3"
 		params = append(params, limit)
 	}
-	queryRow := "SELECT id, title, content, sender_id, recipient_id, type, read FROM " +
+	queryRow := "SELECT id, title, content, sender_id, recipient_id, type, read, create_time FROM " +
 		NotificationTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
@@ -208,16 +215,21 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	var dbTitle, dbContent, dbSenderId, dbRecipientId string
 	var dbType int32
 	var dbRead bool
+	var dbCreateTime pgtype.Timestamptz
+
 	for rows.Next() {
-		rows.Scan(&dbID, &dbTitle, &dbContent, &dbSenderId, &dbRecipientId, &dbType, &dbRead)
+		rows.Scan(&dbID, &dbTitle, &dbContent,
+			&dbSenderId, &dbRecipientId,
+			&dbType, &dbRead, &dbCreateTime)
 		notification := pb.Notification{
-			Id:          dbID,
-			Title:       dbTitle,
-			Content:     dbContent,
-			SenderId:    dbSenderId,
-			RecipientId: dbRecipientId,
-			Type:        (pb.TypeNotification)(dbType),
-			Read:        dbRead,
+			Id:             dbID,
+			Title:          dbTitle,
+			Content:        dbContent,
+			SenderId:       dbSenderId,
+			RecipientId:    dbRecipientId,
+			Type:           (pb.TypeNotification)(dbType),
+			Read:           dbRead,
+			CreateTimeUnix: dbCreateTime.Time.Unix(),
 		}
 		ml = append(ml, &notification)
 	}
