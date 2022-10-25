@@ -47,7 +47,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "2",
+			LobbyId:     "2",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -58,7 +60,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "2",
+			LobbyId:     "2",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -69,7 +73,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "4",
+			LobbyId:     "4",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -80,7 +86,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "5",
+			LobbyId:     "5",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -91,7 +99,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "6",
+			LobbyId:     "6",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -102,7 +112,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "7",
+			LobbyId:     "7",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -113,7 +125,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "8",
+			LobbyId:     "8",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 
 		{
@@ -124,7 +138,9 @@ func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 				ColSpan: 2,
 				RowSpan: 2,
 			},
-			LobbyId: "9",
+			LobbyId:     "9",
+			GameFee:     0.04,
+			JackpotFree: 0.01,
 		},
 	}
 

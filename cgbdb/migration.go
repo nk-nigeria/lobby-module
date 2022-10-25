@@ -268,5 +268,52 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
+	// jackpot
+	_, err = db.ExecContext(ctx, `
+				CREATE TABLE
+			public.jackpot (
+				id bigint NOT NULL,
+				game character varying(128) NOT NULL,
+				UNIQUE(game),
+				chips bigint NOT NULL DEFAULT 0,
+				create_time timestamp
+				with
+				time zone NOT NULL DEFAULT now(),
+				update_time timestamp
+				with
+				time zone NOT NULL DEFAULT now()
+			);
+
+			ALTER TABLE
+			public.jackpot
+			ADD
+			CONSTRAINT jackpot_pkey PRIMARY KEY (id)`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+	}
+	// free game
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE
+			public.feegame (
+			id bigint NOT NULL,
+			user_id character varying(128) NOT NULL,
+			game character varying(128) NOT NULL,
+			fee bigint NOT NULL DEFAULT 0,
+			create_time timestamp
+			with
+			time zone NOT NULL DEFAULT now(),
+			update_time timestamp
+			with
+			time zone NOT NULL DEFAULT now()
+		);
+
+		ALTER TABLE
+			public.feegame
+		ADD
+		CONSTRAINT feegame_pkey PRIMARY KEY (id)
+`)
+	if err != nil {
+		logger.Error("Error: %s", err.Error())
+	}
 	logger.Error("Done run migration")
 }

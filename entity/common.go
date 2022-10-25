@@ -56,11 +56,13 @@ func (gs Games) ToPB() []*pb.Game {
 }
 
 type Game struct {
-	Code    string `json:"code"`
-	Layout  Layout `json:"layout"`
-	LobbyId string `json:"lobbyId"`
-	MinChip int    `json:"minChip"`
-	Enable  bool   `json:"enable"`
+	Code        string  `json:"code"`
+	Layout      Layout  `json:"layout"`
+	LobbyId     string  `json:"lobbyId"`
+	MinChip     int     `json:"minChip"`
+	Enable      bool    `json:"enable"`
+	GameFee     float32 `json:"game_fee"`
+	JackpotFree float32 `json:"jackpot_fee"`
 }
 
 type Layout struct {
