@@ -323,7 +323,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			id bigint NOT NULL,
 			game character varying(128) NOT NULL,
 			chips bigint NOT NULL DEFAULT 0,
-			metadata string
+			metadata character varying(256) NOT NULL,
 			create_time timestamp
 			with
 			time zone NOT NULL DEFAULT now(),
