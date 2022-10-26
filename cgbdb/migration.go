@@ -335,7 +335,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		ALTER TABLE
 		public.jackpot_history
 		ADD
-		CONSTRAINT jackpot_pkey PRIMARY KEY (id)
+		CONSTRAINT jackpot_history_pkey PRIMARY KEY (id)
 
 `)
 	if err != nil {
