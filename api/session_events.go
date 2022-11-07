@@ -37,6 +37,26 @@ func RegisterSessionEvents(db *sql.DB, nk runtime.NakamaModule, initializer runt
 		return err
 	}
 
+	initializer.RegisterAfterSessionLogout(func(
+		ctx context.Context,
+		logger runtime.Logger,
+		db *sql.DB,
+		nk runtime.NakamaModule,
+		in *api.SessionLogoutRequest,
+	) error {
+		// Force disconnect the socket for the user's other game client.
+		sessionId, ok := ctx.Value(runtime.RUNTIME_CTX_SESSION_ID).(string)
+		if !ok {
+			logger.Error("nk.SessionDisconnect with empty session id.")
+			return nil
+		}
+		if err := nk.SessionDisconnect(ctx, sessionId); err != nil {
+			logger.WithField("err", err).Error("nk.SessionDisconnect error.")
+			return nil
+		}
+		logger.WithField("session id", sessionId).Debug("Session disconnect successful")
+		return nil
+	})
 	return nil
 }
 
@@ -110,20 +130,13 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 				// Ignore our current socket connection.
 				continue
 			}
-
 			ctx2, _ := context.WithTimeout(context.Background(), 3*time.Second)
 			if err := nk.NotificationsSend(ctx2, notifications); err != nil {
 				logger.WithField("err", err).Error("nk.NotificationsSend error.")
 				continue
 			}
 
-			// Force disconnect the socket for the user's other game client.
-			if err := nk.SessionDisconnect(ctx2, presence.GetSessionId()); err != nil {
-				logger.WithField("err", err).Error("nk.SessionDisconnect error.")
-				continue
-			}
 		}
-
 	}
 }
 

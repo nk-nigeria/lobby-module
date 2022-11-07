@@ -108,6 +108,9 @@ var (
 
 // noinspection GoUnusedExportedFunction
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
+	defer func() {
+		logger.Info("InitModule load done")
+	}()
 	initStart := time.Now()
 	conf.Init()
 
@@ -418,6 +421,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		}
 		api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
 	})
+
 	message_queue.GetNatsService().RegisterAllSubject()
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
