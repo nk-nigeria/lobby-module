@@ -33,7 +33,8 @@ func (w *MinioWrapper) MakeBucket(bucketName string) error {
 	if !w.init {
 		return fmt.Errorf("Minio wrapper not init")
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	location := "us-east-1"
 	err := w.minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: location})
 	return err
@@ -41,8 +42,10 @@ func (w *MinioWrapper) MakeBucket(bucketName string) error {
 func (w *MinioWrapper) PresignGetObject(bucketName string, objectName string, expiry time.Duration, params map[string]interface{}) (string, error) {
 	// reqParams := make(url.Values)
 	// reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	presignedURL, err := w.minioClient.PresignedGetObject(
-		context.Background(), bucketName,
+		ctx, bucketName,
 		objectName,
 		expiry,
 		nil)
@@ -53,8 +56,10 @@ func (w *MinioWrapper) PresignGetObject(bucketName string, objectName string, ex
 }
 
 func (w *MinioWrapper) PresigPutObject(bucketName string, objectName string, expiry time.Duration, params map[string]interface{}) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	presignedURL, err := w.minioClient.PresignedPutObject(
-		context.Background(),
+		ctx,
 		bucketName,
 		objectName,
 		expiry)
