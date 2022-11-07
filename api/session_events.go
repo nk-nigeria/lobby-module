@@ -37,25 +37,31 @@ func RegisterSessionEvents(db *sql.DB, nk runtime.NakamaModule, initializer runt
 		return err
 	}
 
-	initializer.RegisterAfterSessionLogout(func(
-		ctx context.Context,
+	initializer.RegisterBeforeSessionLogout(func(ctx context.Context,
 		logger runtime.Logger,
-		db *sql.DB,
-		nk runtime.NakamaModule,
+		db *sql.DB, nk runtime.NakamaModule,
 		in *api.SessionLogoutRequest,
-	) error {
-		// Force disconnect the socket for the user's other game client.
-		sessionId, ok := ctx.Value(runtime.RUNTIME_CTX_SESSION_ID).(string)
+	) (*api.SessionLogoutRequest, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
-			logger.Error("nk.SessionDisconnect with empty session id.")
-			return nil
+			logger.Error("context did not contain user ID.")
+			return in, nil
 		}
-		if err := nk.SessionDisconnect(ctx, sessionId); err != nil {
-			logger.WithField("err", err).Error("nk.SessionDisconnect error.")
-			return nil
+		// Force disconnect the socket for the user's other game client.
+		presences, err := nk.StreamUserList(streamModeNotification, userID, "", "", true, true)
+		if err != nil || len(presences) == 0 {
+			logger.WithField("err", err).Error("nk.StreamUserList error.")
+			return in, nil
 		}
-		logger.WithField("session id", sessionId).Debug("Session disconnect successful")
-		return nil
+		for _, presence := range presences {
+			sessionId := presence.GetSessionId()
+			if err := nk.SessionDisconnect(ctx, sessionId); err != nil {
+				logger.WithField("err", err).Error("nk.SessionDisconnect error.")
+				return in, nil
+			}
+			logger.WithField("session id", sessionId).Debug("Session disconnect successful")
+		}
+		return in, nil
 	})
 	return nil
 }
