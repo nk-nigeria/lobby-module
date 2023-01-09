@@ -19,7 +19,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 )
 
 const DefaultLevel = 0

@@ -7,7 +7,7 @@ import (
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )

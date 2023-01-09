@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

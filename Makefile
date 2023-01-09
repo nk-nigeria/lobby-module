@@ -6,8 +6,8 @@ build:
 	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 	
 sync:
-	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/data/modules/
-	ssh root@cgpdev 'cd /root/cgp-server && docker restart nakama'
+	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dev/data/modules/
+	# ssh root@cgpdev 'cd /root/cgp-server && docker restart nakama'
 bsync: build sync
 dev:
 	docker-compose up -d --build nakama && docker logs -f lobby

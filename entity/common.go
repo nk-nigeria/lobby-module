@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 )
 
 const (

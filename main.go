@@ -9,7 +9,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/message_queue"
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/go-co-op/gocron"
 
 	"github.com/bwmarrin/snowflake"
@@ -102,6 +102,10 @@ const (
 	topicLeaderBoardAddScore = "leaderboard_add_score"
 )
 
+const (
+	rpcTestRemoteNode = "test_remote_node"
+)
+
 var (
 	node *snowflake.Node
 )
@@ -146,6 +150,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		objStorage.MakeBucket(entity.BucketBanners)
 	}
 
+	initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
 	}

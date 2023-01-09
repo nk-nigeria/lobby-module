@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	pb "github.com/ciaolink-game-platform/cgb-lobby-module/proto"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"google.golang.org/grpc/codes"
