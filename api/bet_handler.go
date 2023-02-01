@@ -163,7 +163,7 @@ func LoadBets(code string, ctx context.Context, logger runtime.Logger, nk runtim
 		logger.Error("Error when read list bet, error %s", err.Error())
 		return nil, presenter.ErrBetNotFound
 	}
-	if len(objectIds) == 0 {
+	if len(objects) == 0 {
 		logger.Warn("List bet in storage empty")
 		return bets, nil
 	}

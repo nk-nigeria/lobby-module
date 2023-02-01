@@ -176,7 +176,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 
 		logger.Debug("MatchList result %v", matches)
 		if len(matches) == 0 {
-			bets, err := LoadBets(request.GameCode, ctx, logger, nk)
+			bets, err := LoadBets(kChinesePokerKey, ctx, logger, nk)
 			if err != nil {
 				return "", presenter.ErrInternalError
 			}
