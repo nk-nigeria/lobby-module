@@ -206,9 +206,16 @@ func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string,
 		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
 		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 0),
 		CreateTimeUnix:     user.GetCreateTime().Seconds,
-		PlayingMatch:       entity.InterfaceToString(metadata["on_playing_in_match"]),
 		// LangAvailables:     []string{"en", "phi"},
 	}
+	playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
+	if playingMatchJson == "" {
+		profile.PlayingMatch = nil
+	} else {
+		profile.PlayingMatch = &pb.PlayingMatch{}
+		json.Unmarshal([]byte(playingMatchJson), profile.PlayingMatch)
+	}
+
 	profile.LangAvailables = append(profile.LangAvailables,
 		&pb.LangCode{
 			IsoCode:     "en-US",
