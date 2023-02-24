@@ -8,7 +8,7 @@ build:
 	go get github.com/ciaolink-game-platform/cgp-common@main
 	go mod tidy
 	go mod vendor
-	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 	
 sync:
 	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dev/data/modules/
