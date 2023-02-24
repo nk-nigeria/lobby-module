@@ -3,6 +3,7 @@ APP_NAME=lobby.so
 APP_PATH=$(PWD)
 
 build:
+	git submodule update --init
 	git submodule update --remote
 	go get github.com/ciaolink-game-platform/cgp-common@main
 	go mod tidy
