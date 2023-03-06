@@ -151,7 +151,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		objStorage.MakeBucket(entity.BucketBanners)
 	}
 
-	initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
+	// initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
 	}
