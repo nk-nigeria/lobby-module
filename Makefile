@@ -20,7 +20,7 @@ build:
 
 syncdev:
 	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dev/data/modules/
-	ssh root@cgpdev 'cd /root/cgp-server/dev && docker restart nakama'
+	ssh root@cgpdev 'cd /root/cgp-server/dev && docker restart nakama_dev'
 
 syncstg:
 	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/data/modules/
