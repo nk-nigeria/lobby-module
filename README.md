@@ -32,3 +32,4 @@ docker-compose down
 ```
 
 You can wipe the database and workspace with `docker-compose down -v` to remove the disk volumes.
+

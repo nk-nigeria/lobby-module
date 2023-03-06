@@ -129,6 +129,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				MarkUnit:     arg["bet"].(int32),
 				Open:         true,
 				MockCodeCard: request.MockCodeCard,
+				UserData:     request.UserData,
 			})
 		}
 		//  not found match,
