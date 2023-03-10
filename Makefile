@@ -3,11 +3,13 @@ APP_NAME=lobby.so
 APP_PATH=$(PWD)
 
 update-submodule-dev:
+	git checkout develop && git pull
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout develop && git pull && cd ..
 	go get github.com/ciaolink-game-platform/cgp-common@develop
 update-submodule-stg:
+	git checkout staging && git pull
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout main && cd ..
