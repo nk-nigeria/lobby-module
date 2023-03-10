@@ -5,7 +5,7 @@ APP_PATH=$(PWD)
 update-submodule-dev:
 	git submodule update --init
 	git submodule update --remote
-	cd ./cgp-common && git checkout develop && cd ..
+	cd ./cgp-common && git checkout develop && git pull && cd ..
 	go get github.com/ciaolink-game-platform/cgp-common@develop
 update-submodule-stg:
 	git submodule update --init
