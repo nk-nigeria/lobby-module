@@ -30,7 +30,7 @@ const (
 )
 
 func RegisterSessionEvents(db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
-	if err := initializer.RegisterEventSessionStart(eventSessionStartFunc(nk)); err != nil {
+	if err := initializer.RegisterEventSessionStart(eventSessionStartFunc(nk, db)); err != nil {
 		return err
 	}
 	if err := initializer.RegisterEventSessionEnd(eventSessionEndFunc(nk, db)); err != nil {
@@ -96,7 +96,7 @@ func eventSessionEndFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Conte
 }
 
 // Limit the number of concurrent realtime sessions active for a user to just one.
-func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtime.Logger, *api.Event) {
+func eventSessionStartFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Context, runtime.Logger, *api.Event) {
 	return func(ctx context.Context, logger runtime.Logger, evt *api.Event) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -113,37 +113,63 @@ func eventSessionStartFunc(nk runtime.NakamaModule) func(context.Context, runtim
 		ResetUserDailyReward(ctx, logger, nk)
 
 		// Fetch all live presences for this user on their private notification stream.
-		presences, err := nk.StreamUserList(streamModeNotification, userID, "", "", true, true)
-		if err != nil {
-			logger.WithField("err", err).Error("nk.StreamUserList error.")
-			return
-		}
-
-		notifications := []*runtime.NotificationSend{
-			{
-				Code: notificationCodeSingleDevice,
-				Content: map[string]interface{}{
-					"kicked_by": sessionID,
-				},
-				Persistent: false,
-				Sender:     userID,
-				Subject:    "Another device is active!",
-				UserID:     userID,
-			},
-		}
-		for _, presence := range presences {
-			if presence.GetUserId() == userID && presence.GetSessionId() == sessionID {
-				// Ignore our current socket connection.
-				continue
+		{
+			presences, err := nk.StreamUserList(streamModeNotification, userID, "", "", true, true)
+			if err != nil {
+				logger.WithField("err", err).Error("nk.StreamUserList error.")
+				return
 			}
-			ctx2, _ := context.WithTimeout(context.Background(), 3*time.Second)
-			if err := nk.NotificationsSend(ctx2, notifications); err != nil {
-				logger.WithField("err", err).Error("nk.NotificationsSend error.")
-				continue
+
+			notifications := []*runtime.NotificationSend{
+				{
+					Code: notificationCodeSingleDevice,
+					Content: map[string]interface{}{
+						"kicked_by": sessionID,
+					},
+					Persistent: false,
+					Sender:     userID,
+					Subject:    "Another device is active!",
+					UserID:     userID,
+				},
+			}
+			for _, presence := range presences {
+				if presence.GetUserId() == userID && presence.GetSessionId() == sessionID {
+					// Ignore our current socket connection.
+					continue
+				}
+				ctx2, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				cancel()
+				if err := nk.NotificationsSend(ctx2, notifications); err != nil {
+					logger.WithField("err", err).Error("nk.NotificationsSend error.")
+					continue
+				}
+
+			}
+		}
+		// save login info
+		{
+			ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
+			cancel()
+			query := `UPDATE
+					users AS u
+				SET
+					metadata
+						= u.metadata
+						|| jsonb_build_object('last_login_time_unix', extract('epoch' FROM now())::BIGINT,
+																	'last_login_device_id', 'todo',
+																	'last_login_ip', 'todo')
+				WHERE	
+					id = $1;`
+
+			_, err := db.ExecContext(ctx2, query, userID)
+			if err != nil && err != context.DeadlineExceeded {
+				logger.WithField("err", err).Error("db.ExecContext last online update error.")
+				return
 			}
 
 		}
 	}
+
 }
 
 func ResetUserDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
