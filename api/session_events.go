@@ -138,7 +138,7 @@ func eventSessionStartFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Con
 					continue
 				}
 				ctx2, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-				cancel()
+				defer cancel()
 				if err := nk.NotificationsSend(ctx2, notifications); err != nil {
 					logger.WithField("err", err).Error("nk.NotificationsSend error.")
 					continue
@@ -149,7 +149,6 @@ func eventSessionStartFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Con
 		// save login info
 		{
 			ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
-			cancel()
 			query := `UPDATE
 					users AS u
 				SET
@@ -162,6 +161,7 @@ func eventSessionStartFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Con
 					id = $1;`
 
 			_, err := db.ExecContext(ctx2, query, userID)
+			cancel()
 			if err != nil && err != context.DeadlineExceeded {
 				logger.WithField("err", err).Error("db.ExecContext last online update error.")
 				return
