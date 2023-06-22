@@ -21,12 +21,14 @@ import (
 	"fmt"
 	"sort"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const kDefaultMaxSize = 3
@@ -168,14 +170,17 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
 
 		resMatches := &pb.RpcFindMatchResponse{}
+		var matches []*api.Match
+		var err error
+		if define.IsAllowJoinInGameOnProgress(request.GameCode) {
+			matches, err = nk.MatchList(ctx, 100, true, "", nil, &maxSize, query)
+			if err != nil {
+				logger.Error("error listing matches: %v", err)
+				return "", presenter.ErrInternalError
+			}
 
-		matches, err := nk.MatchList(ctx, 100, true, "", nil, &maxSize, query)
-		if err != nil {
-			logger.Error("error listing matches: %v", err)
-			return "", presenter.ErrInternalError
+			logger.Debug("MatchList result %v", matches)
 		}
-
-		logger.Debug("MatchList result %v", matches)
 		if len(matches) == 0 {
 			bets, err := LoadBets(kChinesePokerKey, ctx, logger, nk)
 			if err != nil {
