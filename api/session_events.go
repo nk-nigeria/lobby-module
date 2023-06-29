@@ -77,7 +77,7 @@ func eventSessionEndFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Conte
 		// saveSecsOnlineNotClaimReward(ctx, logger, nk, db)
 
 		// Restrict the time allowed with the DB operation so we can fail fast in a stampeding herd scenario.
-		ctx2, _ := context.WithTimeout(ctx, 1*time.Second)
+		ctx2, cancel := context.WithTimeout(ctx, 5*time.Second)
 		query := `UPDATE
 					users AS u
 				SET
@@ -88,6 +88,7 @@ func eventSessionEndFunc(nk runtime.NakamaModule, db *sql.DB) func(context.Conte
 					id = $1;`
 
 		_, err := db.ExecContext(ctx2, query, userID)
+		cancel()
 		if err != nil && err != context.DeadlineExceeded {
 			logger.WithField("err", err).Error("db.ExecContext last online update error.")
 			return
