@@ -123,7 +123,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	marshaler := conf.Marshaler
 	unmarshaler := conf.Unmarshaler
-	if false {
+	if true {
 		cgbdb.RunMigrations(ctx, logger, db)
 	}
 	api.InitListGame(ctx, logger, nk)
