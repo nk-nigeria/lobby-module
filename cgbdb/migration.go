@@ -374,7 +374,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		CONSTRAINT op_match_details_pkey PRIMARY KEY (id)
 	);
 	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
-	
+
 	ddls = append(ddls, `CREATE TABLE public.op_players (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
@@ -418,7 +418,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {
-			logger.WithField("err", err).Error("ddl failed"))
+			logger.WithField("err", err).Error("ddl failed")
 		}
 	}
 	logger.Info("Done run migration")
