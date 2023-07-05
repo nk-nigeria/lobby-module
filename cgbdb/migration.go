@@ -336,10 +336,90 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		public.jackpot_history
 		ADD
 		CONSTRAINT jackpot_history_pkey PRIMARY KEY (id)
-
 `)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
 	}
-	logger.Error("Done run migration")
+
+	ddls := []string{
+		`CREATE TABLE public.gold_statistics (
+			id bigserial NOT NULL,
+			created_at timestamptz NULL,
+			updated_at timestamptz NULL,
+			deleted_at timestamptz NULL,
+			time_update timestamptz NULL,
+			pay int8 NULL,
+			promotion int8 NULL,
+			match_data bytea NULL,
+			ag_cashout int8 NULL,
+			ag_bank int8 NULL,
+			chips int8 NULL,
+			CONSTRAINT gold_statistics_pkey PRIMARY KEY (id)
+		);
+		CREATE INDEX idx_gold_statistics_deleted_at ON public.gold_statistics USING btree (deleted_at);`,
+	}
+	ddls = append(ddls, `CREATE TABLE public.op_match_details (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL,
+		updated_at timestamptz NULL,
+		deleted_at timestamptz NULL,
+		game_id int8 NULL,
+		game_name text NULL,
+		mcb int8 NULL,
+		match_id text NULL,
+		num_match_played int8 NULL,
+		chip_fee int8 NULL,
+		date_unix int8 NULL,
+		detail jsonb NULL,
+		CONSTRAINT op_match_details_pkey PRIMARY KEY (id)
+	);
+	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
+	
+	ddls = append(ddls, `CREATE TABLE public.op_players (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL,
+		updated_at timestamptz NULL,
+		deleted_at timestamptz NULL,
+		user_id text NULL,
+		user_name text NULL,
+		game_id int8 NULL,
+		game_name text NULL,
+		mcb int8 NULL,
+		no_bet int8 NULL,
+		no_win int8 NULL,
+		no_lost int8 NULL,
+		chip int8 NULL,
+		chip_win int8 NULL,
+		chip_lost int8 NULL,
+		chip_balance int8 NULL,
+		date_unix int8 NULL,
+		wallet text NULL,
+		CONSTRAINT op_players_pkey PRIMARY KEY (id)
+	);
+	CREATE INDEX idx_op_players_deleted_at ON public.op_players USING btree (deleted_at);`)
+
+	ddls = append(ddls, `CREATE TABLE public.op_match_details (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL,
+		updated_at timestamptz NULL,
+		deleted_at timestamptz NULL,
+		game_id int8 NULL,
+		game_name text NULL,
+		mcb int8 NULL,
+		match_id text NULL,
+		num_match_played int8 NULL,
+		chip_fee int8 NULL,
+		date_unix int8 NULL,
+		detail jsonb NULL,
+		CONSTRAINT op_match_details_pkey PRIMARY KEY (id)
+	);
+	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
+
+	for _, ddl := range ddls {
+		_, err = db.ExecContext(ctx, ddl)
+		if err != nil {
+			logger.WithField("err", err).Error("ddl failed"))
+		}
+	}
+	logger.Info("Done run migration")
 }
