@@ -415,6 +415,15 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	);
 	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
 
+	ddls = append(ddls, `
+	ALTER TABLE public.in_app_message ADD COLUMN app_package text NULL;
+	ALTER TABLE public.in_app_message ADD COLUMN game_id text NULL;
+	`)
+	ddls = append(ddls, `
+		ALTER TABLE public.cgb_notification ADD COLUMN app_package text NULL;
+		ALTER TABLE public.cgb_notification ADD COLUMN game_id text NULL;
+	`)
+
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {

@@ -31,17 +31,19 @@ import (
 //	create_time timestamp with time zone NOT NULL DEFAULT now(),
 //	update_time timestamp with time zone NOT NULL DEFAULT now(),
 //	constraint cgb_notification_pk primary key (id)
-//
 // );
 // ALTER SEQUENCE cgb_notification_id_seq OWNED BY public.cgb_notification.id;
+// ALTER TABLE public.cgb_notification ADD COLUMN app_package text NULL;
+// ALTER TABLE public.cgb_notification ADD COLUMN game_id text NULL;
+
 const NotificationTableName = "cgb_notification"
 
 func AddNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, notification *pb.Notification) error {
 	if notification == nil || notification.Title == "" || notification.Type <= 0 || notification.Content == "" || notification.RecipientId == "" {
 		return status.Error(codes.InvalidArgument, "Error add notification.")
 	}
-	query := "INSERT INTO " + NotificationTableName + " (title, content, sender_id, recipient_id, type, read, create_time, update_time) VALUES ($1, $2, $3, $4, $5, false, now(), now())"
-	result, err := db.ExecContext(ctx, query, notification.Title, notification.Content, notification.SenderId, notification.RecipientId, notification.Type)
+	query := "INSERT INTO " + NotificationTableName + " (title, content, sender_id, recipient_id, type, read, app_package, game_id, create_time, update_time) VALUES ($1, $2, $3, $4, $5, false, $6, $7, now(), now())"
+	result, err := db.ExecContext(ctx, query, notification.Title, notification.Content, notification.SenderId, notification.RecipientId, notification.Type, notification.AppPackage, notification.GameId)
 	if err != nil {
 		logger.Error("Add notification, type: %s, title: %s, content: %s, error %s",
 			notification.Type, notification.Title, notification.Content, err.Error())
@@ -203,7 +205,7 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		query += " WHERE recipient_id=$1 and type=$2 order by id desc limit $3"
 		params = append(params, limit)
 	}
-	queryRow := "SELECT id, title, content, sender_id, recipient_id, type, read, create_time FROM " +
+	queryRow := "SELECT id, title, content, sender_id, recipient_id, type, read, app_package, game_id, create_time FROM " +
 		NotificationTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
@@ -212,7 +214,7 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	}
 	ml := make([]*pb.Notification, 0)
 	var dbID int64
-	var dbTitle, dbContent, dbSenderId, dbRecipientId string
+	var dbTitle, dbContent, dbSenderId, dbRecipientId, dbAppPackage, dbGameId string
 	var dbType int32
 	var dbRead bool
 	var dbCreateTime pgtype.Timestamptz
@@ -220,16 +222,18 @@ func GetListNotification(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	for rows.Next() {
 		rows.Scan(&dbID, &dbTitle, &dbContent,
 			&dbSenderId, &dbRecipientId,
-			&dbType, &dbRead, &dbCreateTime)
+			&dbType, &dbRead, &dbAppPackage, &dbGameId, &dbCreateTime)
 		notification := pb.Notification{
 			Id:             dbID,
+			RecipientId:    dbRecipientId,
+			Type:           (pb.TypeNotification)(dbType),
 			Title:          dbTitle,
 			Content:        dbContent,
 			SenderId:       dbSenderId,
-			RecipientId:    dbRecipientId,
-			Type:           (pb.TypeNotification)(dbType),
 			Read:           dbRead,
 			CreateTimeUnix: dbCreateTime.Time.Unix(),
+			AppPackage:     dbAppPackage,
+			GameId:         dbGameId,
 		}
 		ml = append(ml, &notification)
 	}

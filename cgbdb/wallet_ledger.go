@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	"strings"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
@@ -18,8 +20,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type WalletAction string
+
+func (w WalletAction) String() string {
+	return string(w)
+}
+
 var (
-	ErrWalletLedgerInvalidCursor = errors.New("wallet ledger cursor invalid")
+	ErrWalletLedgerInvalidCursor              = errors.New("wallet ledger cursor invalid")
+	WalletActionIAPTopUp         WalletAction = "iap_topup"
 )
 
 func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, userID uuid.UUID, metaAction, metaBankAction []string, limit *int, cursor string) ([]runtime.WalletLedgerItem, string, string, error) {
@@ -198,4 +207,118 @@ func ListWalletLedger(ctx context.Context, logger runtime.Logger, db *sql.DB, us
 	}
 
 	return results, nextCursorStr, prevCursorStr, nil
+}
+
+func FilterUsersByTotalDeposit(ctx context.Context, db *sql.DB, condition string, value int64) ([]*pb.Vip, error) {
+	query := `select user_id, coalesce(sum(cast(changeset->'chips' as integer)),0) as chips
+	FROM public.wallet_ledger where metadata->>'action' = $1 group by user_id having coalesce(sum(cast(changeset->'chips' as integer)),0) ` + condition + ` $2`
+	rows, err := db.QueryContext(ctx, query,
+		WalletActionIAPTopUp.String(), value)
+	if err != nil {
+		fmt.Println(query)
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.Vip, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			return nil, err
+		}
+		vip := &pb.Vip{
+			UserId: userId,
+			Ci:     chips,
+		}
+		ml = append(ml, vip)
+	}
+	return ml, nil
+}
+func FilterUsersByTotalDepositInTime(ctx context.Context, db *sql.DB, fromUnix, toUnix int64, condition string, value int64) ([]*pb.Vip, error) {
+	query := `select user_id, coalesce(sum(cast(changeset->'chips' as integer)),0)  as chips
+	FROM public.wallet_ledger where create_time >=$1 and create_time <=$2 
+	and metadata->>'action' = $3 group by user_id  having coalesce(sum(cast(changeset->'chips' as integer)),0) ` + condition + ` $4`
+	rows, err := db.QueryContext(ctx, query,
+
+		time.Unix(fromUnix, 0), time.Unix(toUnix, 0),
+		WalletActionIAPTopUp.String(), value)
+	if err != nil {
+		fmt.Println(query)
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.Vip, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			return nil, err
+		}
+		vip := &pb.Vip{
+			UserId: userId,
+			Cio:    chips,
+		}
+		ml = append(ml, vip)
+	}
+	return ml, nil
+}
+
+func TotalDepositByUsers(ctx context.Context, db *sql.DB, userIds ...string) ([]*pb.Vip, error) {
+	if len(userIds) == 0 {
+		return nil, errors.New("len user id must not empty")
+	}
+	query := `select user_id, coalesce(sum(cast(changeset->'chips' as integer)),0) as chips
+	FROM public.wallet_ledger where  metadata->>'action' = $1 group by user_id`
+	rows, err := db.QueryContext(ctx, query,
+		WalletActionIAPTopUp.String())
+	if err != nil {
+		fmt.Println(query)
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.Vip, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			return nil, err
+		}
+		vip := &pb.Vip{
+			UserId: userId,
+			Ci:     chips,
+		}
+		ml = append(ml, vip)
+	}
+	return ml, nil
+}
+func TotalDepositInTimeByUsers(ctx context.Context, db *sql.DB, fromUnix, toUnix int64, userIds ...string) ([]*pb.Vip, error) {
+	if len(userIds) == 0 {
+		return nil, errors.New("len user id must not empty")
+	}
+	query := `select user_id, coalesce(sum(cast(changeset->'chips' as integer)),0)  as chips
+	FROM public.wallet_ledger where create_time >=$1 and create_time <=$2 and user_id::text in (` + "'" + strings.Join(userIds, "','") + "'" + `) 
+	and metadata->>'action' = $3 group by user_id`
+	rows, err := db.QueryContext(ctx, query,
+
+		time.Unix(fromUnix, 0), time.Unix(toUnix, 0),
+		WalletActionIAPTopUp.String())
+	if err != nil {
+		fmt.Println(query)
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.Vip, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			return nil, err
+		}
+		vip := &pb.Vip{
+			UserId: userId,
+			Cio:    chips,
+		}
+		ml = append(ml, vip)
+	}
+	return ml, nil
 }
