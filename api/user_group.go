@@ -9,7 +9,6 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -33,7 +32,6 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		typeUG := constant.UserGroupType(userGroup.Type)
 		userGroup.Data = removeSpace(userGroup.Data)
 		userGroup.Data = strings.Trim(userGroup.Data, " ")
 		err := cgbdb.AddUserGroup(ctx, logger, db, userGroup, marshaler)

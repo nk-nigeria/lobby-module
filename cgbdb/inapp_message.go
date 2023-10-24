@@ -156,7 +156,7 @@ func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 		}
 	}
 	group += "]"
-	query := "UPDATE " + InAppMessageTableName + " SET group_ids=$1, data=$2, start_date=$3, end_date=$4, high_priority=$5, app_package=$6, game_id=$7 WHERE id=$6"
+	query := "UPDATE " + InAppMessageTableName + " SET group_ids=$1, data=$2, start_date=$3, end_date=$4, high_priority=$5, app_package=$6, game_id=$7 WHERE id=$8"
 	result, err := db.ExecContext(ctx, query, group, data, inAppMessage.StartDate, inAppMessage.EndDate, inAppMessage.HighPriority, inAppMessage.AppPackage, inAppMessage.GameId, oldInAppMessage.Id)
 	if err != nil {
 		logger.Error("Update inAppMessage id %d, error %s", id, err.Error())
