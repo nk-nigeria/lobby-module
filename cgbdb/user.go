@@ -171,11 +171,13 @@ func GetAccount(ctx context.Context, logger runtime.Logger, db *sql.DB, userID s
 	var disableTime pgtype.Timestamptz
 	var deviceIDs pgtype.VarcharArray
 	var lastOnlineTime pgtype.Timestamptz
+	var sID sql.NullInt64
 
 	query := `
 SELECT u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
 	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
-	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id), u.last_online_time_unix
+	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id), u.last_online_time_unix,
+	u.sid
 FROM users u
 WHERE u.id = $1`
 
@@ -186,7 +188,8 @@ WHERE u.id = $1`
 			&apple, &facebook, &facebookInstantGame,
 			&google, &gamecenter, &steam,
 			&customID, &edgeCount, &createTime,
-			&updateTime, &verifyTime, &disableTime, &deviceIDs, &lastOnlineTime); err != nil {
+			&updateTime, &verifyTime, &disableTime,
+			&deviceIDs, &lastOnlineTime, &sID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrAccountNotFound
 		}
@@ -236,6 +239,7 @@ WHERE u.id = $1`
 			DisableTime: disableTimestamp,
 		},
 		LastOnlineTimeUnix: lastOnlineTime.Time.Unix(),
+		Sid:                sID.Int64,
 	}
 	return &account, nil
 }
