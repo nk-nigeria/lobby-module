@@ -459,3 +459,100 @@ func ExchangeUpdateStatus(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	return GetExchangeById(ctx, logger, db, exchange)
 }
+func TotalCashoutByUsers(ctx context.Context, db *sql.DB, userIds ...string) ([]*pb.CashOut, error) {
+	query := `SELECT user_id_request, coalesce(sum(chips),0) as chips
+FROM public.exchange where user_id_request IN (` + "'" + strings.Join(userIds, "','") + "'" + `) group by user_id_request;
+`
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.CashOut, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			continue
+		}
+		v := &pb.CashOut{
+			UserId: userId,
+			Co:     chips,
+		}
+		ml = append(ml, v)
+	}
+	return ml, nil
+}
+func TotalCashoutInTimeByUsers(ctx context.Context, db *sql.DB, fromUnix, toUnix int64, userIds ...string) ([]*pb.CashOut, error) {
+	query := `SELECT user_id_request, coalesce(sum(chips), 0) as chips
+FROM public.exchange where  create_time >=$1 and create_time <=$2   and 
+	user_id_request IN (` + "'" + strings.Join(userIds, "','") + "'" + `) group by user_id_request;`
+	rows, err := db.QueryContext(ctx, query,
+		time.Unix(fromUnix, 0), time.Unix(toUnix, 0))
+	if err != nil {
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.CashOut, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			continue
+		}
+		v := &pb.CashOut{
+			Coo: chips,
+		}
+		ml = append(ml, v)
+	}
+	return ml, nil
+}
+
+func FilterUsersByTotalCashout(ctx context.Context, db *sql.DB, condition string, value int64) ([]*pb.CashOut, error) {
+	query := `SELECT user_id_request, coalesce(sum(chips), 0) as chips
+FROM public.exchange group by user_id_request having coalesce(sum(chips), 0) ` + condition + ` $1;`
+	rows, err := db.QueryContext(ctx, query, value)
+	if err != nil {
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.CashOut, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			continue
+		}
+		v := &pb.CashOut{
+			Coo:    chips,
+			UserId: userId,
+		}
+		ml = append(ml, v)
+	}
+	return ml, nil
+}
+
+func FilterUsersByTotalCashoutInTime(ctx context.Context, db *sql.DB, fromUnix, toUnix int64, condition string, value int64) ([]*pb.CashOut, error) {
+	query := `SELECT user_id_request, coalesce(sum(chips), 0) as chips
+FROM public.exchange where  create_time >=$1 and create_time <=$2 group by user_id_request having coalesce(sum(chips), 0) ` + condition + ` $3;`
+	rows, err := db.QueryContext(ctx, query,
+		time.Unix(fromUnix, 0), time.Unix(toUnix, 0), value)
+	if err != nil {
+		return nil, err
+	}
+	var userId string
+	var chips int64
+	ml := make([]*pb.CashOut, 0)
+	for rows.Next() {
+		err = rows.Scan(&userId, &chips)
+		if err != nil {
+			continue
+		}
+		v := &pb.CashOut{
+			Coo:    chips,
+			UserId: userId,
+		}
+		ml = append(ml, v)
+	}
+	return ml, nil
+}

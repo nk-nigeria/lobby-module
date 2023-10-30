@@ -9,7 +9,6 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -31,15 +30,6 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		userGroup := &pb.UserGroup{}
 		if err := unmarshaler.Unmarshal([]byte(payload), userGroup); err != nil {
 			logger.Error("Error when unmarshal payload", err.Error())
-			return "", presenter.ErrUnmarshal
-		}
-		typeUG := constant.UserGroupType(userGroup.Type)
-		if typeUG != constant.UserGroupType_Level &&
-			typeUG != constant.UserGroupType_VipLevel &&
-			typeUG != constant.UserGroupType_WalletChips &&
-			typeUG != constant.UserGroupType_WalletChipsInbank &&
-			typeUG != constant.UserGroupType_All {
-			logger.Error("Error user group not valid")
 			return "", presenter.ErrUnmarshal
 		}
 		userGroup.Data = removeSpace(userGroup.Data)

@@ -12,7 +12,6 @@ import (
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/go-co-op/gocron"
 
-	"github.com/bwmarrin/snowflake"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 
@@ -100,14 +99,6 @@ const (
 
 const (
 	topicLeaderBoardAddScore = "leaderboard_add_score"
-)
-
-const (
-	rpcTestRemoteNode = "test_remote_node"
-)
-
-var (
-	node *snowflake.Node
 )
 
 // noinspection GoUnusedExportedFunction
@@ -348,7 +339,6 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		if in.Username == "" {
 			in.Username = fmt.Sprintf("%s.%d", entity.AutoPrefix, newID)
 		}
-
 		return in, nil
 	}); err != nil {
 		return err
@@ -430,7 +420,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	message_queue.GetNatsService().RegisterAllSubject()
 	// api.RegisterSessionEvents()
-	logger.Info("Plugin loaded in '%d' msec.", time.Now().Sub(initStart).Milliseconds())
+	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
 }
 
