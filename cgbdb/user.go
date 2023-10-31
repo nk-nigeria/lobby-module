@@ -8,8 +8,8 @@ import (
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
-
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
@@ -146,8 +146,67 @@ func FetchUserIDWithCondition(ctx context.Context, db *sql.DB, condition string,
 
 	return ids, nil
 }
+func GetAccount(ctx context.Context, db *sql.DB, userID string, userSid int64) (*entity.Account, error) {
+	if len(userID) == 0 && userSid <= 0 {
+		return nil, ErrAccountNotFound
+	}
 
-func GetAccount(ctx context.Context, logger runtime.Logger, db *sql.DB, userID string) (*entity.Account, error) {
+	query := `
+SELECT u.id,u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
+	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
+	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id),
+	u.sid
+FROM users u
+WHERE `
+	args := make([]any, 0)
+	if len(userID) > 0 {
+		query += ` u.id = $1`
+		args = append(args, userID)
+	} else if userSid > 0 {
+		query += ` u.sid = $1`
+		args = append(args, userSid)
+	}
+
+	row := db.QueryRowContext(ctx, query, args...)
+	account, err := scanAccount(row)
+	if err == sql.ErrNoRows {
+		return nil, ErrAccountNotFound
+	}
+	return account, nil
+}
+
+func GetAccounts(ctx context.Context, db *sql.DB, userIds ...string) ([]*entity.Account, error) {
+	if len(userIds) == 0 {
+		return make([]*entity.Account, 0), nil
+	}
+	query := `
+SELECT u.id, u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
+	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
+	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id),
+	u.sid
+FROM users u
+WHERE u.id IN (` + "'" + strings.Join(userIds, "','") + "'" + `)`
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	ml := make([]*entity.Account, 0)
+	for rows.Next() {
+		account, err := scanAccount(rows)
+		if err != nil {
+			continue
+		}
+		ml = append(ml, account)
+	}
+	return ml, nil
+}
+
+type DBScan interface {
+	Scan(dest ...any) error
+}
+
+func scanAccount(row DBScan) (*entity.Account, error) {
+	var userId sql.NullString
 	var displayName sql.NullString
 	var username sql.NullString
 	var avatarURL sql.NullString
@@ -172,31 +231,17 @@ func GetAccount(ctx context.Context, logger runtime.Logger, db *sql.DB, userID s
 	var deviceIDs pgtype.VarcharArray
 	// var lastOnlineTime pgtype.Timestamptz
 	var sID sql.NullInt64
-
-	query := `
-SELECT u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
-	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
-	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id), 
-	u.sid
-FROM users u
-WHERE u.id = $1`
-
-	if err := db.QueryRowContext(ctx, query, userID).
-		Scan(&username, &displayName, &avatarURL,
-			&langTag, &location, &timezone,
-			&metadata, &wallet, &email,
-			&apple, &facebook, &facebookInstantGame,
-			&google, &gamecenter, &steam,
-			&customID, &edgeCount, &createTime,
-			&updateTime, &verifyTime, &disableTime,
-			&deviceIDs, &sID); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrAccountNotFound
-		}
-		logger.Error("Error retrieving user account.%s", err.Error())
+	err := row.Scan(&userId, &username, &displayName, &avatarURL,
+		&langTag, &location, &timezone,
+		&metadata, &wallet, &email,
+		&apple, &facebook, &facebookInstantGame,
+		&google, &gamecenter, &steam,
+		&customID, &edgeCount, &createTime,
+		&updateTime, &verifyTime, &disableTime,
+		&deviceIDs, &sID)
+	if err != nil {
 		return nil, err
 	}
-
 	devices := make([]*api.AccountDevice, 0, len(deviceIDs.Elements))
 	for _, deviceID := range deviceIDs.Elements {
 		devices = append(devices, &api.AccountDevice{Id: deviceID.String})
@@ -210,10 +255,10 @@ WHERE u.id = $1`
 	if disableTime.Status == pgtype.Present && disableTime.Time.Unix() != 0 {
 		disableTimestamp = &timestamppb.Timestamp{Seconds: disableTime.Time.Unix()}
 	}
-	account := entity.Account{
+	account := &entity.Account{
 		Account: api.Account{
 			User: &api.User{
-				Id:                    userID,
+				Id:                    userId.String,
 				Username:              username.String,
 				DisplayName:           displayName.String,
 				AvatarUrl:             avatarURL.String,
@@ -238,8 +283,7 @@ WHERE u.id = $1`
 			VerifyTime:  verifyTimestamp,
 			DisableTime: disableTimestamp,
 		},
-		// LastOnlineTimeUnix: lastOnlineTime.Time.Unix(),
 		Sid: sID.Int64,
 	}
-	return &account, nil
+	return account, nil
 }

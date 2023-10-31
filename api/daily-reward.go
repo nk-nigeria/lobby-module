@@ -110,10 +110,9 @@ func InitDailyRewardTemplate(ctx context.Context, logger runtime.Logger, nk runt
 		logger.Debug("Can not generate deals for collection")
 		return
 	}
-
 	_, err = nk.StorageWrite(ctx, writeObjects)
 	if err != nil {
-		logger.Error("Write deals collection error %s", err.Error())
+		logger.WithField("err", err).Error("Write deals collection failed")
 	}
 }
 
@@ -150,7 +149,7 @@ func canUserClaimDailyReward(d *pb.Reward) bool {
 
 func RpcCanClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		reward, err := proccessDailyReward(ctx, logger, nk)
+		reward, err := proccessDailyReward(ctx, logger, nk, db)
 		if err != nil {
 			logger.Error("proccessDailyReward error ", err.Error())
 			return "", err
@@ -161,7 +160,7 @@ func RpcCanClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, run
 
 func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		reward, err := proccessDailyReward(ctx, logger, nk)
+		reward, err := proccessDailyReward(ctx, logger, nk, db)
 		if err != nil {
 			logger.Error("proccessDailyReward error ", err.Error())
 			return "", err
@@ -198,19 +197,19 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 		metadata["recv"] = userID
 		entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 
-		reward, _ = proccessDailyReward(ctx, logger, nk)
+		reward, _ = proccessDailyReward(ctx, logger, nk, db)
 
 		reward.CanClaim = false
 		return RewardToString(reward, logger)
 	}
 }
 
-func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) (*pb.Reward, error) {
+func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, db *sql.DB) (*pb.Reward, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
 		return nil, presenter.ErrNoUserIdFound
 	}
-	profile, _, err := GetProfileUser(ctx, nk, userID, nil)
+	profile, _, err := GetProfileUser(ctx, db, userID, nil)
 	if err != nil {
 		logger.Error("Get account %s error %s", userID, err.Error())
 		return nil, presenter.ErrInternalError

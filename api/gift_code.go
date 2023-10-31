@@ -57,7 +57,7 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			logger.Error("Invalid payload")
 			return "", presenter.ErrUnmarshal
 		}
-		profile, _, err := GetProfileUser(ctx, nk, userID, nil)
+		profile, _, err := GetProfileUser(ctx, db, userID, nil)
 		if err != nil {
 			logger.Error("Error when get user %s, err %s", userID, err.Error())
 			return "", presenter.ErrInternalError
