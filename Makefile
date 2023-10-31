@@ -12,7 +12,7 @@ update-submodule-stg:
 	git checkout staging && git pull
 	git submodule update --init
 	git submodule update --remote
-	cd ./cgp-common && git checkout staging && cd ..
+	cd ./cgp-common && git checkout staging && git pull && cd ..
 	go get github.com/ciaolink-game-platform/cgp-common@staging
 
 build:
