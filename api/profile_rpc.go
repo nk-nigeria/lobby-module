@@ -31,7 +31,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", errors.New("Missing user ID.")
 		}
 
-		profile, _, err := GetProfileUser(ctx, nk, userID, objStorage)
+		profile, _, err := GetProfileUser(ctx, db, userID, objStorage)
 		if err != nil {
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
@@ -58,7 +58,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", presenter.ErrUnmarshal
 		}
 		// metadata := make(map[string]interface{}, 0)
-		currentProfile, metadata, err := GetProfileUser(ctx, nk, userID, objStorage)
+		currentProfile, metadata, err := GetProfileUser(ctx, db, userID, objStorage)
 		if err != nil {
 			logger.Error("get profile user %s, error: %s", userID, err.Error())
 			return "", err
@@ -114,7 +114,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", err
 		}
 
-		newProfile, _, err := GetProfileUser(ctx, nk, userID, objStorage)
+		newProfile, _, err := GetProfileUser(ctx, db, userID, objStorage)
 		if addNewReferUser {
 			userRefer := &pb.ReferUser{
 				UserInvitor: profile.RefCode,
@@ -179,12 +179,12 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 	}
 }
 
-func GetProfileUser(ctx context.Context, nk runtime.NakamaModule, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
-	account, err := nk.AccountGetId(ctx, userID)
+func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
+	// account, err := nk.AccountGetId(ctx, userID)
+	account, err := cgbdb.GetAccount(ctx, db, userID, 0)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	var metadata map[string]interface{}
 	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
 		return nil, nil, errors.New("Corrupted user metadata.")

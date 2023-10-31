@@ -22,11 +22,11 @@ build:
 	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 
 syncdev:
-	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dev/data/modules/bin/
-	ssh root@cgpdev 'cd /root/cgp-server/dev && docker restart nakama_dev'
+	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server-dev/dist/data/modules/bin/
+	ssh root@cgpdev 'cd /root/cgp-server-dev && docker restart nakama_dev'
 
 syncstg:
-	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/data/modules/
+	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dist/data/modules/
 	ssh root@cgpdev 'cd /root/cgp-server && docker restart nakama'
 
 dev: update-submodule-dev build
