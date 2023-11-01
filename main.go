@@ -95,6 +95,9 @@ const (
 	rpcRewardReferEstInWeek = "reward_refer_est_in_week"
 	// refer user
 	rpcRewardReferHistory = "reward_refer_history"
+
+	// IAP
+	rpcIAP = "iap"
 )
 
 const (
@@ -408,6 +411,8 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	api.RegisterValidatePurchase(db, nk, initializer)
 
+	initializer.RegisterRpc(rpcIAP, api.RpcIAP())
+
 	message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
 		leaderBoardRecord := &pb.LeaderBoardRecord{}
 		err := unmarshaler.Unmarshal(data, leaderBoardRecord)
@@ -419,6 +424,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	})
 
 	message_queue.GetNatsService().RegisterAllSubject()
+	cgbdb.AutoMigrate(db)
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
