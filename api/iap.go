@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
@@ -50,7 +52,10 @@ func RpcIAP() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModul
 		}
 		transaction := fmt.Sprintf("trans-%s", time.Now().String())
 		err = topupChipIAP(ctx, logger, db, nk, iapReq.UserId, IAP_SYSTEM, transaction, iapReq.ProductId)
-		return "", err
+		if err != nil {
+			return "", err
+		}
+		return `{"result":"ok"}`, nil
 	}
 }
 func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *nkapi.ValidatePurchaseResponse, in *nkapi.ValidatePurchaseGoogleRequest) error {
@@ -112,6 +117,18 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 	if err == nil {
 		cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
+	}
+	// emit internal event
+	{
+		properties := make(map[string]string)
+		properties["user_id"] = userID
+		properties["chips"] = strconv.FormatInt(deal.Chips, 10)
+		properties["iap_type"] = string(typeIAP)
+
+		nk.Event(ctx, &nkapi.Event{
+			Name:       string(define.EventName_TopUp),
+			Properties: properties,
+		})
 	}
 	return err
 }

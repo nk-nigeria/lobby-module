@@ -42,9 +42,6 @@ proto:
 	protoc -I ./ --go_out=$(pwd)/proto  ./proto/common_api.proto
 
 local:
-	# git submodule update --init
-	# git submodule update --remote
-	# go get github.com/ciaolink-game-platform/cgp-common@main
 	./sync_pkg_3.11.sh
 	go mod tidy
 	go mod vendor
