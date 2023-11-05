@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"sync/atomic"
 
 	"github.com/ciaolink-game-platform/cgp-common/define"
 
@@ -41,6 +42,27 @@ type MatchLabel struct {
 	Password     string `json:"password"`
 	MaxSize      int32  `json:"max_size"`
 	MockCodeCard int32  `json:"mock_code_card"`
+}
+
+var GetTableId func() int64
+
+func init() {
+	// GetTableId = func() int64 {
+	// 	var counter atomic.Int64
+	// 	counter.Store(0)
+	// 	return func() int64 {
+	// 		newVal := counter.Add(1)
+	// 		return newVal
+	// 	}
+	// }
+	GetTableId = func() func() int64 {
+		var counter atomic.Int64
+		counter.Store(0)
+		return func() int64 {
+			newVal := counter.Add(1)
+			return newVal
+		}
+	}()
 }
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
@@ -113,6 +135,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				"code":     request.GameCode,
 				"max_size": int32(2),
 				"name":     request.GameCode,
+				"table_id": GetTableId(),
 			}
 			if request.GetMockCodeCard() > 0 {
 				arg["mock_code_card"] = request.GetMockCodeCard()
@@ -202,6 +225,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				"code":     request.GameCode,
 				"name":     request.Name,
 				"password": request.Password,
+				"table_id": GetTableId(),
 			})
 			if err != nil {
 				logger.Error("error creating match: %v", err)
@@ -279,6 +303,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			"code":     request.GameCode,
 			"name":     request.Name,
 			"password": request.Password,
+			"table_id": GetTableId(),
 		})
 		if err != nil {
 			logger.Error("error creating match: %v", err)
