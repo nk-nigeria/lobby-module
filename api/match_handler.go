@@ -61,7 +61,8 @@ func init() {
 		var mt sync.Mutex
 		return func() int64 {
 			mt.Lock()
-			newVal := counter + 1
+			counter += 1
+			newVal := counter
 			mt.Unlock()
 			return newVal
 		}
