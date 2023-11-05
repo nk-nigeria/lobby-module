@@ -3,21 +3,61 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+type IAPType string
+
+const (
+	IAP_SYSTEM IAPType = "system"
+	IAP_GOOGLE IAPType = "google"
+)
+
+type IAPRequest struct {
+	UserId    string `json:"user_id,omitempty"`
+	ProductId string `json:"product_id,omitempty"`
+}
+
 func RegisterValidatePurchase(db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) {
 	initializer.RegisterAfterValidatePurchaseGoogle(validatePurchaseGoogle())
 }
 
+func RpcIAP() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		iapReq := IAPRequest{}
+		err := json.Unmarshal([]byte(payload), &iapReq)
+		if err != nil {
+			return "", err
+		}
+		if iapReq.UserId == "" {
+			return "", errors.New("missing user id")
+		}
+		transaction := fmt.Sprintf("trans-%s", time.Now().String())
+		err = topupChipIAP(ctx, logger, db, nk, iapReq.UserId, IAP_SYSTEM, transaction, iapReq.ProductId)
+		if err != nil {
+			return "", err
+		}
+		return `{"result":"ok"}`, nil
+	}
+}
 func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *nkapi.ValidatePurchaseResponse, in *nkapi.ValidatePurchaseGoogleRequest) error {
 	x := func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, out *nkapi.ValidatePurchaseResponse, in *nkapi.ValidatePurchaseGoogleRequest) error {
 
@@ -42,7 +82,7 @@ func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, d
 				logger.Warn("User %s , validate duplicate purchase %s", userID, validatePurchase.ProviderResponse)
 				continue
 			}
-			if err := topupChipByIAP(ctx, logger, db, nk, userID, validatePurchase); err != nil {
+			if err := topupChipIAPByPurchase(ctx, logger, db, nk, userID, validatePurchase); err != nil {
 				logger.Error("User %s, topup by IAP error %s , purchase %s", userID, err.Error(), validatePurchase.ProviderResponse)
 				return err
 			}
@@ -53,16 +93,21 @@ func validatePurchaseGoogle() func(ctx context.Context, logger runtime.Logger, d
 	return x
 }
 
-func topupChipByIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, purchasenk *nkapi.ValidatedPurchase) error {
+func topupChipIAPByPurchase(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, purchasenk *nkapi.ValidatedPurchase) error {
+	err := topupChipIAP(ctx, logger, db, nk, userID, IAP_GOOGLE, purchasenk.TransactionId, purchasenk.ProductId)
+	return err
+}
+
+func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, typeIAP IAPType, transactionId string, productId string) error {
 	metadata := make(map[string]interface{})
 	metadata["action"] = entity.WalletActionIAPTopUp
 	metadata["sender"] = constant.UUID_USER_SYSTEM
 	metadata["recv"] = userID
-	metadata["iap_type"] = "google"
-	metadata["trans_id"] = purchasenk.TransactionId
-	deal, exits := MapDeal[purchasenk.ProductId]
+	metadata["iap_type"] = string(typeIAP)
+	metadata["trans_id"] = transactionId
+	deal, exits := MapDeal[productId]
 	if !exits {
-		logger.Error("Get deal from product id %s error: Not found", purchasenk.ProductId)
+		logger.WithField("product id", productId).Error("Get deal from product failed")
 		return errors.New("product id not found")
 	}
 	wallet := entity.Wallet{
@@ -70,5 +115,20 @@ func topupChipByIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 		Chips:  deal.Chips,
 	}
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
+	if err == nil {
+		cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
+	}
+	// emit internal event
+	{
+		properties := make(map[string]string)
+		properties["user_id"] = userID
+		properties["chips"] = strconv.FormatInt(deal.Chips, 10)
+		properties["iap_type"] = string(typeIAP)
+
+		nk.Event(ctx, &nkapi.Event{
+			Name:       string(define.EventName_TopUp),
+			Properties: properties,
+		})
+	}
 	return err
 }

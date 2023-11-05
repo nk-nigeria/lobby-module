@@ -26,7 +26,7 @@ syncdev:
 	ssh root@cgpdev 'cd /root/cgp-server-dev && docker restart nakama_dev'
 
 syncstg:
-	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dist/data/modules/
+	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server/dist/data/modules/bin
 	ssh root@cgpdev 'cd /root/cgp-server && docker restart nakama'
 
 dev: update-submodule-dev build
@@ -42,9 +42,6 @@ proto:
 	protoc -I ./ --go_out=$(pwd)/proto  ./proto/common_api.proto
 
 local:
-	# git submodule update --init
-	# git submodule update --remote
-	# go get github.com/ciaolink-game-platform/cgp-common@main
 	./sync_pkg_3.11.sh
 	go mod tidy
 	go mod vendor
