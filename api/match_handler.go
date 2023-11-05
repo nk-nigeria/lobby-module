@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"sync/atomic"
+	"sync"
 
 	"github.com/ciaolink-game-platform/cgp-common/define"
 
@@ -56,10 +56,13 @@ func init() {
 	// 	}
 	// }
 	GetTableId = func() func() int64 {
-		var counter atomic.Int64
-		counter.Store(0)
+		// var counter atomic.Int64 // feature only available on go 1.19
+		var counter int64 = 0
+		var mt sync.Mutex
 		return func() int64 {
-			newVal := counter.Add(1)
+			mt.Lock()
+			newVal := counter + 1
+			mt.Unlock()
 			return newVal
 		}
 	}()
