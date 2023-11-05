@@ -96,6 +96,14 @@ func buildCashInFilterCondition(ctx context.Context, logger runtime.Logger, db *
 		condition = createCondition(condition, constant.UserGroupType_TotalCashIn7Day, cashIn[0].Co)
 	}
 
+	start = time.Date(now.Year(), now.Month(), now.Day()-6, 0, 0, 0, 0, now.Location())
+	cashIn, err = AvgDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		condition = createCondition(condition, constant.UserGroupType_AvgCashIn7Day, cashIn[0].Co)
+	}
+
 	return condition
 }
 
@@ -288,6 +296,22 @@ func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *s
 			start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 			end := time.Date(now.Year(), now.Month(), now.Day()-5, 23, 59, 59, 99, now.Location())
 			cashinInfos, err := FilterUsersByTotalDepositInTime(ctx, db, start.Unix(), end.Unix(), operator, paramN)
+			if err != nil && len(cashinInfos) > 0 {
+				for _, v := range cashinInfos {
+					userIds = append(userIds, v.UserId)
+				}
+			}
+			if len(userIds) > 0 {
+				condition = " WHERE id in (" + "'" + strings.Join(userIds, "','") + "'" + ")"
+			} else {
+				return []string{}, nil
+			}
+		} else if typeUG == constant.UserGroupType_AvgCashIn7Day {
+			userIds := make([]string, 0)
+			now := time.Now()
+			start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			end := time.Date(now.Year(), now.Month(), now.Day()-5, 23, 59, 59, 99, now.Location())
+			cashinInfos, err := FilterUsersByAvgDepositInTime(ctx, db, start.Unix(), end.Unix(), operator, paramN)
 			if err != nil && len(cashinInfos) > 0 {
 				for _, v := range cashinInfos {
 					userIds = append(userIds, v.UserId)
