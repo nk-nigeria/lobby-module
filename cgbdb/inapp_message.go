@@ -342,15 +342,15 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			}
 		}
 
-		prevOffset := incomingCursor.Offset - int64(len(inAppMessages))
-		if len(inAppMessages)+int(incomingCursor.Offset) >= int(total) {
-			prevOffset = total - int64(len(inAppMessages)) - limit
+		prevOffset := incomingCursor.Offset - int64(len(ml))
+		if len(ml)+int(incomingCursor.Offset) >= int(total) {
+			prevOffset = total - int64(len(ml)) - limit
 		}
 		if prevOffset < 0 {
 			prevOffset = 0
 		}
 		prevCursor = &entity.InAppMessageListCursor{
-			Id:     inAppMessages[0].Id,
+			Id:     ml[0].Id,
 			IsNext: false,
 			Offset: prevOffset,
 			Total:  total,
