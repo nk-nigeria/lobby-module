@@ -21,6 +21,21 @@ build:
 	go mod vendor
 	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 
+
+build-cmd:
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/ciaolink-game-platform go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+
+build-cross:
+	./sync_pkg_3.11.sh
+	go mod tidy
+	go mod vendor
+	docker run -it --rm -w "/app" \
+	  --platform linux/amd64 \
+      -v ${APP_PATH}:/app \
+      docker.elastic.co/beats-dev/golang-crossbuild:1.18-main \
+      --build-cmd "make build-cmd" \
+      -p "linux/amd64"
+
 syncdev:
 	rsync -aurv --delete ./bin/${APP_NAME} root@cgpdev:/root/cgp-server-dev/dist/data/modules/bin/
 	ssh root@cgpdev 'cd /root/cgp-server-dev && docker restart nakama_dev'

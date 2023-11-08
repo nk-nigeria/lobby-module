@@ -173,6 +173,120 @@ func GetAllGroupByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	return ids, nil
 }
 
+func getCashOutData(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, data *entity.UserGroupUserInfo) {
+	cashOut, err := TotalCashoutByUsers(ctx, db, userId)
+	if err != nil || len(cashOut) == 0 {
+		logger.Error("TotalCashoutByUsers %v %d", err, len(cashOut))
+	} else {
+		data.Co = cashOut[0].Co
+	}
+
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 99, now.Location())
+	cashOut, err = TotalCashoutInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashOut) == 0 {
+		logger.Error("TotalCashoutByUsers %v %d", err, len(cashOut))
+	} else {
+		data.CO0 = cashOut[0].Co
+	}
+}
+
+func getCashInData(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, data *entity.UserGroupUserInfo) {
+	cashIn, err := TotalDepositByUsers(ctx, db, userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositByUsers %v %d", err, len(cashIn))
+	} else {
+		data.LQ = cashIn[0].Ci
+	}
+
+	// cashin by range time
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 99, now.Location())
+	cashIn, err = TotalDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		data.BLQ1 = cashIn[0].Ci
+	}
+
+	start = time.Date(now.Year(), now.Month(), now.Day()-2, 0, 0, 0, 0, now.Location())
+	cashIn, err = TotalDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		data.BLQ3 = cashIn[0].Ci
+	}
+
+	start = time.Date(now.Year(), now.Month(), now.Day()-4, 0, 0, 0, 0, now.Location())
+	cashIn, err = TotalDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		data.BLQ5 = cashIn[0].Ci
+	}
+
+	start = time.Date(now.Year(), now.Month(), now.Day()-6, 0, 0, 0, 0, now.Location())
+	cashIn, err = TotalDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		data.BLQ7 = cashIn[0].Ci
+	}
+
+	start = time.Date(now.Year(), now.Month(), now.Day()-6, 0, 0, 0, 0, now.Location())
+	cashIn, err = AvgDepositInTimeByUsers(ctx, db, start.Unix(), end.Unix(), userId)
+	if err != nil || len(cashIn) == 0 {
+		logger.Error("TotalDepositInTimeByUsers %v %d", err, len(cashIn))
+	} else {
+		data.Avgtrans7 = cashIn[0].Ci
+	}
+}
+
+func GetUserGroupUserInfo(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userId string) (*entity.UserGroupUserInfo, error) {
+	result := &entity.UserGroupUserInfo{}
+
+	account, err := nk.AccountGetId(ctx, userId)
+	if err != nil {
+		logger.Error("GetAccount error %s", err.Error())
+		return result, err
+	}
+	var metadata map[string]interface{}
+	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
+		return result, errors.New("Corrupted user metadata.")
+	}
+	var level int64 = 0
+	if levelStr, ok := metadata["level"]; ok {
+		level = levelStr.(int64)
+	}
+	result.Level = level
+
+	var vipLevel int64 = 0
+	if vipLevelStr, ok := metadata["vip_level"]; ok {
+		vipLevel = vipLevelStr.(int64)
+	}
+	result.VipLevel = vipLevel
+
+	var chips int64 = 0
+	var chipsInbank int64 = 0
+	wallet, err := entity.ParseWallet(account.Wallet)
+	if err == nil {
+		chips = wallet.Chips
+		chipsInbank = wallet.ChipsInBank
+	}
+	result.ChipsInBank = chipsInbank
+	result.AG = chips
+
+	getCashOutData(ctx, logger, db, userId, result)
+	getCashInData(ctx, logger, db, userId, result)
+
+	if account.User.GetCreateTime() != nil {
+		result.CreateTime = account.User.GetCreateTime().GetSeconds()
+	}
+	return result, nil
+}
+
 func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) ([]string, error) {
 	userGroup, err := GetUserGroupById(ctx, logger, db, unmarshaler, id)
 	if err != nil || userGroup.Name == "" {

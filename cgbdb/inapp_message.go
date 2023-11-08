@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"strings"
 	"time"
 
@@ -205,20 +206,6 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	logger.Debug("UserId %v", userID)
 
 	if userID != "" {
-		allGroups, _ := GetAllGroupByUser(ctx, logger, db, nk, userID)
-		queryGroup := ""
-		if len(allGroups) > 0 {
-			arrayGroup := "ARRAY(SELECT json_array_elements('["
-			for idx, idGroup := range allGroups {
-				if idx == 0 {
-					arrayGroup += fmt.Sprintf(" %d ", idGroup)
-				} else {
-					arrayGroup += fmt.Sprintf(", %d ", idGroup)
-				}
-			}
-			arrayGroup += " ]')::jsonb)"
-			queryGroup += fmt.Sprintf(" and (ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) <@ %s or ARRAY(SELECT jsonb_array_elements(group_ids)::jsonb) = %s)", arrayGroup, arrayGroup)
-		}
 		params = append(params, time.Now().Unix())
 		params = append(params, time.Now().Unix())
 		query += " WHERE type=$1 and start_date <= $2"
@@ -227,15 +214,9 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 			count = 5
 			if incomingCursor.IsNext {
 				query += " and (end_date = 0 or end_date >= $3) and id < $4 "
-				if len(allGroups) > 0 {
-					query += queryGroup
-				}
 				query += "order by high_priority desc, id desc"
 			} else {
 				query += " and (end_date = 0 or end_date >= $3) and id > $4 "
-				if len(allGroups) > 0 {
-					query += queryGroup
-				}
 				query += "order by high_priority desc, id asc"
 			}
 			params = append(params, incomingCursor.Id)
@@ -244,9 +225,6 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		} else {
 			count = 4
 			query += " and (end_date = 0 or end_date >= $3)"
-			if len(allGroups) > 0 {
-				query += queryGroup
-			}
 			query += fmt.Sprintf(" order by high_priority desc, id desc limit $%d", count)
 			params = append(params, limit)
 		}
@@ -337,7 +315,24 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	}
 	var nextCursor *entity.InAppMessageListCursor
 	var prevCursor *entity.InAppMessageListCursor
+	inAppMessages := make([]*pb.InAppMessage, 0)
 	if len(ml) > 0 {
+		if userID != "" {
+			userData, err := GetUserGroupUserInfo(ctx, logger, db, nk, userID)
+			if err == nil {
+				for _, m := range ml {
+					if InAppMessageCheckCondition(logger, userData, m) {
+						inAppMessages = append(inAppMessages, m)
+					}
+				}
+			} else {
+				logger.Error("GetUserGroupUserInfo %w", err)
+			}
+		} else {
+			for _, m := range ml {
+				inAppMessages = append(inAppMessages, m)
+			}
+		}
 		if len(ml)+int(incomingCursor.Offset) < int(total) {
 			nextCursor = &entity.InAppMessageListCursor{
 				Id:     ml[len(ml)-1].Id,
@@ -383,11 +378,43 @@ func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	}
 
 	return &pb.ListInAppMessage{
-		InAppMessages: ml,
+		InAppMessages: inAppMessages,
 		NextCusor:     nextCursorStr,
 		PrevCusor:     prevCursorStr,
 		Total:         total,
 		Offset:        incomingCursor.Offset,
 		Limit:         limit,
 	}, nil
+}
+
+func InAppMessageCheckCondition(logger runtime.Logger, data *entity.UserGroupUserInfo, inAppMessage *pb.InAppMessage) bool {
+	type Range struct {
+		Min int64 `json:"min"`
+		Max int64 `json:"max"`
+	}
+	verifyFunc := func(value int64, data string) bool {
+		if data == "" {
+			return true
+		}
+		condition := new(Range)
+		err := json.Unmarshal([]byte(data), condition)
+		if err != nil {
+			logger.Error("verifyFunc %w", err)
+			return false
+		}
+		return value >= condition.Min && value <= condition.Max
+	}
+	return verifyFunc(data.Level, inAppMessage.Data.Params[string(constant.UserGroupType_Level)]) &&
+		verifyFunc(data.VipLevel, inAppMessage.Data.Params[string(constant.UserGroupType_VipLevel)]) &&
+		verifyFunc(data.AG, inAppMessage.Data.Params[string(constant.UserGroupType_WalletChips)]) &&
+		verifyFunc(data.ChipsInBank, inAppMessage.Data.Params[string(constant.UserGroupType_WalletChipsInbank)]) &&
+		verifyFunc(data.Co, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashOut)]) &&
+		verifyFunc(data.CO0, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashOutInDay)]) &&
+		verifyFunc(data.LQ, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashIn)]) &&
+		verifyFunc(data.BLQ1, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashIn1Day)]) &&
+		verifyFunc(data.BLQ3, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashIn3Day)]) &&
+		verifyFunc(data.BLQ5, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashIn5Day)]) &&
+		verifyFunc(data.BLQ7, inAppMessage.Data.Params[string(constant.UserGroupType_TotalCashIn7Day)]) &&
+		verifyFunc(data.Avgtrans7, inAppMessage.Data.Params[string(constant.UserGroupType_AvgCashIn7Day)]) &&
+		verifyFunc(data.CreateTime, inAppMessage.Data.Params[string(constant.UserGroupType_CreateTime)])
 }
