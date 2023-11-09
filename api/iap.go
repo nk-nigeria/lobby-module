@@ -110,6 +110,8 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 		logger.WithField("product id", productId).Error("Get deal from product failed")
 		return errors.New("product id not found")
 	}
+	metadata["rp"] = deal.Price
+	metadata["unit"] = deal.GetCurrency()
 	wallet := entity.Wallet{
 		UserId: userID,
 		Chips:  deal.Chips,
