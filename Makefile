@@ -34,7 +34,7 @@ dev: update-submodule-dev build
 
 stg: update-submodule-stg build
 
-3.19: 
+v3.19.0: 
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout v3.19.0 && git pull && cd ..
@@ -42,9 +42,9 @@ stg: update-submodule-stg build
 	go mod tidy
 	go mod vendor
 	### build for deploy
-	# docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 	### build for using local 
-	go build -buildvcs=false --trimpath --mod=vendor --buildmode=plugin -o ./bin/${APP_NAME}
+	# go build -buildvcs=false --trimpath --mod=vendor --buildmode=plugin -o ./bin/${APP_NAME}
 
 run-dev:
 	docker-compose up -d --build nakama && docker logs -f lobby
