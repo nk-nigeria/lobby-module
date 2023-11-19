@@ -34,6 +34,18 @@ dev: update-submodule-dev build
 
 stg: update-submodule-stg build
 
+3.19: 
+	git submodule update --init
+	git submodule update --remote
+	cd ./cgp-common && git checkout v3.19.0 && git pull && cd ..
+	go get github.com/ciaolink-game-platform/cgp-common@v3.19.0
+	go mod tidy
+	go mod vendor
+	### build for deploy
+	# docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	### build for using local 
+	go build -buildvcs=false --trimpath --mod=vendor --buildmode=plugin -o ./bin/${APP_NAME}
+
 run-dev:
 	docker-compose up -d --build nakama && docker logs -f lobby
 dev-first-run:
