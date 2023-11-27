@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	"github.com/ciaolink-game-platform/cgp-common/define"
+	lib "github.com/ciaolink-game-platform/cgp-common/lib"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
@@ -122,15 +121,20 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 	}
 	// emit internal event
 	{
-		properties := make(map[string]string)
-		properties["user_id"] = userID
-		properties["chips"] = strconv.FormatInt(deal.Chips, 10)
-		properties["iap_type"] = string(typeIAP)
+		// properties := make(map[string]string)
+		// properties["user_id"] = userID
+		// properties["chips"] = strconv.FormatInt(deal.Chips, 10)
+		// properties["iap_type"] = string(typeIAP)
 
-		nk.Event(ctx, &nkapi.Event{
-			Name:       string(define.EventName_TopUp),
-			Properties: properties,
-		})
+		// nk.Event(ctx, &nkapi.Event{
+		// 	Name:       string(define.EventName_TopUp),
+		// 	Properties: properties,
+		// })
+	}
+	{
+		payload, _ := json.Marshal(metadata)
+		report := lib.NewReportGame(ctx)
+		report.Report(ctx, userID, string(payload))
 	}
 	return err
 }
