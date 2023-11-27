@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	lib "github.com/ciaolink-game-platform/cgp-common/lib"
@@ -116,9 +115,9 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 		Chips:  deal.Chips,
 	}
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
-	if err == nil {
-		cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
-	}
+	// if err == nil {
+	// 	cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
+	// }
 	// emit internal event
 	{
 		// properties := make(map[string]string)
