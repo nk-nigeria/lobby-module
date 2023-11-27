@@ -8,12 +8,13 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+
 	"strings"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"

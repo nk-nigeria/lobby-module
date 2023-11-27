@@ -1,11 +1,10 @@
-module github.com/heroiclabs/nakama/v3
+module github.com/ciaolink-game-platform/cgb-lobby-module
 
 go 1.21
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/ciaolink-game-platform/cgb-lobby-module v0.0.0-20230310142739-f9b695ef6ce9
-	github.com/ciaolink-game-platform/cgp-common v0.0.0-20231109151255-b5a231fc8d2f
+	github.com/ciaolink-game-platform/cgp-common v0.0.0-20231127145750-b1b376d3dc88
 	github.com/go-co-op/gocron v1.36.0
 	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/heroiclabs/nakama-common v1.30.0
@@ -15,20 +14,25 @@ require (
 	github.com/minio/minio-go/v7 v7.0.64
 	github.com/nats-io/nats.go v1.31.0
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.14.0
-	google.golang.org/grpc v1.57.2
+	go.uber.org/zap v1.26.0
+	golang.org/x/crypto v0.15.0
+	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/gorm v1.25.5
 )
 
 require (
+	github.com/ciaolink-game-platform/cgp-operation-gw v0.0.0-20231127143900-b4f5437b2459 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/go-kratos/aegis v0.2.0 // indirect
+	github.com/go-kratos/kratos/v2 v2.7.1 // indirect
+	github.com/go-playground/form/v4 v4.2.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -39,26 +43,25 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nats-io/nkeys v0.4.5 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/qmuntal/stateless v1.5.3 // indirect
+	github.com/qmuntal/stateless v1.6.8 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/goleak v1.2.1 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/sys v0.14.1-0.20231108175955-e4099bfacb8c // indirect
+	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/genproto v0.0.0-20231030173426-d783a09b4405 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231106174013-bbf56f31fb17 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

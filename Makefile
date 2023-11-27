@@ -52,8 +52,8 @@ stg: update-submodule-stg build
 v3.19.0: 
 	git submodule update --init
 	git submodule update --remote
-	cd ./cgp-common && git checkout dev && git pull && cd ..
-	go get github.com/ciaolink-game-platform/cgp-common@dev
+	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
+	go get github.com/ciaolink-game-platform/cgp-common@develop
 	go mod tidy
 	go mod vendor
 	### build for deploy
