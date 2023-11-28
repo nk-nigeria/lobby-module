@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,9 +132,20 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 		// })
 	}
 	{
+		metadata["user_id"] = userID
+		metadata["chips"] = strconv.FormatInt(deal.Chips, 10)
 		payload, _ := json.Marshal(metadata)
+		fmt.Println(string(payload))
 		report := lib.NewReportGame(ctx)
-		report.Report(ctx, userID, string(payload))
+		data, status, err := report.Report(ctx, userID, string(payload))
+		if err != nil || status > 300 {
+			logger.Error("Report iap %s -> %s url failed, response %s status %d err %v",
+				userID, productId, string(data), status, err)
+
+		} else {
+			logger.Info("Report iap %s -> %s successful, data %s", userID, productId, string(data))
+		}
+
 	}
 	return err
 }
