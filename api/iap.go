@@ -137,7 +137,7 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 		payload, _ := json.Marshal(metadata)
 		fmt.Println(string(payload))
 		report := lib.NewReportGame(ctx)
-		data, status, err := report.Report(ctx, userID, string(payload))
+		data, status, err := report.ReportIap(ctx, userID, string(payload))
 		if err != nil || status > 300 {
 			logger.Error("Report iap %s -> %s url failed, response %s status %d err %v",
 				userID, productId, string(data), status, err)

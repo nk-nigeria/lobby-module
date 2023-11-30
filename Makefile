@@ -4,10 +4,10 @@ APP_PATH=$(PWD)
 NAKAMA_VER=3.19.0
 
 update-submodule-dev:
-	git checkout develop && git pull
+	git checkout develop && git pull origin develop
 	git submodule update --init
 	git submodule update --remote
-	cd ./cgp-common && git checkout develop && git pull && cd ..
+	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
 	go get github.com/ciaolink-game-platform/cgp-common@develop
 update-submodule-stg:
 	git checkout staging && git pull

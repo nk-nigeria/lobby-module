@@ -3,11 +3,15 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"strconv"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -107,6 +111,21 @@ func RpcExchangeUpdateStatus() func(context.Context, runtime.Logger, *sql.DB, ru
 		}
 		sarshaler := conf.MarshalerDefault
 		strJson, _ := sarshaler.Marshal(exchangeDB)
+		if exchangeDB.GetStatus() == int64(pb.ExchangeStatus_EXCHANGE_STATUS_DONE.Number()) {
+			op := lib.NewReportGame(ctx)
+			props := make(map[string]string)
+			// deal, _ := GetExchangeDealFromId(exChangedealReq.IdDeal)
+			props["user_id"] = exchangeDB.GetUserIdRequest()
+			// TODO: fix currency_unit_id
+			props["currency_unit_id"] = "1"
+			// TODO: fix publisher
+			props["publisher"] = "1"
+			props["time_unix"] = strconv.FormatInt(time.Now().Unix(), 10)
+			props["chips"] = strconv.FormatInt(exchangeDB.Chips, 10)
+			props["trans_id"] = exchangeDB.Id
+			data, _ := json.Marshal(props)
+			op.ReportEvent(ctx, "cashout", exchangeDB.GetUserIdRequest(), string(data))
+		}
 		return string(strJson), nil
 	}
 }
