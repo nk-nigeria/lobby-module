@@ -41,7 +41,7 @@ func RpcGetAllExchange() func(context.Context, runtime.Logger, *sql.DB, runtime.
 		}
 		sarshaler := conf.MarshalerDefault
 		listJson, _ := sarshaler.Marshal(list)
-		logger.Info(string(listJson))
+		// logger.Info(string(listJson))
 		return string(listJson), nil
 	}
 }
@@ -112,19 +112,26 @@ func RpcExchangeUpdateStatus() func(context.Context, runtime.Logger, *sql.DB, ru
 		sarshaler := conf.MarshalerDefault
 		strJson, _ := sarshaler.Marshal(exchangeDB)
 		if exchangeDB.GetStatus() == int64(pb.ExchangeStatus_EXCHANGE_STATUS_DONE.Number()) {
-			op := lib.NewReportGame(ctx)
 			props := make(map[string]string)
-			// deal, _ := GetExchangeDealFromId(exChangedealReq.IdDeal)
 			props["user_id"] = exchangeDB.GetUserIdRequest()
 			// TODO: fix currency_unit_id
 			props["currency_unit_id"] = "1"
+			props["currency_value"] = exChangedealReq.Price
 			// TODO: fix publisher
 			props["publisher"] = "1"
 			props["time_unix"] = strconv.FormatInt(time.Now().Unix(), 10)
 			props["chips"] = strconv.FormatInt(exchangeDB.Chips, 10)
 			props["trans_id"] = exchangeDB.Id
 			data, _ := json.Marshal(props)
-			op.ReportEvent(ctx, "cashout", exchangeDB.GetUserIdRequest(), string(data))
+			op := lib.NewReportGame(ctx)
+			data, status, err := op.ReportEvent(ctx, "cashout", exchangeDB.GetUserIdRequest(), string(data))
+			if err != nil || status > 300 {
+				logger.Error("Report cashout %s -> %s url failed, response %s status %d err %v",
+					userID, exchangeDB.Id, string(data), status, err)
+
+			} else {
+				logger.Info("Report iap %s -> %s successful, data %s", userID, exchangeDB.Id, string(data))
+			}
 		}
 		return string(strJson), nil
 	}
