@@ -403,6 +403,7 @@ func InAppMessageCheckCondition(logger runtime.Logger, data *entity.UserGroupUse
 			logger.Error("verifyFunc %w", err)
 			return false
 		}
+		logger.Info("verifyFunc %v %v %v", value, data, condition)
 		return value >= condition.Min && value <= condition.Max
 	}
 	return verifyFunc(data.Level, inAppMessage.Data.Params[string(constant.UserGroupType_Level)]) &&
