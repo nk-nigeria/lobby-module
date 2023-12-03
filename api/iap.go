@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	"github.com/ciaolink-game-platform/cgp-common/define"
+	lib "github.com/ciaolink-game-platform/cgp-common/lib"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/grpc/codes"
@@ -114,23 +113,49 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 	metadata["unit"] = deal.GetCurrency()
 	wallet := entity.Wallet{
 		UserId: userID,
-		Chips:  deal.Chips,
+		Chips:  deal.AmountChips,
 	}
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
-	if err == nil {
-		cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
-	}
+	// if err == nil {
+	// 	cgbdb.UpdateTopupSummary(db, userID, deal.Chips)
+	// }
 	// emit internal event
 	{
-		properties := make(map[string]string)
-		properties["user_id"] = userID
-		properties["chips"] = strconv.FormatInt(deal.Chips, 10)
-		properties["iap_type"] = string(typeIAP)
+		// properties := make(map[string]string)
+		// properties["user_id"] = userID
+		// properties["chips"] = strconv.FormatInt(deal.Chips, 10)
+		// properties["iap_type"] = string(typeIAP)
 
-		nk.Event(ctx, &nkapi.Event{
-			Name:       string(define.EventName_TopUp),
-			Properties: properties,
-		})
+		// nk.Event(ctx, &nkapi.Event{
+		// 	Name:       string(define.EventName_TopUp),
+		// 	Properties: properties,
+		// })
+	}
+	{
+		props := make(map[string]string)
+		props["user_id"] = userID
+		// TODO: fix currency_unit_id
+		props["currency_unit_id"] = "1"
+		props["currency_value"] = deal.Price
+		// TODO: fix publisher
+		props["publisher"] = "1"
+		props["time_unix"] = strconv.FormatInt(time.Now().Unix(), 10)
+		props["chips"] = strconv.FormatInt(wallet.Chips, 10)
+		props["trans_id"] = transactionId
+		// metadata["user_id"] = userID
+		// metadata["chips"] = strconv.FormatInt(deal.Chips, 10)
+		payload, _ := json.Marshal(props)
+		fmt.Println(string(payload))
+		report := lib.NewReportGame(ctx)
+		data, status, err := report.ReportIap(ctx, userID, string(payload))
+		if err != nil || status > 300 {
+			logger.Error("Report iap %s -> %s url failed, response %s status %d err %v",
+				userID, productId, string(data), status, err)
+
+		} else {
+			logger.Info("Report iap %s -> %s successful, data %s", userID, productId, string(data))
+		}
+
 	}
 	return err
 }

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/gob"
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -328,7 +329,7 @@ func GetAllExchange(ctx context.Context, logger runtime.Logger, db *sql.DB, user
 	if total <= 0 {
 		queryTotal := "Select count(*) as total FROM " + ExchangeTableName + " " +
 			strings.ReplaceAll(query, "order by create_time desc", "")
-		logger.Debug("Query total %s", queryTotal)
+		// logger.Debug("Query total %s", queryTotal)
 		e := db.QueryRowContext(ctx, queryTotal, params...).Scan(&total)
 		if e != nil {
 			logger.Error(e.Error())
@@ -441,7 +442,7 @@ func ExchangeUpdateStatus(ctx context.Context, logger runtime.Logger, db *sql.DB
 		(exchange.GetStatus() != int64(pb.ExchangeStatus_EXCHANGE_STATUS_REJECT.Number()) &&
 			exchange.GetStatus() != int64(pb.ExchangeStatus_EXCHANGE_STATUS_DONE.Number())) {
 		logger.Error("Can not update status exchange. Not meet requirement,", curExchange.Unlock)
-		return curExchange, nil
+		return curExchange, errors.New("can not update status exchange. Not meet requirement")
 	}
 	query := "UPDATE " + ExchangeTableName + " SET status=$1, reason=$2, update_time = now() WHERE id=$3 AND status=$4"
 	result, err := db.ExecContext(ctx, query,

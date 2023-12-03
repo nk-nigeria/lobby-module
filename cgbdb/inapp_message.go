@@ -8,12 +8,13 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+
 	"strings"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -402,6 +403,7 @@ func InAppMessageCheckCondition(logger runtime.Logger, data *entity.UserGroupUse
 			logger.Error("verifyFunc %w", err)
 			return false
 		}
+		logger.Info("verifyFunc %v %v %v", value, data, condition)
 		return value >= condition.Min && value <= condition.Max
 	}
 	return verifyFunc(data.Level, inAppMessage.Data.Params[string(constant.UserGroupType_Level)]) &&

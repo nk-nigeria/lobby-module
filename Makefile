@@ -1,12 +1,13 @@
 PROJECT_NAME=github.com/ciaolink-game-platform/cgb-lobby-module
 APP_NAME=lobby.so
 APP_PATH=$(PWD)
+NAKAMA_VER=3.19.0
 
 update-submodule-dev:
-	git checkout develop && git pull
+	git checkout develop && git pull origin develop
 	git submodule update --init
 	git submodule update --remote
-	cd ./cgp-common && git checkout develop && git pull && cd ..
+	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
 	go get github.com/ciaolink-game-platform/cgp-common@develop
 update-submodule-stg:
 	git checkout staging && git pull
@@ -16,10 +17,10 @@ update-submodule-stg:
 	go get github.com/ciaolink-game-platform/cgp-common@staging
 
 build:
-	./sync_pkg_3.11.sh
+	# ./sync_pkg_3.11.sh
 	go mod tidy
 	go mod vendor
-	docker run --rm -w "/app" -v "${APP_PATH}:/app" heroiclabs/nakama-pluginbuilder:3.11.0 build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 
 
 build-cmd:
@@ -47,6 +48,18 @@ syncstg:
 dev: update-submodule-dev build
 
 stg: update-submodule-stg build
+
+v3.19.0: 
+	git submodule update --init
+	git submodule update --remote
+	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
+	go get github.com/ciaolink-game-platform/cgp-common@develop
+	go mod tidy
+	go mod vendor
+	### build for deploy
+	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	### build for using local 
+	# go build -buildvcs=false --trimpath --mod=vendor --buildmode=plugin -o ./bin/${APP_NAME}
 
 run-dev:
 	docker-compose up -d --build nakama && docker logs -f lobby
