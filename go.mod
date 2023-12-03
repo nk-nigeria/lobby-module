@@ -8,7 +8,7 @@ replace github.com/ciaolink-game-platform/cgp-common => ./cgp-common
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/ciaolink-game-platform/cgp-common v0.0.0-20231130141227-28ee548947f7
+	github.com/ciaolink-game-platform/cgp-common v0.0.0-20231201072041-4e7a1facc310
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/heroiclabs/nakama-common v1.30.0

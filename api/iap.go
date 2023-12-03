@@ -113,7 +113,7 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 	metadata["unit"] = deal.GetCurrency()
 	wallet := entity.Wallet{
 		UserId: userID,
-		Chips:  deal.Chips,
+		Chips:  deal.AmountChips,
 	}
 	err := entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 	// if err == nil {
@@ -132,9 +132,19 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 		// })
 	}
 	{
-		metadata["user_id"] = userID
-		metadata["chips"] = strconv.FormatInt(deal.Chips, 10)
-		payload, _ := json.Marshal(metadata)
+		props := make(map[string]string)
+		props["user_id"] = userID
+		// TODO: fix currency_unit_id
+		props["currency_unit_id"] = "1"
+		props["currency_value"] = deal.Price
+		// TODO: fix publisher
+		props["publisher"] = "1"
+		props["time_unix"] = strconv.FormatInt(time.Now().Unix(), 10)
+		props["chips"] = strconv.FormatInt(wallet.Chips, 10)
+		props["trans_id"] = transactionId
+		// metadata["user_id"] = userID
+		// metadata["chips"] = strconv.FormatInt(deal.Chips, 10)
+		payload, _ := json.Marshal(props)
 		fmt.Println(string(payload))
 		report := lib.NewReportGame(ctx)
 		data, status, err := report.ReportIap(ctx, userID, string(payload))
