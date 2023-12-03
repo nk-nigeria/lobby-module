@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/message_queue"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/go-co-op/gocron"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -122,7 +125,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitDailyRewardTemplate(ctx, logger, nk)
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
-	// go message_queue.InitNatsService(logger, constant.NastEndpoint)
+	message_queue.InitNatsService(logger, constant.NastEndpoint)
 	api.InitExchangeList(ctx, logger, nk)
 	api.InitReferUserReward(ctx, logger, nk)
 
@@ -410,17 +413,17 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	initializer.RegisterRpc(rpcIAP, api.RpcIAP())
 
-	// message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
-	// 	leaderBoardRecord := &pb.LeaderBoardRecord{}
-	// 	err := unmarshaler.Unmarshal(data, leaderBoardRecord)
-	// 	if err != nil {
-	// 		logger.Error("leaderboard_add_score unmarshaler err %v data %v", err, string(data))
-	// 		return
-	// 	}
-	// 	api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
-	// })
+	message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
+		leaderBoardRecord := &pb.LeaderBoardRecord{}
+		err := unmarshaler.Unmarshal(data, leaderBoardRecord)
+		if err != nil {
+			logger.Error("leaderboard_add_score unmarshaler err %v data %v", err, string(data))
+			return
+		}
+		api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
+	})
 
-	// message_queue.GetNatsService().RegisterAllSubject()
+	message_queue.GetNatsService().RegisterAllSubject()
 	cgbdb.AutoMigrate(db)
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
