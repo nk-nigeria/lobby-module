@@ -2,7 +2,6 @@ module github.com/ciaolink-game-platform/cgb-lobby-module
 
 go 1.21
 
-toolchain go1.21.4
 
 replace github.com/ciaolink-game-platform/cgp-common => ./cgp-common
 
