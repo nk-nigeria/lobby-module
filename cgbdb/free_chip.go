@@ -62,18 +62,18 @@ func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB
 	return nil
 }
 
-func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, userId string) (*pb.FreeChip, error) {
-	freeChip, err := GetFreeChipByIdByUser(ctx, logger, db, id, userId)
+func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, recipientId string) (*pb.FreeChip, error) {
+	freeChip, err := GetFreeChipByIdByUser(ctx, logger, db, id, recipientId)
 	if err != nil {
 		return nil, err
 	}
-	if freeChip.Claimable == false {
+	if !freeChip.Claimable {
 		return nil, status.Error(codes.Aborted, "Freechip alread claimed")
 	}
 	query := "UPDATE " + FreeChipTableName + " SET claimable=$1 WHERE id=$2 AND recipient_id=$3 AND claimable=$4"
-	result, err := db.ExecContext(ctx, query, 0, id, userId, 1)
+	result, err := db.ExecContext(ctx, query, 0, id, recipientId, 1)
 	if err != nil {
-		logger.Error("Claim free chip id %d, user %s, error %s", id, userId, err.Error())
+		logger.Error("Claim free chip id %d, user %s, error %s", id, recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Claim freechip error")
 	}
 	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
@@ -83,8 +83,8 @@ func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id in
 	return freeChip, nil
 }
 
-func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, userId string) (*pb.FreeChip, error) {
-	if id <= 0 || userId == "" {
+func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, recipientId string) (*pb.FreeChip, error) {
+	if id <= 0 || recipientId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
 	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE id=$1 AND recipient_id=$2"
@@ -92,9 +92,9 @@ func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.D
 	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
-	err := db.QueryRowContext(ctx, query, id, userId).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
+	err := db.QueryRowContext(ctx, query, id, recipientId).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
 	if err != nil {
-		logger.Error("Query free chip id %, user %s, error %s", id, userId, err.Error())
+		logger.Error("Query free chip id %, user %s, error %s", id, recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip error")
 	}
 	freeChip := pb.FreeChip{
@@ -112,15 +112,15 @@ func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.D
 	return &freeChip, nil
 }
 
-func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string) (*pb.ListFreeChip, error) {
-	if userId == "" {
+func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, recipientId string) (*pb.ListFreeChip, error) {
+	if recipientId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
 	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE claimable=$1 AND recipient_id=$2"
 
-	rows, err := db.QueryContext(ctx, query, 1, userId)
+	rows, err := db.QueryContext(ctx, query, 1, recipientId)
 	if err != nil {
-		logger.Error("Query free chip claimable user %s, error %s", userId, err.Error())
+		logger.Error("Query free chip claimable user %s, error %s", recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip claimable error")
 	}
 	ml := make([]*pb.FreeChip, 0)
@@ -150,7 +150,7 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	}, nil
 }
 
-func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, limit int64, cursor string) (*pb.ListFreeChip, error) {
+func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, recipientId string, limit int64, cursor string) (*pb.ListFreeChip, error) {
 	var incomingCursor = &entity.FreeChipListCursor{}
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)
@@ -162,7 +162,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 		}
 
 		// Cursor and filter mismatch. Perhaps the caller has sent an old cursor with a changed filter.
-		if userId != incomingCursor.UserId {
+		if recipientId != incomingCursor.UserId {
 			return nil, ErrWalletLedgerInvalidCursor
 		}
 		logger.Info("GetListFreeChip with cusor %d, userId %s, create time %s ",
@@ -208,7 +208,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 	params := make([]interface{}, 0)
 	query := ""
 
-	if userId == "" {
+	if recipientId == "" {
 		if incomingCursor.Id > 0 {
 			if incomingCursor.IsNext {
 				query += " WHERE id < $1 order by id desc "
@@ -224,7 +224,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 		}
 	} else {
 		query += " WHERE recipient_id=$1 "
-		params = append(params, userId)
+		params = append(params, recipientId)
 		if incomingCursor.Id > 0 {
 			if incomingCursor.IsNext {
 				query += " AND id < $2 order by id desc "
@@ -243,7 +243,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 		FreeChipTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
 	if err != nil {
-		logger.Error("Query lists free chip claimable user %s, error %s", userId, err.Error())
+		logger.Error("Query lists free chip claimable user %s, error %s", recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip claimable error")
 	}
 	ml := make([]*pb.FreeChip, 0)
@@ -282,7 +282,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 	if len(ml) > 0 {
 		if len(ml)+int(incomingCursor.Offset) < int(total) {
 			nextCursor = &entity.FreeChipListCursor{
-				UserId: userId,
+				UserId: recipientId,
 				Id:     ml[len(ml)-1].Id,
 				IsNext: true,
 				Offset: incomingCursor.Offset + int64(len(ml)),
@@ -298,7 +298,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, use
 			prevOffset = 0
 		}
 		prevCursor = &entity.FreeChipListCursor{
-			UserId: userId,
+			UserId: recipientId,
 			Id:     ml[0].Id,
 			IsNext: false,
 			Offset: prevOffset,
