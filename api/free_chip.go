@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
@@ -33,6 +34,15 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 		}
 		freeChip.SenderId = constant.UUID_USER_SYSTEM
 		freeChip.Action = entity.WalletActionFreeChip.String()
+		// check RecipientId is sId or uuid
+		// sid -> convert to uuid
+		if userSid, _ := strconv.Atoi(freeChip.RecipientId); userSid > 0 {
+			account, err := cgbdb.GetAccount(ctx, db, "", int64(userSid))
+			if err != nil {
+				return "", presenter.ErrNoUserIdFound
+			}
+			freeChip.RecipientId = account.User.Id
+		}
 		err := cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
 		if err != nil {
 			return "", err
