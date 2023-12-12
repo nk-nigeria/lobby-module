@@ -26,6 +26,6 @@ func Init() {
 		UseEnumNumbers:  true,
 	}
 	Unmarshaler = &protojson.UnmarshalOptions{
-		DiscardUnknown: false,
+		DiscardUnknown: true,
 	}
 }
