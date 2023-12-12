@@ -259,8 +259,8 @@ func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage o
 	}
 
 	if profile.RefCode == "" {
-		profile.RemainTimeInputRefCode = entity.MaxIn64(int64(time.Unix(profile.CreateTimeUnix+7*86400, 0).
-			Sub(time.Now()).Seconds()), 0)
+		profile.RemainTimeInputRefCode = entity.MaxIn64(int64(time.Until(time.Unix(profile.CreateTimeUnix+7*86400, 0)).Seconds()), 0)
 	}
+	profile.UserSid = account.Sid
 	return &profile, metadata, nil
 }
