@@ -262,11 +262,7 @@ func GetUserGroupUserInfo(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	result.Level = level
 
-	var vipLevel int64 = 0
-	if vipLevelStr, ok := metadata["vip_level"]; ok {
-		vipLevel = vipLevelStr.(int64)
-	}
-	result.VipLevel = vipLevel
+	result.VipLevel = entity.ToInt64(metadata["vip_level"], 0)
 
 	var chips int64 = 0
 	var chipsInbank int64 = 0
