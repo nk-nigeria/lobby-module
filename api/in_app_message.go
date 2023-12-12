@@ -3,9 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"strings"
-	"time"
-
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
@@ -61,28 +58,6 @@ func RpcListInAppMessage(marshaler *protojson.MarshalOptions, unmarshaler *proto
 		list, err := cgbdb.GetListInAppMessage(ctx, logger, db, unmarshaler, nk, inAppMessageRequest.Limit, inAppMessageRequest.Cusor, inAppMessageRequest.Type)
 		if err != nil {
 			return "", err
-		}
-		for _, inAppMessage := range list.InAppMessages {
-			if inAppMessage.Data != nil && inAppMessage.Data.Params != nil {
-				if lstImageStr, ok := inAppMessage.Data.Params["images"]; ok {
-					lstImage := strings.Split(lstImageStr, ";")
-					lstImageTmp := make([]string, 0)
-					for _, img := range lstImage {
-						sepIdx := strings.Index(img, "/")
-						if sepIdx < 0 {
-							continue
-						}
-						bucketName := img[:sepIdx]
-						fileName := img[sepIdx+1:]
-						if url, err := wrapper.PresignGetObject(bucketName, fileName, 24*time.Hour, nil); err == nil {
-							lstImageTmp = append(lstImageTmp, url)
-						} else {
-							logger.Error("PresignGetObject %s error %s", img, err.Error())
-						}
-					}
-					inAppMessage.Data.Params["images"] = strings.Join(lstImageTmp, ";")
-				}
-			}
 		}
 		listInAppMessageStr, _ := conf.MarshalerDefault.Marshal(list)
 		return string(listInAppMessageStr), nil
