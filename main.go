@@ -47,6 +47,7 @@ const (
 	rpcListClaimableFreeChip = "list_claimable_freechip"
 	rpcCheckClaimFreeChip    = "check_claim_freechip"
 	rpcListFreeChip          = "list_freechip"
+	rpcMarkAcceptFreeChip    = "mark_accept_freechip"
 	rpcListDeal              = "list_deal"
 	rpcListExchangeDeal      = "list_exchange_deal"
 	rpcExchangeAdd           = "exchange_add"
@@ -203,6 +204,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcListFreeChip, api.RpcListFreeChip(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcMarkAcceptFreeChip, api.RpcMarkAcceptListFreeChip(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

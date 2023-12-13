@@ -58,18 +58,63 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 		if err != nil {
 			return "", err
 		}
-		noti := pb.Notification{
-			RecipientId: freeChip.RecipientId,
-			Type:        pb.TypeNotification_GIFT,
-			Title:       "Freechip",
-			Content:     "Freechip",
-			SenderId:    "",
-			Read:        false,
+		// noti := pb.Notification{
+		// 	RecipientId: freeChip.RecipientId,
+		// 	Type:        pb.TypeNotification_GIFT,
+		// 	Title:       "Freechip",
+		// 	Content:     "Freechip",
+		// 	SenderId:    "",
+		// 	Read:        false,
+		// }
+		// err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
+		// if err != nil {
+		// 	logger.Warn("Add freechip noti err %s, body %s",
+		// 		err.Error(), freeChip.String())
+		// }
+		freeChipStr, _ := conf.MarshalerDefault.Marshal(freeChip)
+		return string(freeChipStr), nil
+	}
+}
+
+func RpcMarkAcceptListFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if ok && userID != "" {
+			return "", errors.New("umauth")
 		}
-		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
+		freeChip := &pb.FreeChip{}
+		if payload != "" {
+			if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
+				logger.Error("Error when unmarshal payload", err.Error())
+				return "", presenter.ErrUnmarshal
+			}
+		}
+		var err error
+		freeChip, err = cgbdb.MarkClaimableFreeChip(ctx, logger, db, freeChip)
 		if err != nil {
-			logger.Warn("Add freechip noti err %s, body %s",
-				err.Error(), freeChip.String())
+			logger.WithField("err", err).Error("mark claim freechip failed")
+			return "", presenter.ErrInternalError
+		}
+		if freeChip.GetClaimStaus() == pb.FreeChip_CLAIM_STATUS_WAIT_USER_CLAIM {
+			userSid, _ := strconv.ParseInt(freeChip.RecipientId, 10, 64)
+			account, err := cgbdb.GetAccount(ctx, db, "", userSid)
+			if err != nil {
+				logger.WithField("err", err).WithField("user sid", userSid).Error("get account failed")
+			} else {
+				noti := pb.Notification{
+					RecipientId: account.User.Id,
+					Type:        pb.TypeNotification_GIFT,
+					Title:       "Freechip",
+					Content:     "Freechip",
+					SenderId:    "",
+					Read:        false,
+				}
+				err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
+				if err != nil {
+					logger.Warn("Add freechip noti err %s, body %s",
+						err.Error(), freeChip.String())
+				}
+			}
 		}
 		freeChipStr, _ := conf.MarshalerDefault.Marshal(freeChip)
 		return string(freeChipStr), nil
@@ -82,21 +127,20 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		if !ok {
 			return "", errors.New("Missing user ID.")
 		}
-		freeChip := &pb.FreeChip{}
-		{
-			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
-			if err != nil {
-				logger.WithField("user id", userID).WithField("err", err).Error("get account failed")
-				return "", presenter.ErrNoUserIdFound
-			}
-			freeChip.RecipientId = strconv.FormatInt(account.Sid, 10)
+		req := &pb.FreeChip{}
+
+		account, err := cgbdb.GetAccount(ctx, db, userID, 0)
+		if err != nil {
+			logger.WithField("user id", userID).WithField("err", err).Error("get account failed")
+			return "", presenter.ErrNoUserIdFound
 		}
-		if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
+		req.RecipientId = strconv.FormatInt(account.Sid, 10)
+
+		if err := unmarshaler.Unmarshal([]byte(payload), req); err != nil {
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		var err error
-		freeChip, err = cgbdb.ClaimFreeChip(ctx, logger, db, freeChip.Id, freeChip.RecipientId)
+		freeChip, err := cgbdb.ClaimFreeChip(ctx, logger, db, req.Id, req.RecipientId)
 		if err != nil {
 			logger.WithField("user id", userID).WithField("freechip id", freeChip.Id).WithField("err", err).Error("claim free chip failed")
 			return "", err
@@ -111,7 +155,7 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			metadata["action"] = freeChip.GetAction()
 		}
 		metadata["sender"] = freeChip.GetSenderId()
-		metadata["recv"] = freeChip.GetRecipientId()
+		metadata["recv"] = userID
 
 		err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 		if err != nil {
@@ -181,10 +225,10 @@ func RpcCheckClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *pro
 
 func RpcListFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
-		// if ok && userID != "" {
-		// 	return "", errors.New("UnAth.")
-		// }
+		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if ok && userID != "" {
+			return "", errors.New("umauth")
+		}
 		freeChip := &pb.FreeChipRequest{}
 		if payload != "" {
 			if err := unmarshaler.Unmarshal([]byte(payload), freeChip); err != nil {
@@ -192,17 +236,17 @@ func RpcListFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 				return "", presenter.ErrUnmarshal
 			}
 		}
-		logger.Info("User id %s", userID)
-		{
-			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
-			if err != nil {
-				logger.WithField("user id", userID).WithField("err", err).Error("get account failed")
-				return "", presenter.ErrNoUserIdFound
-			}
-			freeChip.UserId = strconv.FormatInt(account.Sid, 10)
-		}
+		// logger.Info("User id %s", userID)
+		// {
+		// 	account, err := cgbdb.GetAccount(ctx, db, userID, 0)
+		// 	if err != nil {
+		// 		logger.WithField("user id", userID).WithField("err", err).Error("get account failed")
+		// 		return "", presenter.ErrNoUserIdFound
+		// 	}
+		// 	freeChip.UserId = strconv.FormatInt(account.Sid, 10)
+		// }
 		list, err := cgbdb.GetListFreeChip(ctx, logger, db,
-			freeChip.UserId, freeChip.Limit, freeChip.Cusor)
+			"", int(freeChip.GetClaimStaus()), freeChip.Limit, freeChip.Cusor)
 		if err != nil {
 			return "", err
 		}

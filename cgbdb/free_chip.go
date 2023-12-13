@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/gob"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -46,9 +47,10 @@ func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB
 		return status.Error(codes.InvalidArgument, "Error add claimable freechip.")
 	}
 	freeChip.Id = conf.SnowlakeNode.Generate().Int64()
-	query := "INSERT INTO " + FreeChipTableName + " (id, sender_id, recipient_id, title, content, chips, claimable, action, create_time, update_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())"
+	claimable := 0
+	query := "INSERT INTO " + FreeChipTableName + " (id, sender_id, recipient_id, title, content, chips, claimable, action, create_time, update_time, claim_time, claim_status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now(), $9,$10)"
 	result, err := db.ExecContext(ctx, query, freeChip.Id, freeChip.SenderId, freeChip.RecipientId, freeChip.Title, freeChip.Content,
-		freeChip.Chips, 1, freeChip.GetAction())
+		freeChip.Chips, claimable, freeChip.GetAction(), nil, pb.FreeChip_CLAIM_STATUS_WAIT_ADMIN_ACCEPT.Number())
 	if err != nil {
 		logger.Error("Add new claimable, sender: %s, recv: %s, chips: %d, error %s",
 			freeChip.SenderId, freeChip.RecipientId, freeChip.Chips, err.Error())
@@ -62,6 +64,27 @@ func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB
 	return nil
 }
 
+func MarkClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, freeChip *pb.FreeChip) (*pb.FreeChip, error) {
+	if freeChip == nil || freeChip.Id <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "freechip id missing")
+	}
+	claimable := 1
+	query := "UPDATE " + FreeChipTableName + " SET claimable=$1,claim_status=$2 WHERE id=$3 AND recipient_id=$4 AND claim_status=$5"
+	result, err := db.ExecContext(ctx, query, claimable, pb.FreeChip_CLAIM_STATUS_WAIT_USER_CLAIM.Number(),
+		freeChip.Id, freeChip.RecipientId, pb.FreeChip_CLAIM_STATUS_WAIT_ADMIN_ACCEPT.Number())
+	if err != nil {
+		logger.Error("Mark claimable, sender: %s, recv: %s, chips: %d, error %s",
+			freeChip.SenderId, freeChip.RecipientId, freeChip.Chips, err.Error())
+		return nil, status.Error(codes.Internal, "Error add claimable freechip.")
+	}
+	if rowsAffectedCount, _ := result.RowsAffected(); rowsAffectedCount != 1 {
+		logger.Error("Did not insert new claimable, sender: %s, recv: %s, chips: %s",
+			freeChip.SenderId, freeChip.RecipientId, freeChip.Chips)
+		return nil, status.Error(codes.Internal, "Error add claimable freechip.")
+	}
+	return GetFreeChipByIdByUser(ctx, logger, db, freeChip.Id, "")
+}
+
 func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, recipientId string) (*pb.FreeChip, error) {
 	freeChip, err := GetFreeChipByIdByUser(ctx, logger, db, id, recipientId)
 	if err != nil {
@@ -70,8 +93,8 @@ func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id in
 	if !freeChip.Claimable {
 		return nil, status.Error(codes.Aborted, "Freechip alread claimed")
 	}
-	query := "UPDATE " + FreeChipTableName + " SET claimable=$1 WHERE id=$2 AND recipient_id=$3 AND claimable=$4"
-	result, err := db.ExecContext(ctx, query, 0, id, recipientId, 1)
+	query := "UPDATE " + FreeChipTableName + " SET claimable=$1,claim_status=$2 WHERE id=$3 AND recipient_id=$4 AND claimable=$5 and claim_status=$6"
+	result, err := db.ExecContext(ctx, query, 0, pb.FreeChip_CLAIM_STATUS_CLAIMED.Number(), id, recipientId, 1, pb.FreeChip_CLAIM_STATUS_WAIT_USER_CLAIM.Number())
 	if err != nil {
 		logger.Error("Claim free chip id %d, user %s, error %s", id, recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Claim freechip error")
@@ -84,15 +107,22 @@ func ClaimFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, id in
 }
 
 func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, recipientId string) (*pb.FreeChip, error) {
-	if id <= 0 || recipientId == "" {
+	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
-	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE id=$1 AND recipient_id=$2"
+	args := make([]interface{}, 0)
+	args = append(args, id)
+	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action,claim_status FROM " + FreeChipTableName + " WHERE id=$1"
+	if len(recipientId) > 0 {
+		args = append(args, recipientId)
+		query += " AND recipient_id=$2"
+	}
 	var dbID int64
 	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
-	err := db.QueryRowContext(ctx, query, id, recipientId).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
+	var dbClaimStatus int
+	err := db.QueryRowContext(ctx, query, args...).Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction, &dbClaimStatus)
 	if err != nil {
 		logger.Error("Query free chip id %, user %s, error %s", id, recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip error")
@@ -105,6 +135,7 @@ func GetFreeChipByIdByUser(ctx context.Context, logger runtime.Logger, db *sql.D
 		Content:     dbContent,
 		Chips:       dbChips,
 		Action:      dbAction,
+		ClaimStaus:  pb.FreeChip_ClaimStatus(dbClaimStatus),
 	}
 	if dbClaimable == 1 {
 		freeChip.Claimable = true
@@ -116,9 +147,9 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	if recipientId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Id or user id is empty")
 	}
-	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE claimable=$1 AND recipient_id=$2"
+	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " + FreeChipTableName + " WHERE claimable=$1 AND recipient_id=$2 and claim_status=$3 "
 
-	rows, err := db.QueryContext(ctx, query, 1, recipientId)
+	rows, err := db.QueryContext(ctx, query, 1, recipientId, pb.FreeChip_CLAIM_STATUS_WAIT_USER_CLAIM.Number())
 	if err != nil {
 		logger.Error("Query free chip claimable user %s, error %s", recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip claimable error")
@@ -150,7 +181,7 @@ func GetFreeChipClaimableByUser(ctx context.Context, logger runtime.Logger, db *
 	}, nil
 }
 
-func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, recipientId string, limit int64, cursor string) (*pb.ListFreeChip, error) {
+func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, recipientId string, claimStatus int, limit int64, cursor string) (*pb.ListFreeChip, error) {
 	var incomingCursor = &entity.FreeChipListCursor{}
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)
@@ -177,71 +208,51 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, rec
 	if incomingCursor.Id < 0 {
 		incomingCursor.Id = 0
 	}
+	if incomingCursor.ClaimStatus <= 0 {
+		incomingCursor.ClaimStatus = claimStatus
+	}
 
 	var rows *sql.Rows
 	var err error
-	// if userId == "" {
 
-	// 	if incomingCursor != nil && !incomingCursor.IsNext {
-	// 		params = append(params, incomingCursor.Id)
-	// 		query = "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " WHERE id < $1 order by id desc limit $2"
-	// 	} else {
-	// 		params = append(params, 0)
-	// 	}
-	// 	logger.Info("query %s", query)
-	// 	params = append(params, limit)
-	// 	rows, err = db.QueryContext(ctx, query, params...)
-	// } else {
-	// 	params := make([]interface{}, 0)
-	// 	query := "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " WHERE recipient_id=$1 AND id > $2 order by id desc limit $3"
-	// 	params = append(params, userId)
-	// 	if incomingCursor != nil && !incomingCursor.IsNext {
-	// 		query = "SELECT id, sender_id, recipient_id, title, content, chips, claimable FROM " + FreeChipTableName + " WHERE recipient_id=$1 AND id < $2 order by id desc limit $3"
-	// 		params = append(params, incomingCursor.Id)
-	// 	} else {
-	// 		params = append(params, 0)
-	// 	}
-	// 	params = append(params, limit)
-	// 	logger.Info("query %s", query)
-	// 	rows, err = db.QueryContext(ctx, query, params...)
-	// }
 	params := make([]interface{}, 0)
 	query := ""
 
 	if recipientId == "" {
 		if incomingCursor.Id > 0 {
 			if incomingCursor.IsNext {
-				query += " WHERE id < $1 order by id desc "
+				query += " WHERE id < $1 and claim_status=$2 order by id desc "
 			} else {
-				query += " WHERE id > $1 order by id asc"
+				query += " WHERE id > $1 and claim_status=$2 order by id asc"
 			}
-			params = append(params, incomingCursor.Id)
-			query += "  limit $2"
+			params = append(params, incomingCursor.Id, incomingCursor.ClaimStatus)
+			query += "  limit $3"
 			params = append(params, limit)
 		} else {
-			query += " order by id desc limit $1"
-			params = append(params, limit)
+			query += " WHERE claim_status=$1 order by id desc limit $2"
+			params = append(params, incomingCursor.ClaimStatus, limit)
 		}
 	} else {
-		query += " WHERE recipient_id=$1 "
-		params = append(params, recipientId)
+		query += " WHERE recipient_id=$1 and claim_status=$2"
+		params = append(params, recipientId, incomingCursor.ClaimStatus)
 		if incomingCursor.Id > 0 {
 			if incomingCursor.IsNext {
-				query += " AND id < $2 order by id desc "
+				query += " AND id < $3 order by id desc "
 			} else {
-				query += " AND id > $2 order by id asc "
+				query += " AND id > $3 order by id asc "
 			}
 			params = append(params, incomingCursor.Id)
-			query += " limit $3"
+			query += " limit $4"
 			params = append(params, limit)
 		} else {
-			query += " order by id desc limit $2"
+			query += " order by id desc limit $3"
 			params = append(params, limit)
 		}
 	}
-	queryRow := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action FROM " +
+	queryRow := "SELECT id, sender_id, recipient_id, title, content, chips, claimable, action,claim_status FROM " +
 		FreeChipTableName + query
 	rows, err = db.QueryContext(ctx, queryRow, params...)
+	fmt.Println(queryRow)
 	if err != nil {
 		logger.Error("Query lists free chip claimable user %s, error %s", recipientId, err.Error())
 		return nil, status.Error(codes.Internal, "Query freechip claimable error")
@@ -251,8 +262,9 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, rec
 	var dbSenderId, dbRecvId, dbTitle, dbContent, dbAction string
 	var dbChips int64
 	var dbClaimable int
+	var dbClaimStatus int
 	for rows.Next() {
-		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction)
+		rows.Scan(&dbID, &dbSenderId, &dbRecvId, &dbTitle, &dbContent, &dbChips, &dbClaimable, &dbAction, &dbClaimStatus)
 		freeChip := pb.FreeChip{
 			Id:          dbID,
 			SenderId:    dbSenderId,
@@ -261,6 +273,7 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, rec
 			Content:     dbContent,
 			Chips:       dbChips,
 			Action:      dbAction,
+			ClaimStaus:  pb.FreeChip_ClaimStatus(claimStatus),
 		}
 		if dbClaimable == 1 {
 			freeChip.Claimable = true
@@ -282,11 +295,12 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, rec
 	if len(ml) > 0 {
 		if len(ml)+int(incomingCursor.Offset) < int(total) {
 			nextCursor = &entity.FreeChipListCursor{
-				UserId: recipientId,
-				Id:     ml[len(ml)-1].Id,
-				IsNext: true,
-				Offset: incomingCursor.Offset + int64(len(ml)),
-				Total:  total,
+				UserId:      recipientId,
+				Id:          ml[len(ml)-1].Id,
+				IsNext:      true,
+				Offset:      incomingCursor.Offset + int64(len(ml)),
+				Total:       total,
+				ClaimStatus: incomingCursor.ClaimStatus,
 			}
 		}
 
@@ -298,11 +312,12 @@ func GetListFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB, rec
 			prevOffset = 0
 		}
 		prevCursor = &entity.FreeChipListCursor{
-			UserId: recipientId,
-			Id:     ml[0].Id,
-			IsNext: false,
-			Offset: prevOffset,
-			Total:  total,
+			UserId:      recipientId,
+			Id:          ml[0].Id,
+			IsNext:      false,
+			Offset:      prevOffset,
+			Total:       total,
+			ClaimStatus: incomingCursor.ClaimStatus,
 		}
 	}
 
