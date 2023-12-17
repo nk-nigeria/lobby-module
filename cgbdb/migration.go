@@ -440,7 +440,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	ddls = append(ddls, `
 	CREATE TABLE public.games (
 		id bigserial NOT NULL,
-		created_at timestamptz NULL,
+		created_at timestamptz NULL DEFAULT now(),
 		code varchar(31) NOT NULL,
 		CONSTRAINT games_code_key UNIQUE (code),
 		CONSTRAINT games_pkey PRIMARY KEY (id)
