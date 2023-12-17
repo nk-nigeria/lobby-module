@@ -20,6 +20,7 @@ import (
 
 const (
 	rpcIdGameList    = "list_game"
+	rpcGameAdd       = "add_game"
 	rpcIdFindMatch   = "find_match"
 	rpcIdCreateMatch = "create_match"
 	rpcIdQuickMatch  = "quick_match"
@@ -123,8 +124,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if true {
 		cgbdb.RunMigrations(ctx, logger, db)
 	}
-	api.InitListGame(ctx, logger, nk)
-	api.InitListBet(ctx, logger, nk)
+	api.InitListGame(ctx, logger, db, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitDailyRewardTemplate(ctx, logger, nk)
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
@@ -149,6 +149,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	// initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
+	if err := initializer.RegisterRpc(rpcGameAdd, api.RpcGameAdd(marshaler, unmarshaler)); err != nil {
+		return err
+	}
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
 	}

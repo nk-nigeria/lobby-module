@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"errors"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -18,175 +19,63 @@ const (
 	kGameKey         = "games"
 )
 
-func InitListGame(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule) {
-	objectIds := []*runtime.StorageRead{
-		{
-			Collection: kLobbyCollection,
-			Key:        kGameKey,
-		},
-	}
-	objects, err := nk.StorageRead(ctx, objectIds)
-	if err != nil {
-		logger.Error("Error when read list game at init, error %s", err.Error())
-	}
+var mapGameByCode = make(map[string]*entity.Game, 0)
 
-	// check list game has write in collection
-	if len(objects) > 0 {
-		logger.Info("List game already write in collection")
-		return
+func InitListGame(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	gamesJson := `{"games":[{"code":"color-game","layout":{"col":1,"row":2,"col_span":2,"row_span":2},"id":2},{"code":"roulette","layout":{"col":1,"row":3,"col_span":2,"row_span":2},"id":4},{"code":"fruit-slot","layout":{"col":1,"row":4,"col_span":2,"row_span":2},"id":5},{"code":"sabong-cards","layout":{"col":2,"row":1,"col_span":2,"row_span":2},"id":6},{"code":"chinese-poker","layout":{"col":2,"row":2,"col_span":2,"row_span":2},"id":7},{"code":"baccarat","layout":{"col":2,"row":3,"col_span":2,"row_span":2},"id":8},{"code":"lucky-number","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":9},{"code":"sixiang","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":13},{"code":"tarzan","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":12},{"code":"juicygarden","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":11},{"code":"blackjack","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":14},{"code":"bandarqq","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":15},{"code":"sicbo","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":16},{"code":"dragontiger","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":17},{"code":"inca","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":18},{"code":"noel","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":19},{"code":"fruit","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":20},{"code":"gaple","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":21}]}`
+	games := entity.Games{}
+	json.Unmarshal([]byte(gamesJson), &games)
+	for _, game := range games.List {
+		err := cgbdb.AddGame(ctx, db, &game)
+		if err != nil {
+			logger.WithField("err", err).Error("add games failed")
+		}
 	}
 
-	writeObjects := []*runtime.StorageWrite{}
-	var games entity.Games
-	games.List = []entity.Game{
-		{
-			Code: "noel-slot",
-			Layout: entity.Layout{
-				Col:     1,
-				Row:     1,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "2",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
+	cacheListGame(ctx, db, logger)
 
-		{
-			Code: "color-game",
-			Layout: entity.Layout{
-				Col:     1,
-				Row:     2,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "2",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
+}
 
-		{
-			Code: "roulette",
-			Layout: entity.Layout{
-				Col:     1,
-				Row:     3,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "4",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-
-		{
-			Code: "fruit-slot",
-			Layout: entity.Layout{
-				Col:     1,
-				Row:     4,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "5",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-
-		{
-			Code: "sabong-cards",
-			Layout: entity.Layout{
-				Col:     2,
-				Row:     1,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "6",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-
-		{
-			Code: "chinese-poker",
-			Layout: entity.Layout{
-				Col:     2,
-				Row:     2,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "7",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-
-		{
-			Code: "baccarat",
-			Layout: entity.Layout{
-				Col:     2,
-				Row:     3,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "8",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-
-		{
-			Code: "lucky-number",
-			Layout: entity.Layout{
-				Col:     2,
-				Row:     4,
-				ColSpan: 2,
-				RowSpan: 2,
-			},
-			LobbyId:     "9",
-			GameFee:     0.04,
-			JackpotFree: 0.01,
-		},
-	}
-
-	gameJson, err := json.Marshal(&pb.GameListResponse{
-		Games: games.ToPB(),
-	})
-	if err != nil {
-		logger.Debug("Can not marshaler list game for collection")
-		return
-	}
-	w := &runtime.StorageWrite{
-		Collection:      kLobbyCollection,
-		Key:             kGameKey,
-		Value:           string(gameJson),
-		PermissionRead:  2,
-		PermissionWrite: 0,
-	}
-	writeObjects = append(writeObjects, w)
-	if len(writeObjects) == 0 {
-		logger.Debug("Can not generate list game for collection")
-		return
-	}
-	_, err = nk.StorageWrite(ctx, writeObjects)
-	if err != nil {
-		logger.Error("Write list game for collection error %s", err.Error())
+func RpcGameAdd(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		game := &entity.Game{}
+		if err := json.Unmarshal([]byte(payload), game); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		err := cgbdb.AddGame(ctx, db, game)
+		if err == nil {
+			cacheListGame(ctx, db, logger)
+		}
+		return "", err
 	}
 }
 
 func RpcGameList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		objectIds := []*runtime.StorageRead{
-			{
-				Collection: kLobbyCollection,
-				Key:        kGameKey,
-			},
-		}
-		objects, err := nk.StorageRead(ctx, objectIds)
+		ml, err := cgbdb.ListGames(ctx, db)
 		if err != nil {
-			logger.Error("Error when read list game, error %s", err.Error())
-			return "", presenter.ErrMarshal
+			return "", err
 		}
-		if len(objects) == 0 {
-			logger.Error("Empty list game in storage ")
-			return "", nil
+		games := &entity.Games{
+			List: ml,
 		}
+		dataJson, _ := json.Marshal(games)
+		return string(dataJson), nil
+	}
+}
 
-		return objects[0].GetValue(), nil
+func cacheListGame(ctx context.Context, db *sql.DB, logger runtime.Logger) {
+	ml, err := cgbdb.ListGames(ctx, db)
+	if err != nil {
+		logger.WithField("err", err).Error("load list game failed")
+		return
+	}
+	for _, game := range ml {
+		mapGameByCode[game.Code] = &game
 	}
 }

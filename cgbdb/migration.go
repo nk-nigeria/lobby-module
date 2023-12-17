@@ -436,6 +436,17 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		new_fee float8 NULL,
 		CONSTRAINT bets_pkey PRIMARY KEY (id)
 `)
+
+	ddls = append(ddls, `
+	CREATE TABLE public.games (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL,
+		code varchar(31) NOT NULL,
+		CONSTRAINT games_code_key UNIQUE (code),
+		CONSTRAINT games_pkey PRIMARY KEY (id)
+	);
+`)
+
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {

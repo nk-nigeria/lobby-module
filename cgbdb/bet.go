@@ -9,7 +9,7 @@ import (
 )
 
 func AddBet(ctx context.Context, db *sql.DB, bet *entity.Bet) error {
-	gDB, err := NewGorm(db)
+	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -21,7 +21,7 @@ func UpdateBet(ctx context.Context, db *sql.DB, bet *entity.Bet) error {
 	if bet.Id <= 0 {
 		return errors.New("missing id")
 	}
-	gDB, err := NewGorm(db)
+	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func ReadBet(ctx context.Context, db *sql.DB, id int64) (*entity.Bet, error) {
 	if id <= 0 {
 		return nil, errors.New("invalid id")
 	}
-	gDB, err := NewGorm(db)
+	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func ReadBet(ctx context.Context, db *sql.DB, id int64) (*entity.Bet, error) {
 }
 
 func QueryBet(ctx context.Context, db *sql.DB, limit, offset int64, query interface{}, args ...interface{}) ([]entity.Bet, int64, error) {
-	gDB, err := NewGorm(db)
+	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -70,7 +70,7 @@ func DeleteBet(ctx context.Context, db *sql.DB, id int64) error {
 	if id <= 0 {
 		return errors.New("missing id")
 	}
-	gDB, err := NewGorm(db)
+	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
 		return err
 	}

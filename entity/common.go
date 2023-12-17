@@ -56,13 +56,18 @@ func (gs Games) ToPB() []*pb.Game {
 }
 
 type Game struct {
+	ID          uint    `gorm:"primarykey" json:"id"`
 	Code        string  `json:"code"`
-	Layout      Layout  `json:"layout"`
-	LobbyId     string  `json:"lobbyId"`
-	MinChip     int     `json:"minChip"`
-	Enable      bool    `json:"enable"`
-	GameFee     float32 `json:"game_fee"`
-	JackpotFree float32 `json:"jackpot_fee"`
+	Layout      Layout  `gorm:"-" json:"layout"`
+	LobbyId     string  `gorm:"-" json:"lobbyId"`
+	MinChip     int     `gorm:"-" json:"minChip"`
+	Enable      bool    `gorm:"-" json:"enable"`
+	GameFee     float32 `gorm:"-" json:"game_fee"`
+	JackpotFree float32 `gorm:"-" json:"jackpot_fee"`
+}
+
+func (Game) TableName() string {
+	return "games"
 }
 
 type Layout struct {
