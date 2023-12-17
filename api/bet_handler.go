@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -225,5 +228,108 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		betsJson, _ := marshaler.Marshal(msg)
 		logger.Info("bets results %s", betsJson)
 		return string(betsJson), nil
+	}
+}
+
+// amdmin
+func RpcAdminAddBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		bet := &entity.Bet{}
+		if err := json.Unmarshal([]byte(payload), bet); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		err := cgbdb.AddBet(ctx, db, bet)
+		return "", err
+	}
+}
+
+func RpcAdminUpdateBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		bet := &entity.Bet{}
+		if err := json.Unmarshal([]byte(payload), bet); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		if bet.Id <= 0 {
+			logger.Error("Missing bet id")
+			return "", presenter.ErrNoInputAllowed
+		}
+		err := cgbdb.UpdateBet(ctx, db, bet)
+		if err != nil {
+			logger.Error("Error when update bet, err: ", err.Error())
+			return "", presenter.ErrInternalError
+		}
+		newBet, err := cgbdb.ReadBet(ctx, db, bet.Id)
+		if err != nil {
+			logger.Error("Error when read bet, err: ", err.Error())
+			return "", presenter.ErrInternalError
+		}
+		dataStr, _ := json.Marshal(newBet)
+		return string(dataStr), nil
+	}
+}
+
+func RpcAdminDeleteBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		bet := &pb.Bet{}
+		if err := conf.Unmarshaler.Unmarshal([]byte(payload), bet); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		if bet.Id <= 0 {
+			logger.Error("Missing bet id")
+			return "", presenter.ErrNoInputAllowed
+		}
+		err := cgbdb.DeleteBet(ctx, db, bet.Id)
+		return "", err
+	}
+}
+
+func RpcAdminListBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unauth")
+		}
+		req := &pb.BetRequest{}
+		if err := conf.Unmarshaler.Unmarshal([]byte(payload), req); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		query := ""
+		args := make([]interface{}, 0)
+		if req.GameId > 0 {
+			query += "game_id=?"
+			args = append(args, req.GameId)
+		}
+		offset := max(0, req.Offset)
+		limit := max(0, req.Limit)
+		ml, total, err := cgbdb.QueryBet(ctx, db, limit, offset, query, args...)
+		if err != nil {
+			return "", err
+		}
+		res := &pb.Bets{
+			Total:  total,
+			Offset: offset,
+			Limit:  limit,
+		}
+		for _, bet := range ml {
+			res.Bets = append(res.Bets, bet.ToPb())
+		}
+		dataStr, _ := conf.MarshalerDefault.Marshal(res)
+		return string(dataStr), nil
 	}
 }

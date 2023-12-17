@@ -25,6 +25,11 @@ const (
 	rpcIdQuickMatch  = "quick_match"
 
 	rpcIdListBet = "list_bet"
+	// bet admin
+	rpcAdminAddBetAddNew = "admin_bet_add"
+	rpcAdminbetUpdate    = "admin_bet_update"
+	rpcAdminbetDelete    = "admin_bet_delete"
+	rpcAdminQueryBet     = "admin_bet"
 
 	rpcUserChangePass = "user_change_pass"
 	rpcLinkUsername   = "link_username"
@@ -161,6 +166,18 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminAddBetAddNew, api.RpcAdminAddBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminbetUpdate, api.RpcAdminUpdateBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminbetDelete, api.RpcAdminDeleteBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminQueryBet, api.RpcAdminListBet(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

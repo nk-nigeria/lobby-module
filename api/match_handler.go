@@ -240,7 +240,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				Size:     1,
 				MaxSize:  int32(maxSize),
 				Name:     request.Name,
-				MarkUnit: bets.Bets[0].MarkUnit,
+				MarkUnit: int32(bets.Bets[0].MarkUnit),
 				Open:     true,
 			})
 			response, err := marshaler.Marshal(resMatches)
