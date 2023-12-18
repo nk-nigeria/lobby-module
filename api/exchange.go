@@ -166,7 +166,7 @@ func RpcRequestNewExchange() func(context.Context, runtime.Logger, *sql.DB, runt
 			logger.Error("User %s request add new exchange with id %s, error: %s", userID, exChangedealReq.Id, err.Error())
 			return "", presenter.ErrInternalError
 		}
-		profile, _, err := GetProfileUser(ctx, db, userID, nil)
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 		if err != nil {
 			logger.Error("User %s get account info error %s", userID, err.Error())
 			return "", presenter.ErrInternalError

@@ -66,25 +66,32 @@ func QueryBet(ctx context.Context, db *sql.DB, limit, offset int64, query interf
 	return ml, 0, err
 }
 
-func DeleteBet(ctx context.Context, db *sql.DB, id int64) error {
+func DeleteBet(ctx context.Context, db *sql.DB, id int64) (*entity.Bet, error) {
 	if id <= 0 {
-		return errors.New("missing id")
+		return nil, errors.New("missing id")
 	}
 	gDB, err := NewGormContext(ctx, db)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	betDeleted, err := ReadBet(ctx, db, id)
+	if err != nil {
+		return nil, err
 	}
 	err = gDB.Delete(entity.Bet{}, id).Error
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return betDeleted, nil
 }
 
 func fillAgbet(bet *entity.Bet) *entity.Bet {
 	if bet == nil {
 		return nil
 	}
-	bet.AGJoin = bet.MarkUnit * bet.Xjoin
-	bet.AGPlaynow = bet.MarkUnit * bet.Xplaynow
-	bet.AGLeave = bet.MarkUnit * bet.Xleave
-	bet.AGFee = bet.MarkUnit * bet.Xfee
+	bet.AGJoin = int(float64(bet.MarkUnit) * float64(bet.Xjoin))
+	bet.AGPlaynow = int(float64(bet.MarkUnit) * float64(bet.Xplaynow))
+	bet.AGLeave = int(float64(bet.MarkUnit) * float64(bet.Xleave))
+	bet.AGFee = int(float64(bet.MarkUnit) * float64(bet.Xfee))
 	return bet
 }

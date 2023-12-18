@@ -3,10 +3,8 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -31,7 +29,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			return "", errors.New("Missing user ID.")
 		}
 
-		profile, _, err := GetProfileUser(ctx, db, userID, objStorage)
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, objStorage)
 		if err != nil {
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
@@ -58,7 +56,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", presenter.ErrUnmarshal
 		}
 		// metadata := make(map[string]interface{}, 0)
-		currentProfile, metadata, err := GetProfileUser(ctx, db, userID, objStorage)
+		currentProfile, metadata, err := cgbdb.GetProfileUser(ctx, db, userID, objStorage)
 		if err != nil {
 			logger.Error("get profile user %s, error: %s", userID, err.Error())
 			return "", err
@@ -114,7 +112,7 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", err
 		}
 
-		newProfile, _, err := GetProfileUser(ctx, db, userID, objStorage)
+		newProfile, _, err := cgbdb.GetProfileUser(ctx, db, userID, objStorage)
 		if addNewReferUser {
 			userRefer := &pb.ReferUser{
 				UserInvitor: profile.RefCode,
@@ -177,90 +175,4 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		return string(dataString), nil
 	}
-}
-
-func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage objectstorage.ObjStorage) (*pb.Profile, map[string]interface{}, error) {
-	// account, err := nk.AccountGetId(ctx, userID)
-	account, err := cgbdb.GetAccount(ctx, db, userID, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	var metadata map[string]interface{}
-	if err := json.Unmarshal([]byte(account.User.GetMetadata()), &metadata); err != nil {
-		return nil, nil, errors.New("Corrupted user metadata.")
-	}
-
-	user := account.User
-	// todo read account chip, bank chip
-	profile := pb.Profile{
-		UserId:             user.GetId(),
-		UserName:           user.GetUsername(),
-		LangTag:            user.GetLangTag(),
-		DisplayName:        user.GetDisplayName(),
-		Status:             entity.InterfaceToString(metadata["status"]),
-		RefCode:            entity.InterfaceToString(metadata["ref_code"]),
-		AppConfig:          entity.InterfaceToString(metadata["app_config"]),
-		LinkGroup:          entity.LinkGroupFB,
-		LinkFanpageFb:      entity.LinkFanpageFB,
-		AvatarId:           entity.InterfaceToString(metadata["avatar_id"]),
-		VipLevel:           entity.ToInt64(metadata["vip_level"], DefaultLevel),
-		LastOnlineTimeUnix: entity.ToInt64(metadata["last_online_time_unix"], 0),
-		CreateTimeUnix:     user.GetCreateTime().Seconds,
-		// LangAvailables:     []string{"en", "phi"},
-	}
-	playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
-	if playingMatchJson == "" {
-		profile.PlayingMatch = nil
-	} else {
-		profile.PlayingMatch = &pb.PlayingMatch{}
-		json.Unmarshal([]byte(playingMatchJson), profile.PlayingMatch)
-	}
-
-	profile.LangAvailables = append(profile.LangAvailables,
-		&pb.LangCode{
-			IsoCode:     "en-US",
-			DisplayName: "English",
-		},
-		&pb.LangCode{
-			IsoCode:     "tl-PH",
-			DisplayName: "Philippines",
-		},
-	)
-	if objStorage != nil {
-		for _, s := range profile.LangAvailables {
-			sourceUrl, _ := objStorage.PresignGetObject("lang", s.IsoCode+".json", 24*time.Hour, nil)
-			s.SourceUrl = strings.Split(sourceUrl, ".json")[0] + ".json"
-		}
-	}
-
-	if profile.DisplayName == "" {
-		profile.DisplayName = profile.UserName
-	}
-
-	if strings.HasPrefix(profile.UserName, entity.AutoPrefix) {
-		profile.Registrable = true
-	} else {
-		profile.Registrable = false
-	}
-
-	if user.GetAvatarUrl() != "" && objStorage != nil {
-		// objName := fmt.Sprintf(entity.AvatarFileName, userID)
-		objName := user.GetAvatarUrl()
-		avatatUrl, _ := objStorage.PresignGetObject(entity.BucketAvatar, objName, 24*time.Hour, nil)
-		profile.AvatarUrl = avatatUrl
-	}
-
-	if account.GetWallet() != "" {
-		wallet, err := entity.ParseWallet(account.GetWallet())
-		if err == nil {
-			profile.AccountChip = wallet.Chips
-			profile.BankChip = wallet.ChipsInBank
-		}
-	}
-
-	if profile.RefCode == "" {
-		profile.RemainTimeInputRefCode = entity.MaxIn64(int64(time.Until(time.Unix(profile.CreateTimeUnix+7*86400, 0)).Seconds()), 0)
-	}
-	profile.UserSid = account.Sid
-	return &profile, metadata, nil
 }

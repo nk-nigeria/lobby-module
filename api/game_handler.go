@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sync"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
@@ -19,7 +20,14 @@ const (
 	kGameKey         = "games"
 )
 
-var mapGameByCode = make(map[string]*entity.Game, 0)
+// var mapGameByCode = make(map[string]entity.Game, 0)
+// var mapBetsByGameCode = make(map[string][]entity.Bet, 0)
+var mapGameByCode sync.Map
+var mapBetsByGameCode sync.Map
+
+// func init() {
+// 	mapGameByCode = sync.Map{}
+// }
 
 func InitListGame(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
 	gamesJson := `{"games":[{"code":"color-game","layout":{"col":1,"row":2,"col_span":2,"row_span":2},"id":2},{"code":"roulette","layout":{"col":1,"row":3,"col_span":2,"row_span":2},"id":4},{"code":"fruit-slot","layout":{"col":1,"row":4,"col_span":2,"row_span":2},"id":5},{"code":"sabong-cards","layout":{"col":2,"row":1,"col_span":2,"row_span":2},"id":6},{"code":"chinese-poker","layout":{"col":2,"row":2,"col_span":2,"row_span":2},"id":7},{"code":"baccarat","layout":{"col":2,"row":3,"col_span":2,"row_span":2},"id":8},{"code":"lucky-number","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":9},{"code":"sixiang","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":13},{"code":"tarzan","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":12},{"code":"juicygarden","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":11},{"code":"blackjack","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":14},{"code":"bandarqq","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":15},{"code":"sicbo","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":16},{"code":"dragontiger","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":17},{"code":"inca","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":18},{"code":"noel","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":19},{"code":"fruit","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":20},{"code":"gaple","layout":{"col":2,"row":4,"col_span":2,"row_span":2},"id":21}]}`
@@ -76,6 +84,6 @@ func cacheListGame(ctx context.Context, db *sql.DB, logger runtime.Logger) {
 		return
 	}
 	for _, game := range ml {
-		mapGameByCode[game.Code] = &game
+		mapGameByCode.Store(game.Code, game)
 	}
 }

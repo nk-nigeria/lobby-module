@@ -427,14 +427,15 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	CREATE TABLE public.bets (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
-		game_id bigint NULL,
-		mark_unit bigint NULL,
-		x_join bigint NULL,
-		x_play_now bigint NULL,
-		x_leave bigint NULL,
-		x_fee bigint NULL,
+		game_id int8 NULL,
+		mark_unit float8 NULL,
+		x_join float8 NULL,
+		x_play_now float8 NULL,
+		x_leave float8 NULL,
+		x_fee float8 NULL,
 		new_fee float8 NULL,
 		CONSTRAINT bets_pkey PRIMARY KEY (id)
+	);
 `)
 
 	ddls = append(ddls, `

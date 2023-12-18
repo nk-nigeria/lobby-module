@@ -9,13 +9,13 @@ type Bet struct {
 	GameId    int     `gorm:"column:game_id"  json:"gameId,omitempty"`
 	Enable    bool    `gorm:"-" json:"enable,omitempty"`
 	MarkUnit  int     `gorm:"column:mark_unit" json:"markUnit,omitempty"`  // mức cược (chip)
-	Xjoin     int     `gorm:"column:x_join" json:"xJoin,omitempty"`        // tài sản tối thiểu cho phép join bàn  (đơn vị: mức cược bàn)
+	Xjoin     float32 `gorm:"column:x_join" json:"xJoin,omitempty"`        // tài sản tối thiểu cho phép join bàn  (đơn vị: mức cược bàn)
 	AGJoin    int     `gorm:"-" json:"agJoin,omitempty"`                   // tài sản tối thiểu cho phép join bàn (đơn vị: chip)
-	Xplaynow  int     `gorm:"column:x_play_now" json:"xPlaynow,omitempty"` // tài sản tối thiểu dùng để xác định bàn chơi khi ấn Quick Start (đơn vị: mức cược bàn)
+	Xplaynow  float32 `gorm:"column:x_play_now" json:"xPlaynow,omitempty"` // tài sản tối thiểu dùng để xác định bàn chơi khi ấn Quick Start (đơn vị: mức cược bàn)
 	AGPlaynow int     `gorm:"-" json:"agPlaynow,omitempty"`                //tài sản tối thiểu dùng để xác định bàn chơi khi ấn Quick Start (đơn vị: chip)
-	Xleave    int     `gorm:"column:x_leave" json:"xLeave,omitempty"`      // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: mức cược bàn)
+	Xleave    float32 `gorm:"column:x_leave" json:"xLeave,omitempty"`      // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: mức cược bàn)
 	AGLeave   int     `gorm:"-" json:"agLeave,omitempty"`                  // tài sản tối thiểu để xác định đuổi khỏi bàn (đơn vị: chip)
-	Xfee      int     `gorm:"column:x_fee" json:"xFee,omitempty"`          // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: mcb)
+	Xfee      float32 `gorm:"column:x_fee" json:"xFee,omitempty"`          // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: mcb)
 	AGFee     int     `gorm:"-" json:"agFee,omitempty"`                    // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: chip)
 	NewFee    float32 `gorm:"column:new_fee" json:"newFee,omitempty"`      // mức tiền hồ áp dụng khi số chip mang vào =< Xfee hoặc AGFee
 }
@@ -24,15 +24,15 @@ func (b Bet) ToPb() *pb.Bet {
 	return &pb.Bet{
 		Id:        b.Id,
 		Enable:    b.Enable,
-		MarkUnit:  int64(b.MarkUnit),
+		MarkUnit:  float32(b.MarkUnit),
 		GameId:    int64(b.GameId),
-		XJoin:     int64(b.Xjoin),
+		XJoin:     (b.Xjoin),
 		AgJoin:    int64(b.AGJoin),
-		XPlayNow:  int64(b.Xplaynow),
+		XPlayNow:  (b.Xplaynow),
 		AgPlayNow: int64(b.AGPlaynow),
-		XLeave:    int64(b.Xleave),
+		XLeave:    (b.Xleave),
 		AgLeave:   int64(b.AGLeave),
-		XFee:      int64(b.Xfee),
+		XFee:      (b.Xfee),
 		AgFee:     int64(b.AGFee),
 		NewFee:    b.NewFee,
 	}
@@ -44,13 +44,13 @@ func PbBetToBet(pb *pb.Bet) *Bet {
 		Enable:    pb.GetEnable(),
 		MarkUnit:  int(pb.GetMarkUnit()),
 		GameId:    int(pb.GameId),
-		Xjoin:     int(pb.XJoin),
+		Xjoin:     (pb.XJoin),
 		AGJoin:    int(pb.AgJoin),
-		Xplaynow:  int(pb.XPlayNow),
+		Xplaynow:  (pb.XPlayNow),
 		AGPlaynow: int(pb.AgPlayNow),
-		Xleave:    int(pb.XLeave),
+		Xleave:    (pb.XLeave),
 		AGLeave:   int(pb.AgLeave),
-		Xfee:      int(pb.XFee),
+		Xfee:      (pb.XFee),
 		AGFee:     int(pb.AgFee),
 		NewFee:    pb.NewFee,
 	}
