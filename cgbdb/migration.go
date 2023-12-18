@@ -423,6 +423,30 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		ALTER TABLE public.cgb_notification ADD COLUMN app_package text NULL;
 		ALTER TABLE public.cgb_notification ADD COLUMN game_id text NULL;
 	`)
+	ddls = append(ddls, `
+	CREATE TABLE public.bets (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL,
+		game_id int8 NULL,
+		mark_unit float8 NULL,
+		x_join float8 NULL,
+		x_play_now float8 NULL,
+		x_leave float8 NULL,
+		x_fee float8 NULL,
+		new_fee float8 NULL,
+		CONSTRAINT bets_pkey PRIMARY KEY (id)
+	);
+`)
+
+	ddls = append(ddls, `
+	CREATE TABLE public.games (
+		id bigserial NOT NULL,
+		created_at timestamptz NULL DEFAULT now(),
+		code varchar(31) NOT NULL,
+		CONSTRAINT games_code_key UNIQUE (code),
+		CONSTRAINT games_pkey PRIMARY KEY (id)
+	);
+`)
 
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)

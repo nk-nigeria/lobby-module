@@ -20,11 +20,17 @@ import (
 
 const (
 	rpcIdGameList    = "list_game"
+	rpcGameAdd       = "add_game"
 	rpcIdFindMatch   = "find_match"
 	rpcIdCreateMatch = "create_match"
 	rpcIdQuickMatch  = "quick_match"
 
 	rpcIdListBet = "list_bet"
+	// bet admin
+	rpcAdminAddBetAddNew = "admin_bet_add"
+	rpcAdminbetUpdate    = "admin_bet_update"
+	rpcAdminbetDelete    = "admin_bet_delete"
+	rpcAdminQueryBet     = "admin_bet"
 
 	rpcUserChangePass = "user_change_pass"
 	rpcLinkUsername   = "link_username"
@@ -118,8 +124,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if true {
 		cgbdb.RunMigrations(ctx, logger, db)
 	}
-	api.InitListGame(ctx, logger, nk)
-	api.InitListBet(ctx, logger, nk)
+	api.InitListGame(ctx, logger, db, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitDailyRewardTemplate(ctx, logger, nk)
 	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
@@ -144,6 +149,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	// initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
+	if err := initializer.RegisterRpc(rpcGameAdd, api.RpcGameAdd(marshaler, unmarshaler)); err != nil {
+		return err
+	}
 	if err := initializer.RegisterRpc(rpcIdGameList, api.RpcGameList(marshaler, unmarshaler)); err != nil {
 		return err
 	}
@@ -161,6 +169,18 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminAddBetAddNew, api.RpcAdminAddBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminbetUpdate, api.RpcAdminUpdateBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminbetDelete, api.RpcAdminDeleteBet(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcAdminQueryBet, api.RpcAdminListBet(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

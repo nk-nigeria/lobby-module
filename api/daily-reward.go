@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
@@ -209,7 +210,7 @@ func proccessDailyReward(ctx context.Context, logger runtime.Logger, nk runtime.
 	if !ok {
 		return nil, presenter.ErrNoUserIdFound
 	}
-	profile, _, err := GetProfileUser(ctx, db, userID, nil)
+	profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 	if err != nil {
 		logger.Error("Get account %s error %s", userID, err.Error())
 		return nil, presenter.ErrInternalError

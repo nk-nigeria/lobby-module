@@ -81,7 +81,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
 			return "", err
 		}
 
@@ -190,7 +190,10 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+		if len(request.GameCode) == 0 {
+			return "", presenter.ErrInvalidInput
+		}
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
 			return "", err
 		}
 		maxSize := kDefaultMaxSize
@@ -209,23 +212,23 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			logger.Debug("MatchList result %v", matches)
 		}
 		if len(matches) == 0 {
-			bets, err := LoadBets(kChinesePokerKey, ctx, logger, nk)
+			bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
 			if err != nil {
 				return "", presenter.ErrInternalError
 			}
 
-			if len(bets.Bets) == 0 {
+			if len(bets) == 0 {
 				return "", nil
 			}
-			sort.Slice(bets.Bets, func(i, j int) bool {
-				return bets.Bets[i].MarkUnit < bets.Bets[j].MarkUnit
+			sort.Slice(bets, func(i, j int) bool {
+				return bets[i].MarkUnit < bets[j].MarkUnit
 			})
-			if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(bets.Bets[0].MarkUnit)); err != nil {
+			if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
 				return "", err
 			}
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-				"bet":      bets.Bets[0].MarkUnit,
+				"bet":      bets[0].MarkUnit,
 				"code":     request.GameCode,
 				"name":     request.Name,
 				"password": request.Password,
@@ -240,7 +243,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				Size:     1,
 				MaxSize:  int32(maxSize),
 				Name:     request.Name,
-				MarkUnit: bets.Bets[0].MarkUnit,
+				MarkUnit: int32(bets[0].MarkUnit),
 				Open:     true,
 			})
 			response, err := marshaler.Marshal(resMatches)
@@ -298,7 +301,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			logger.Error("unmarshal create match error %v", err)
 			return "", presenter.ErrUnmarshal
 		}
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, int64(request.MarkUnit)); err != nil {
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
 			return "", err
 		}
 		// No available matches found, create a new one.
@@ -326,14 +329,39 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 	}
 }
 
-func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, bet int64) error {
+func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, betWantCheck int64, quickJoin bool) error {
+	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	if err != nil {
+		return presenter.ErrInternalError
+	}
+	if len(bets) == 0 {
+		return nil
+	}
+	var bet entity.Bet
+	for _, v := range bets {
+		if betWantCheck == 0 {
+			bet = v
+			break
+		}
+		if v.MarkUnit == int(betWantCheck) {
+			bet = v
+			break
+		}
+	}
+	if bet.MarkUnit <= 0 {
+		return presenter.ErrBetNotFound
+	}
+	minChipRequire := bet.AGJoin
+	if quickJoin {
+		minChipRequire = bet.AGPlaynow
+	}
 	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
 	if err != nil {
 		logger.Error("read wallet user %s error %s",
 			userID, err.Error())
 		return presenter.ErrInternalError
 	}
-	if wallet.Chips <= 0 || wallet.Chips < bet {
+	if wallet.Chips <= 0 || wallet.Chips < int64(minChipRequire) {
 		logger.Error("User %s not enough chip [%d] to join game bet [%d]",
 			userID, wallet.Chips, bet)
 		return presenter.ErrNotEnoughChip
