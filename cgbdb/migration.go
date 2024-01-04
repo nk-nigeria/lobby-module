@@ -14,8 +14,6 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		CREATE TABLE IF NOT EXISTS public.user_group (
 		  id bigint NOT NULL DEFAULT nextval('user_group_id_seq'),
 		  name character varying(256) NOT NULL,
-		  type character varying(128) NOT NULL,
-		  condition jsonb NOT NULL,
 		  deleted boolean NOT NULL,
 		  create_time timestamp with time zone NOT NULL DEFAULT now(),
 		  update_time timestamp with time zone NOT NULL DEFAULT now(),

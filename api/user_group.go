@@ -3,9 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"strings"
-	"unicode"
-
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
@@ -15,16 +12,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func removeSpace(s string) string {
-	rr := make([]rune, 0, len(s))
-	for _, r := range s {
-		if !unicode.IsSpace(r) {
-			rr = append(rr, r)
-		}
-	}
-	return string(rr)
-}
-
 func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userGroup := &pb.UserGroup{}
@@ -32,8 +19,6 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		userGroup.Data = removeSpace(userGroup.Data)
-		userGroup.Data = strings.Trim(userGroup.Data, " ")
 		err := cgbdb.AddUserGroup(ctx, logger, db, userGroup, marshaler)
 		if err != nil {
 			return "", err
