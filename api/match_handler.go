@@ -188,12 +188,14 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 
 		request := &pb.RpcCreateMatchRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			logger.Error("error unmarhal input : %v", err)
 			return "", presenter.ErrUnmarshal
 		}
 		if len(request.GameCode) == 0 {
 			return "", presenter.ErrInvalidInput
 		}
 		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
+			logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
 			return "", err
 		}
 		maxSize := kDefaultMaxSize
@@ -217,14 +219,28 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				return "", presenter.ErrInternalError
 			}
 
-			if len(bets) == 0 {
-				return "", nil
-			}
-			sort.Slice(bets, func(i, j int) bool {
-				return bets[i].MarkUnit < bets[j].MarkUnit
-			})
-			if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
-				return "", err
+			if len(bets) > 0 {
+				sort.Slice(bets, func(i, j int) bool {
+					return bets[i].MarkUnit < bets[j].MarkUnit
+				})
+				if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
+					logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+					return "", err
+				}
+			} else {
+				game, ok := mapGameByCode.Load(request.GameCode)
+				gameId := game.(entity.Game).ID
+				if !ok {
+					logger.WithField("gamecode", request.GameCode).Error("not found game")
+					return "", presenter.ErrMatchNotFound
+				}
+				bet := entity.Bet{
+					MarkUnit: 0,
+					Enable:   true,
+					Id:       0,
+					GameId:   int(gameId),
+				}
+				bets = append(bets, bet)
 			}
 			// No available matches found, create a new one.
 			matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
