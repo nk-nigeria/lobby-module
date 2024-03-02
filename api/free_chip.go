@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"math"
 	"strconv"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
@@ -12,13 +14,14 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const MaxChipsAllowFree int64 = 2 * int64(10^9)
+const MaxChipsAllowFree int64 = (math.MaxInt64 - 1)
 
 func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
@@ -35,6 +38,7 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 			return "", presenter.ErrUnmarshal
 		}
 		if freeChip.Chips > MaxChipsAllowFree {
+			logger.Error("freeChip.Chips (%d) > MaxChipsAllowFree (%d)", freeChip.Chips, MaxChipsAllowFree)
 			return "", presenter.ErrNoInputAllowed
 		}
 		freeChip.SenderId = constant.UUID_USER_SYSTEM
@@ -128,20 +132,21 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			return "", errors.New("Missing user ID.")
 		}
 		req := &pb.FreeChip{}
-
+		if err := unmarshaler.Unmarshal([]byte(payload), req); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
 		account, err := cgbdb.GetAccount(ctx, db, userID, 0)
 		if err != nil {
 			logger.WithField("user id", userID).WithField("err", err).Error("get account failed")
 			return "", presenter.ErrNoUserIdFound
 		}
 		req.RecipientId = strconv.FormatInt(account.Sid, 10)
-
-		if err := unmarshaler.Unmarshal([]byte(payload), req); err != nil {
-			logger.Error("Error when unmarshal payload", err.Error())
-			return "", presenter.ErrUnmarshal
-		}
 		freeChip, err := cgbdb.ClaimFreeChip(ctx, logger, db, req.Id, req.RecipientId)
 		if err != nil {
+			if freeChip == nil {
+				freeChip = &pb.FreeChip{}
+			}
 			logger.WithField("user id", userID).WithField("freechip id", freeChip.Id).WithField("err", err).Error("claim free chip failed")
 			return "", err
 		}
@@ -165,6 +170,17 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		logger.Info("User %s claim %d from %s", userID, freeChip.Chips, freeChip.SenderId)
 		freeChip.Claimable = false
 		freeChipStr, _ := conf.MarshalerDefault.Marshal(freeChip)
+		// emit event to doris
+		{
+			metadata["chips"] = strconv.Itoa(int(freeChip.Chips))
+			metadata["user_id"] = userID
+			payload, _ := json.Marshal(metadata)
+			report := lib.NewReportGame(ctx)
+			data, _, err := report.ReportEvent(ctx, "send-chip", userID, string(payload))
+			logger.WithField("err", err).Info("Report event send-chip user %s , data %s, repsonse %s",
+				userID, string(payload), string(data))
+
+		}
 		return string(freeChipStr), nil
 	}
 }

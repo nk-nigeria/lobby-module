@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -82,6 +84,14 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			err = entity.AddChipWalletUser(ctx, nk, logger, userID, wallet, metadata)
 			if err != nil {
 				logger.Error("Update wallet chip by claim giftcode %s error %s", giftCode.GetCode(), err.Error())
+			}
+			// emit event doris
+			{
+				report := lib.NewReportGame(ctx)
+				metadata["chips"] = strconv.Itoa(int(wallet.Chips))
+				metadata["user_id"] = userID
+				payload, _ := json.Marshal(metadata)
+				report.ReportEvent(ctx, "send-chip", userID, string(payload))
 			}
 		}
 		out, _ := conf.MarshalerDefault.Marshal(dbGiftCode)
