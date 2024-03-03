@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -73,12 +75,20 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 		addNewReferUser := false
 		if currentProfile.RemainTimeInputRefCode > 0 &&
 			entity.InterfaceToString(metadata["ref_code"]) == "" {
+			profile.RefCode = strings.TrimSpace(profile.RefCode)
 			if profile.RefCode != "" {
 				// check valid ref code
-				if profile.RefCode == currentProfile.UserId {
+				userSidStr := strconv.Itoa(int(currentProfile.UserSid))
+				if profile.RefCode == currentProfile.UserId || profile.RefCode == userSidStr {
 					return "", status.Error(codes.InvalidArgument, "Can not ref yourself")
 				}
-				_, err = nk.AccountGetId(ctx, profile.RefCode)
+				// if using user sid
+				if refCodeInt, _ := strconv.Atoi(profile.RefCode); refCodeInt > 0 {
+					_, err = cgbdb.GetAccount(ctx, db, "", int64(refCodeInt))
+				} else {
+					//  using user id (uuid)
+					_, err = nk.AccountGetId(ctx, profile.RefCode)
+				}
 				if err != nil {
 					logger.Error("Error when valid ref code %s err %s", profile.RefCode, err.Error())
 					return "", status.Error(codes.InvalidArgument, "Invalid ref code")
