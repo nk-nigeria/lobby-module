@@ -44,10 +44,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			logger.Error("context did not contain user ID.")
 			return "", presenter.ErrInternalError
 		}
-		if err != nil {
-			logger.Error("context did not contain user ID.")
-			return "", err
-		}
+
 		account, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 		if err != nil {
 			logger.Error("Error when read user account error %s", err.Error())
@@ -75,6 +72,9 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 				bet.Enable = true
 			}
 			msg.Bets = append(msg.Bets, bet.ToPb())
+		}
+		if len(bets) > 1 {
+			msg.BestChoice = bets[(len(bets)-1)/2].ToPb()
 		}
 		betsJson, _ := marshaler.Marshal(msg)
 		logger.Info("bets results %s", betsJson)
