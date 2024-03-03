@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/message_queue"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/go-co-op/gocron"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -102,6 +104,9 @@ const (
 
 	// IAP
 	rpcIAP = "iap"
+
+	// leader board
+	rpcLeaderBoardInfo = "leaderboard_info"
 )
 
 const (
@@ -426,6 +431,14 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	// leaderboard
+	if err := initializer.RegisterRpc(
+		rpcLeaderBoardInfo,
+		api.RpcLeaderboardInfo(),
+	); err != nil {
+		return err
+	}
+
 	if err := api.RegisterSessionEvents(db, nk, initializer); err != nil {
 		return err
 	}
@@ -434,15 +447,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	initializer.RegisterRpc(rpcIAP, api.RpcIAP())
 
-	// message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
-	// 	leaderBoardRecord := &pb.LeaderBoardRecord{}
-	// 	err := unmarshaler.Unmarshal(data, leaderBoardRecord)
-	// 	if err != nil {
-	// 		logger.Error("leaderboard_add_score unmarshaler err %v data %v", err, string(data))
-	// 		return
-	// 	}
-	// 	api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
-	// })
+	message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
+		leaderBoardRecord := &pb.LeaderBoardRecord{}
+		err := unmarshaler.Unmarshal(data, leaderBoardRecord)
+		if err != nil {
+			logger.Error("leaderboard_add_score unmarshaler err %v data %v", err, string(data))
+			return
+		}
+		api.UpdateScoreLeaderBoard(ctx, logger, nk, leaderBoardRecord)
+	})
 
 	// message_queue.GetNatsService().RegisterAllSubject()
 	cgbdb.AutoMigrate(db)
