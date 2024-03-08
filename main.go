@@ -110,6 +110,8 @@ const (
 	rpcRuleLuckyAdd    = "rule_lucky_add"
 	rpcRuleLuckyUpdate = "rule_lucky_update"
 	rpcRuleLuckyDelete = "rule_lucky_delete"
+	// Jackpot
+	rpcJackpot = "jackpot"
 )
 
 const (

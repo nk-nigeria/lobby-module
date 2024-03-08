@@ -235,7 +235,7 @@ func RpcQuickMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 					return "", presenter.ErrMatchNotFound
 				}
 				bet := entity.Bet{
-					MarkUnit: 0,
+					MarkUnit: int(request.GetMarkUnit()),
 					Enable:   true,
 					Id:       0,
 					GameId:   int(gameId),
