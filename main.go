@@ -174,7 +174,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch(marshaler, unmarshaler)); err != nil {
+	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch); err != nil {
 		return err
 	}
 
