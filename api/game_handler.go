@@ -10,6 +10,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -68,6 +69,28 @@ func RpcGameList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 		ml, err := cgbdb.ListGames(ctx, db)
 		if err != nil {
 			return "", err
+		}
+		if len(ml) == 0 {
+			return "", nil
+		}
+		listGameCode := make([]string, 0)
+		for _, game := range ml {
+			listGameCode = append(listGameCode, game.Code)
+		}
+		jackpots, err := cgbdb.GetJackpotsByGame(ctx, logger, db, listGameCode...)
+		if err == nil {
+			mapJp := make(map[string]*pb.Jackpot)
+			for _, jp := range jackpots {
+				v := jp
+				mapJp[v.GameCode] = v
+			}
+			for idx, game := range ml {
+				if mapJp[game.Code] == nil {
+					continue
+				}
+				game.JpChips = mapJp[game.Code].Chips
+				ml[idx] = game
+			}
 		}
 		games := &entity.Games{
 			List: ml,

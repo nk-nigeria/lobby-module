@@ -63,7 +63,8 @@ type Game struct {
 	// MinChip     int     `gorm:"-" json:"minChip"`
 	// Enable      bool    `gorm:"-" json:"enable"`
 	// GameFee     float32 `gorm:"-" json:"game_fee"`
-	// JackpotFree float32 `gorm:"-" json:"jackpot_fee"`
+	// JackpotFree float32 `gorm:"-" json:"jackpot_fee"
+	JpChips int64 `gorm:"-" json:"jp_chips"`
 }
 
 func (Game) TableName() string {

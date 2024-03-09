@@ -30,7 +30,19 @@ func RpcPushToBank(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if payload == "" {
 			return "", presenter.ErrMarshal
 		}
-		unmarshaler.Unmarshal([]byte(payload), bank)
+		err := unmarshaler.Unmarshal([]byte(payload), bank)
+		if err != nil {
+			logger.WithField("err", err).Error("unmarshal payload failed")
+			return "", err
+		}
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+		if err != nil {
+			logger.WithField("err", err).Error("get profile failed")
+			return "", err
+		}
+		if profile.VipLevel < constant.MinLvAllowUseBank {
+			return "", presenter.ErrFuncDisableByVipLv
+		}
 		bank.SenderId = userID
 		newBank, err := entity.BankPushToSafe(ctx, logger, nk, unmarshaler, bank)
 		if err != nil {
@@ -52,7 +64,19 @@ func RpcWithDraw(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 		if payload == "" {
 			return "", presenter.ErrMarshal
 		}
-		unmarshaler.Unmarshal([]byte(payload), bank)
+		err := unmarshaler.Unmarshal([]byte(payload), bank)
+		if err != nil {
+			logger.WithField("err", err).Error("unmarshal payload failed")
+			return "", err
+		}
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+		if err != nil {
+			logger.WithField("err", err).Error("get profile failed")
+			return "", err
+		}
+		if profile.VipLevel < constant.MinLvAllowUseBank {
+			return "", presenter.ErrFuncDisableByVipLv
+		}
 		bank.SenderId = userID
 		newBank, err := entity.BankWithdraw(ctx, logger, nk, bank)
 		if err != nil {
