@@ -466,6 +466,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	initializer.RegisterRpc(rpcIAP, api.RpcIAP())
 
+	// custom nakama event
+	initializer.RegisterEvent(api.CustomEventHandler(db))
+
 	// message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
 	// 	leaderBoardRecord := &pb.LeaderBoardRecord{}
 	// 	err := unmarshaler.Unmarshal(data, leaderBoardRecord)
@@ -478,6 +481,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	// message_queue.GetNatsService().RegisterAllSubject()
 	cgbdb.AutoMigrate(db)
+
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
@@ -379,4 +380,35 @@ func scanAccount(row DBScan) (*entity.Account, error) {
 		Sid: sID.Int64,
 	}
 	return account, nil
+}
+
+func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, matchId string, gameCode string, leaveTime int64) error {
+	if len(userId) == 0 {
+		return nil
+	}
+	v := &pb.PlayingMatch{
+		Code:      gameCode,
+		MatchId:   matchId,
+		LeaveTime: leaveTime,
+	}
+	data, err := conf.Marshaler.Marshal(v)
+	if err != nil {
+		return err
+	}
+	queryBuilder := strings.Builder{}
+	queryBuilder.WriteString(
+		`UPDATE
+					users AS u
+				SET
+					metadata
+						= u.metadata
+						|| jsonb_build_object('playing_in_match','` + string(data) + `' )
+				WHERE	
+					id =$1`)
+	query := queryBuilder.String()
+	_, err = db.ExecContext(ctx, query, userId)
+	if err != nil {
+		logger.WithField("err", err).Error("db.ExecContext match update error.")
+	}
+	return err
 }
