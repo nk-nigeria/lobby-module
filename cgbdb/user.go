@@ -239,10 +239,8 @@ func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage o
 		// LangAvailables:     []string{"en", "phi"},
 	}
 	playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
-	if playingMatchJson == "" {
-		profile.PlayingMatch = nil
-	} else {
-		profile.PlayingMatch = &pb.PlayingMatch{}
+	profile.PlayingMatch = &pb.PlayingMatch{}
+	if len(playingMatchJson) > 0 {
 		json.Unmarshal([]byte(playingMatchJson), profile.PlayingMatch)
 	}
 

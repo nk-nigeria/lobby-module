@@ -54,13 +54,16 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		// Vip >= 2 bỏ mức cược thấp nhất,
 		// Vip 0,1  bỏ mức cược cao nhất
 		if len(bets) > 1 {
-
 			vipLv := account.VipLevel
 			if vipLv < 2 {
-				bets = bets[:len(bets)-1]
+				v := bets[len(bets)-1]
+				v.Enable = false
+				bets[len(bets)-1] = v
 			}
 			if vipLv >= 2 {
-				bets = bets[1:]
+				v := bets[0]
+				v.Enable = false
+				bets[0] = v
 			}
 		}
 		userChip := account.AccountChip
@@ -226,6 +229,7 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	}
 	bets := make([]entity.Bet, 0)
 	for _, v := range ml {
+		v.Enable = true
 		bets = append(bets, v)
 	}
 	// sort asc by mark unit

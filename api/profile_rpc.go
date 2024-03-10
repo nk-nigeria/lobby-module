@@ -36,7 +36,14 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 			logger.Error("GetProfileUser error: %s", err.Error())
 			return "", err
 		}
-
+		// check match valid in profile
+		if len(profile.PlayingMatch.MatchId) > 0 {
+			match, err := nk.MatchGet(ctx, profile.PlayingMatch.MatchId)
+			if err != nil || match == nil {
+				profile.PlayingMatch.MatchId = ""
+				cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userID, profile.PlayingMatch)
+			}
+		}
 		marshaler.EmitUnpopulated = true
 		dataString, err := marshaler.Marshal(profile)
 		if err != nil {
