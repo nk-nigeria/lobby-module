@@ -78,6 +78,7 @@ func RpcWithDraw(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 			return "", presenter.ErrFuncDisableByVipLv
 		}
 		bank.SenderId = userID
+		bank.SenderSid = profile.GetUserSid()
 		newBank, err := entity.BankWithdraw(ctx, logger, nk, bank)
 		if err != nil {
 			return "", err
@@ -101,11 +102,23 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		accountSend, err := cgbdb.GetAccount(ctx, db, userID, 0)
-		if err != nil {
-			return "", presenter.ErrNoUserIdFound
+		// check sender
+		{
+			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
+			if err != nil {
+				return "", presenter.ErrNoUserIdFound
+			}
+			bank.SenderId = userID
+			bank.SenderSid = account.Sid
 		}
-		bank.SenderId = strconv.FormatInt(accountSend.Sid, 10)
+		// check recv
+		{
+			account, err := cgbdb.GetAccount(ctx, db, "", bank.RecipientSid)
+			if err != nil {
+				return "", presenter.ErrNoUserIdFound
+			}
+			bank.RecipientId = account.User.Id
+		}
 		// bank.AmountFee = 3
 		if bank.Chips == 0 {
 			bank.Chips = bank.ChipsInBank
@@ -144,7 +157,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			Type:        pb.TypeNotification_GIFT,
 			Title:       "Gift",
 			Content:     freeChip.GetContent(),
-			SenderId:    accountSend.User.Id,
+			SenderId:    bank.GetSenderId(),
 			Read:        false,
 		}
 		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)

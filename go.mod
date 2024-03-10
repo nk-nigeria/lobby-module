@@ -6,13 +6,13 @@ replace github.com/ciaolink-game-platform/cgp-common => ./cgp-common
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/ciaolink-game-platform/cgp-common v0.0.0-20240310081717-782e1a0fa850
+	github.com/ciaolink-game-platform/cgp-common v0.0.0-20240310094149-5f49d2395025
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/heroiclabs/nakama-common v1.30.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgtype v1.14.0
-	github.com/lib/pq v1.10.2
+	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.8.4

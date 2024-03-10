@@ -3,6 +3,7 @@ package entity
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -31,14 +32,16 @@ func BankPushToSafe(ctx context.Context, logger runtime.Logger, nk runtime.Nakam
 	}
 
 	newBank := pb.Bank{
-		SenderId:    bank.GetSenderId(),
-		RecipientId: bank.GetRecipientId(),
-		Chips:       -bank.GetChipsInBank(),
-		ChipsInBank: bank.GetChipsInBank(),
-		Action:      pb.Bank_ACTION_PUSH_TO_SAFE,
+		SenderId:     bank.GetSenderId(),
+		SenderSid:    bank.GetSenderSid(),
+		RecipientId:  bank.GetRecipientId(),
+		RecipientSid: bank.GetRecipientSid(),
+		Chips:        -bank.GetChipsInBank(),
+		ChipsInBank:  bank.GetChipsInBank(),
+		Action:       pb.Bank_ACTION_PUSH_TO_SAFE,
 	}
 	// substract chip in wallet
-	err = updateBank(ctx, nk, logger, bank.GetSenderId(), &newBank)
+	err = updateBank(ctx, nk, logger, &newBank)
 	if err != nil {
 		logger.Error("Update wallet when push to safe action error: %s", err.Error())
 		return nil, err
@@ -72,13 +75,15 @@ func BankWithdraw(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	}
 
 	newBank := pb.Bank{
-		SenderId:    bank.GetSenderId(),
-		RecipientId: bank.GetRecipientId(),
-		Chips:       bank.GetChips(),
-		ChipsInBank: -bank.GetChips(),
-		Action:      pb.Bank_ACTION_WITHDRAW,
+		SenderId:     bank.GetSenderId(),
+		SenderSid:    bank.GetSenderSid(),
+		RecipientId:  bank.GetRecipientId(),
+		RecipientSid: bank.GetRecipientSid(),
+		Chips:        bank.GetChips(),
+		ChipsInBank:  -bank.GetChips(),
+		Action:       pb.Bank_ACTION_WITHDRAW,
 	}
-	err = updateBank(ctx, nk, logger, bank.SenderId, &newBank)
+	err = updateBank(ctx, nk, logger, &newBank)
 	if err != nil {
 		logger.Error("Withdraw to wallet user %s, amout chip %d, err: %s", bank.GetSenderId(), bank.GetAmountFee(), err.Error())
 		return nil, err
@@ -121,15 +126,15 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	senderNewWallet := Wallet{}
 	senderNewWallet.Chips = -bank.Chips - AbsInt64(bank.AmountFee)
 	newSenderBank := pb.Bank{
-		SenderId:    bank.GetSenderId(),
-		RecipientId: bank.GetRecipientId(),
-		Chips:       senderNewWallet.Chips,
-		ChipsInBank: 0,
-		Action:      pb.Bank_ACTION_SEND_GIFT,
+		SenderId:     bank.SenderId,
+		SenderSid:    bank.SenderSid,
+		RecipientId:  bank.RecipientId,
+		RecipientSid: bank.RecipientSid,
+		Chips:        senderNewWallet.Chips,
+		ChipsInBank:  0,
+		Action:       pb.Bank_ACTION_SEND_GIFT,
 	}
-	err = updateBank(ctx, nk, logger,
-		bank.GetSenderId(),
-		&newSenderBank)
+	err = updateBank(ctx, nk, logger, &newSenderBank)
 	if err != nil {
 		data, _ := protojson.Marshal(&newSenderBank)
 		logger.Error("Update wallet sender %s error: %s, data %s", bank.GetSenderId(), err.Error(), string(data))
@@ -143,16 +148,17 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 func BankHistory(logger runtime.Logger, nk runtime.NakamaModule, userID string, limit, offset int64) {
 }
 
-func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, userId string, bank *pb.Bank) error {
+func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Logger, bank *pb.Bank) error {
 	metadata := make(map[string]interface{})
 	metadata["bank_action"] = bank.GetAction().String()
-	metadata["sender"] = bank.GetSenderId()
-	metadata["recv"] = bank.GetRecipientId()
+	metadata["sender"] = strconv.FormatInt(bank.GetSenderSid(), 10)
+	metadata["recv"] = strconv.FormatInt(bank.GetRecipientSid(), 10)
 	metadata["action"] = WalletActionBankTopup
 
 	wallet := Wallet{
 		Chips:       bank.GetChips(),
 		ChipsInBank: bank.GetChipsInBank(),
 	}
+	userId := bank.GetSenderId()
 	return AddChipWalletUser(ctx, nk, logger, userId, wallet, metadata)
 }
