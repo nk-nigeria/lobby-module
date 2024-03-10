@@ -200,7 +200,7 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 	}
 	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
 		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-		return "", err
+		return "", presenter.ErrNotEnoughChip
 	}
 	maxSize := kDefaultMaxSize
 	query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
@@ -248,7 +248,7 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 		}
 		// No available matches found, create a new one.
 		matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-			"bet":      bets[0].MarkUnit,
+			"bet":      int32(bets[0].MarkUnit),
 			"code":     request.GameCode,
 			"name":     request.Name,
 			"password": request.Password,
@@ -399,6 +399,7 @@ func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	}
 	if len(profile.PlayingMatch.Code) != 0 {
 		gameCode = profile.PlayingMatch.Code
+		req.MarkUnit = int32(profile.PlayingMatch.Mcb)
 	}
 	req.GameCode = gameCode
 	return RpcQuickMatch(ctx, logger, db, nk, req.String())

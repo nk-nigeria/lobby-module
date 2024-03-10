@@ -7,6 +7,7 @@ import (
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-common/define"
+	api "github.com/ciaolink-game-platform/cgp-common/proto"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -37,7 +38,13 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := ""
-	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, matchId, gameCode, tsEndUnix)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
+	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
+		Code:      gameCode,
+		MatchId:   matchId,
+		LeaveTime: tsEndUnix,
+		Mcb:       mcb,
+	})
 }
 
 func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
@@ -46,7 +53,13 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := evt.Properties["match_id"]
-	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, matchId, gameCode, tsEndUnix)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
+	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
+		Code:      gameCode,
+		MatchId:   matchId,
+		LeaveTime: tsEndUnix,
+		Mcb:       mcb,
+	})
 }
 
 func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
@@ -55,5 +68,11 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := ""
-	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, matchId, gameCode, tsEndUnix)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
+	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
+		Code:      gameCode,
+		MatchId:   matchId,
+		LeaveTime: tsEndUnix,
+		Mcb:       mcb,
+	})
 }

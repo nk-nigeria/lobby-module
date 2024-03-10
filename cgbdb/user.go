@@ -382,14 +382,18 @@ func scanAccount(row DBScan) (*entity.Account, error) {
 	return account, nil
 }
 
-func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, matchId string, gameCode string, leaveTime int64) error {
+func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, pl *pb.PlayingMatch) error {
+	if pl == nil {
+		return errors.New("invalid param")
+	}
 	if len(userId) == 0 {
 		return nil
 	}
 	v := &pb.PlayingMatch{
-		Code:      gameCode,
-		MatchId:   matchId,
-		LeaveTime: leaveTime,
+		Code:      pl.Code,
+		MatchId:   pl.MatchId,
+		LeaveTime: pl.LeaveTime,
+		Mcb:       pl.Mcb,
 	}
 	data, err := conf.Marshaler.Marshal(v)
 	if err != nil {
