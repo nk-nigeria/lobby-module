@@ -106,18 +106,20 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		{
 			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
 			if err != nil {
-				return "", presenter.ErrNoUserIdFound
+				return "", presenter.ErrUserNotFound
 			}
 			bank.SenderId = userID
 			bank.SenderSid = account.Sid
 		}
 		// check recv
 		{
-			account, err := cgbdb.GetAccount(ctx, db, "", bank.RecipientSid)
+
+			account, err := cgbdb.GetAccount(ctx, db, bank.GetRecipientId(), bank.GetRecipientSid())
 			if err != nil {
-				return "", presenter.ErrNoUserIdFound
+				return "", presenter.ErrUserNotFound
 			}
 			bank.RecipientId = account.User.Id
+			bank.RecipientSid = account.Sid
 		}
 		// bank.AmountFee = 3
 		if bank.Chips == 0 {

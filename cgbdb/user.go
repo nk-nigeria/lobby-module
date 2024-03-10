@@ -180,7 +180,7 @@ WHERE `
 	if err == sql.ErrNoRows {
 		return nil, ErrAccountNotFound
 	}
-	return account, nil
+	return account, err
 }
 
 func GetAccounts(ctx context.Context, db *sql.DB, userIds ...string) ([]*entity.Account, error) {
@@ -193,7 +193,7 @@ SELECT u.id, u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u
 	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id),
 	u.sid
 FROM users u
-WHERE u.id IN (` + "'" + strings.Join(userIds, "','") + "'" + `)`
+WHERE u.id::text IN (` + "'" + strings.Join(userIds, "','") + "'" + `)`
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
