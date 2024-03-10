@@ -2,7 +2,11 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
+	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -55,5 +59,36 @@ func UpdateScoreLeaderBoard(ctx context.Context, logger runtime.Logger, nk runti
 		logger.Debug("Can not UpdateScoreLeaderBoard %v", leaderBoardRecord)
 	} else {
 		logger.Info("UpdateScoreLeaderBoard success %v", leaderBoardRecord)
+	}
+}
+
+func RpcLeaderboardInfo() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", errors.New("Missing user ID.")
+		}
+		req := &pb.LeaderBoardRecord{}
+		if err := conf.Unmarshaler.Unmarshal([]byte(payload), req); err != nil {
+			logger.Error("Error when unmarshal payload", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+
+		if len(req.GameCode) == 0 {
+			return "", nil
+		}
+		list, err := nk.LeaderboardsGetId(ctx, []string{req.GameCode})
+		if err != nil {
+			logger.WithField("err", err).Error("Error when get leaderboard")
+			return "", err
+		}
+		if len(list) == 0 {
+			return "", nil
+		}
+		board := &pb.LeaderBoardRecord{
+			CdResetUnix: int64(list[0].NextReset),
+		}
+		dataJson, _ := conf.MarshalerDefault.Marshal(board)
+		return string(dataJson), nil
 	}
 }

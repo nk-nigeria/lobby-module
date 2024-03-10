@@ -102,6 +102,16 @@ const (
 
 	// IAP
 	rpcIAP = "iap"
+
+	// leader board
+	rpcLeaderBoardInfo = "leaderboard_info"
+
+	rpcRuleLucky       = "rule_lucky"
+	rpcRuleLuckyAdd    = "rule_lucky_add"
+	rpcRuleLuckyUpdate = "rule_lucky_update"
+	rpcRuleLuckyDelete = "rule_lucky_delete"
+	// Jackpot
+	rpcJackpot = "jackpot"
 )
 
 const (
@@ -164,7 +174,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch(marshaler, unmarshaler)); err != nil {
+	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch); err != nil {
 		return err
 	}
 
@@ -426,6 +436,28 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
+	// leaderboard
+	if err := initializer.RegisterRpc(
+		rpcLeaderBoardInfo,
+		api.RpcLeaderboardInfo(),
+	); err != nil {
+		return err
+	}
+
+	// Rule lucky
+	if err := initializer.RegisterRpc(rpcRuleLucky, api.RpcRuleLucky()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcRuleLuckyAdd, api.RpcRuleLuckyAdd()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcRuleLuckyUpdate, api.RpcRuleLuckyUpdate()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcRuleLuckyDelete, api.RpcRuleLuckyDelete()); err != nil {
+		return err
+	}
+
 	if err := api.RegisterSessionEvents(db, nk, initializer); err != nil {
 		return err
 	}
@@ -433,6 +465,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	api.RegisterValidatePurchase(db, nk, initializer)
 
 	initializer.RegisterRpc(rpcIAP, api.RpcIAP())
+
+	// custom nakama event
+	initializer.RegisterEvent(api.CustomEventHandler(db))
 
 	// message_queue.RegisterHandler(topicLeaderBoardAddScore, func(data []byte) {
 	// 	leaderBoardRecord := &pb.LeaderBoardRecord{}
@@ -446,6 +481,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 
 	// message_queue.GetNatsService().RegisterAllSubject()
 	cgbdb.AutoMigrate(db)
+
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil

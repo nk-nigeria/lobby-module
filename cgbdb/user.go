@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
@@ -179,7 +180,7 @@ WHERE `
 	if err == sql.ErrNoRows {
 		return nil, ErrAccountNotFound
 	}
-	return account, nil
+	return account, err
 }
 
 func GetAccounts(ctx context.Context, db *sql.DB, userIds ...string) ([]*entity.Account, error) {
@@ -192,7 +193,7 @@ SELECT u.id, u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u
 	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id),
 	u.sid
 FROM users u
-WHERE u.id IN (` + "'" + strings.Join(userIds, "','") + "'" + `)`
+WHERE u.id::text IN (` + "'" + strings.Join(userIds, "','") + "'" + `)`
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -238,10 +239,8 @@ func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage o
 		// LangAvailables:     []string{"en", "phi"},
 	}
 	playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
-	if playingMatchJson == "" {
-		profile.PlayingMatch = nil
-	} else {
-		profile.PlayingMatch = &pb.PlayingMatch{}
+	profile.PlayingMatch = &pb.PlayingMatch{}
+	if len(playingMatchJson) > 0 {
 		json.Unmarshal([]byte(playingMatchJson), profile.PlayingMatch)
 	}
 
@@ -379,4 +378,39 @@ func scanAccount(row DBScan) (*entity.Account, error) {
 		Sid: sID.Int64,
 	}
 	return account, nil
+}
+
+func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, pl *pb.PlayingMatch) error {
+	if pl == nil {
+		return errors.New("invalid param")
+	}
+	if len(userId) == 0 {
+		return nil
+	}
+	v := &pb.PlayingMatch{
+		Code:      pl.Code,
+		MatchId:   pl.MatchId,
+		LeaveTime: pl.LeaveTime,
+		Mcb:       pl.Mcb,
+	}
+	data, err := conf.Marshaler.Marshal(v)
+	if err != nil {
+		return err
+	}
+	queryBuilder := strings.Builder{}
+	queryBuilder.WriteString(
+		`UPDATE
+					users AS u
+				SET
+					metadata
+						= u.metadata
+						|| jsonb_build_object('playing_in_match','` + string(data) + `' )
+				WHERE	
+					id =$1`)
+	query := queryBuilder.String()
+	_, err = db.ExecContext(ctx, query, userId)
+	if err != nil {
+		logger.WithField("err", err).Error("db.ExecContext match update error.")
+	}
+	return err
 }

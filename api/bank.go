@@ -10,7 +10,9 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -28,7 +30,19 @@ func RpcPushToBank(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if payload == "" {
 			return "", presenter.ErrMarshal
 		}
-		unmarshaler.Unmarshal([]byte(payload), bank)
+		err := unmarshaler.Unmarshal([]byte(payload), bank)
+		if err != nil {
+			logger.WithField("err", err).Error("unmarshal payload failed")
+			return "", err
+		}
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+		if err != nil {
+			logger.WithField("err", err).Error("get profile failed")
+			return "", err
+		}
+		if profile.VipLevel < constant.MinLvAllowUseBank {
+			return "", presenter.ErrFuncDisableByVipLv
+		}
 		bank.SenderId = userID
 		newBank, err := entity.BankPushToSafe(ctx, logger, nk, unmarshaler, bank)
 		if err != nil {
@@ -50,8 +64,21 @@ func RpcWithDraw(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 		if payload == "" {
 			return "", presenter.ErrMarshal
 		}
-		unmarshaler.Unmarshal([]byte(payload), bank)
+		err := unmarshaler.Unmarshal([]byte(payload), bank)
+		if err != nil {
+			logger.WithField("err", err).Error("unmarshal payload failed")
+			return "", err
+		}
+		profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+		if err != nil {
+			logger.WithField("err", err).Error("get profile failed")
+			return "", err
+		}
+		if profile.VipLevel < constant.MinLvAllowUseBank {
+			return "", presenter.ErrFuncDisableByVipLv
+		}
 		bank.SenderId = userID
+		bank.SenderSid = profile.GetUserSid()
 		newBank, err := entity.BankWithdraw(ctx, logger, nk, bank)
 		if err != nil {
 			return "", err
@@ -75,11 +102,25 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		accountSend, err := cgbdb.GetAccount(ctx, db, userID, 0)
-		if err != nil {
-			return "", presenter.ErrNoUserIdFound
+		// check sender
+		{
+			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
+			if err != nil {
+				return "", presenter.ErrUserNotFound
+			}
+			bank.SenderId = userID
+			bank.SenderSid = account.Sid
 		}
-		bank.SenderId = strconv.FormatInt(accountSend.Sid, 10)
+		// check recv
+		{
+
+			account, err := cgbdb.GetAccount(ctx, db, bank.GetRecipientId(), bank.GetRecipientSid())
+			if err != nil {
+				return "", presenter.ErrUserNotFound
+			}
+			bank.RecipientId = account.User.Id
+			bank.RecipientSid = account.Sid
+		}
 		// bank.AmountFee = 3
 		if bank.Chips == 0 {
 			bank.Chips = bank.ChipsInBank
@@ -100,13 +141,25 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if err != nil {
 			return "", err
 		}
+		// emit event doris
+		{
+			report := lib.NewReportGame(ctx)
+			metadata := make(map[string]any)
+			metadata["action"] = entity.WalletActionUserGift
+			metadata["sender"] = constant.UUID_USER_SYSTEM
+			metadata["recv"] = userID
+			metadata["chips"] = strconv.Itoa(int(bank.Chips))
+			metadata["user_id"] = userID
+			payload, _ := json.Marshal(metadata)
+			report.ReportEvent(ctx, "send-chip", userID, string(payload))
+		}
 		// todo send noti
 		noti := pb.Notification{
 			RecipientId: freeChip.RecipientId,
 			Type:        pb.TypeNotification_GIFT,
 			Title:       "Gift",
 			Content:     freeChip.GetContent(),
-			SenderId:    accountSend.User.Id,
+			SenderId:    bank.GetSenderId(),
 			Read:        false,
 		}
 		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)

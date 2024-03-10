@@ -445,6 +445,24 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	);
 `)
 
+	ddls = append(ddls, `
+CREATE TABLE public.rules_lucky (
+	id bigserial NOT NULL,
+	create_at timestamptz NULL DEFAULT now(),
+	game_code varchar(31) NOT NULL,
+	co_rate_min real DEFAULT 0,
+	co_rate_max real DEFAULT 0,
+	ci_min real DEFAULT 0,
+	ci_max real DEFAULT 0,
+	co_inday_min real DEFAULT 0,
+	co_inday_max real DEFAULT 0,
+	base_1 int8 DEFAULT 0,
+	base_2 int8 DEFAULT 0,
+	base_3 int8 DEFAULT 0,
+	base_4 int8 DEFAULT 0
+);
+`)
+
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {
