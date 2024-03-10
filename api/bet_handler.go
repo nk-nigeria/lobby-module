@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
@@ -77,7 +78,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			msg.BestChoice = bets[(len(bets)-1)/2].ToPb()
 		}
 		betsJson, _ := marshaler.Marshal(msg)
-		logger.Info("bets results %s", betsJson)
+		// logger.Info("bets results %s", betsJson)
 		return string(betsJson), nil
 	}
 }
@@ -95,7 +96,7 @@ func RpcAdminAddBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			return "", presenter.ErrUnmarshal
 		}
 		err := cgbdb.AddBet(ctx, db, bet)
-		mapBetsByGameCode.Delete(bet.GameId)
+		mapBetsByGameCode.Delete(strconv.Itoa(bet.GameId))
 		return "", err
 	}
 }
@@ -125,7 +126,7 @@ func RpcAdminUpdateBet(marshaler *protojson.MarshalOptions, unmarshaler *protojs
 			logger.Error("Error when read bet, err: ", err.Error())
 			return "", presenter.ErrInternalError
 		}
-		mapBetsByGameCode.Delete(newBet.GameId)
+		mapBetsByGameCode.Delete(strconv.Itoa(bet.GameId))
 		dataStr, _ := json.Marshal(newBet)
 		return string(dataStr), nil
 	}
@@ -137,18 +138,23 @@ func RpcAdminDeleteBet(marshaler *protojson.MarshalOptions, unmarshaler *protojs
 		if userID != "" {
 			return "", errors.New("Unauth")
 		}
-		bet := &pb.Bet{}
-		if err := conf.Unmarshaler.Unmarshal([]byte(payload), bet); err != nil {
+		req := &pb.Bet{}
+		if err := conf.Unmarshaler.Unmarshal([]byte(payload), req); err != nil {
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		if bet.Id <= 0 {
+		if req.Id <= 0 {
 			logger.Error("Missing bet id")
 			return "", presenter.ErrNoInputAllowed
 		}
+		bet, err := cgbdb.ReadBet(ctx, db, req.Id)
+		if err != nil {
+			logger.WithField("err", err).Error("read bet failed")
+			return "", presenter.ErrNotFound
+		}
 		betDeleted, err := cgbdb.DeleteBet(ctx, db, bet.Id)
 		if betDeleted != nil {
-			mapBetsByGameCode.Delete(betDeleted.GameId)
+			mapBetsByGameCode.Delete(strconv.Itoa(bet.GameId))
 		}
 		return "", err
 	}
@@ -195,7 +201,11 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	{
 		v, exist := mapGameByCode.Load(gameCode)
 		if !exist {
-			return nil, fmt.Errorf("not found game id from game code %s", gameCode)
+			cacheListGame(ctx, db, logger)
+			v, exist = mapGameByCode.Load(gameCode)
+			if !exist {
+				return nil, fmt.Errorf("not found game id from game code %s", gameCode)
+			}
 		}
 		game = v.(entity.Game)
 	}

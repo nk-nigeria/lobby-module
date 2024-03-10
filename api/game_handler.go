@@ -23,8 +23,8 @@ const (
 
 // var mapGameByCode = make(map[string]entity.Game, 0)
 // var mapBetsByGameCode = make(map[string][]entity.Bet, 0)
-var mapGameByCode sync.Map
-var mapBetsByGameCode sync.Map
+var mapGameByCode sync.Map     /// game.code
+var mapBetsByGameCode sync.Map // by lobby id
 
 // func init() {
 // 	mapGameByCode = sync.Map{}
