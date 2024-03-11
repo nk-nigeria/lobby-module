@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
@@ -46,6 +47,9 @@ const GiftCodeTableName = "giftcode"
 func AddNewGiftCode(ctx context.Context, logger runtime.Logger, db *sql.DB, giftCode *pb.GiftCode) (*pb.GiftCode, error) {
 	if giftCode == nil || giftCode.GetCode() == "" || giftCode.GetValue() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Error add giftcode.")
+	}
+	if giftCode.GetValue() > constant.MaxChipAllowAdd {
+		return nil, status.Error(codes.OutOfRange, "giftcode value too large")
 	}
 	giftCode.Id = conf.SnowlakeNode.Generate().Int64()
 	query := "INSERT INTO " + GiftCodeTableName + " (id, code, n_current, n_max, value, start_time_unix, end_time_unix, message, vip, gift_code_type, create_time, update_time) VALUES ($1, $2, $3, $4, $5, to_timestamp($6), to_timestamp($7), $8, $9, $10, now(), now())"

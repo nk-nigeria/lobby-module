@@ -11,7 +11,8 @@ const (
 const NastEndpoint = "nats://nats:Admin123@103.226.250.195:4222"
 
 const (
-	MinLvAllowUseBank = 2
+	MinLvAllowUseBank       = 2
+	MaxChipAllowAdd   int64 = 9000000000 // 9B
 )
 
 type UserGroupType string

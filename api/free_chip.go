@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"math"
 	"strconv"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
@@ -21,8 +20,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const MaxChipsAllowFree int64 = (math.MaxInt64 - 1)
-
 func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -37,9 +34,9 @@ func RpcAddClaimableFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *p
 			logger.Error("Error when unmarshal payload", err.Error())
 			return "", presenter.ErrUnmarshal
 		}
-		if freeChip.Chips > MaxChipsAllowFree {
-			logger.Error("freeChip.Chips (%d) > MaxChipsAllowFree (%d)", freeChip.Chips, MaxChipsAllowFree)
-			return "", presenter.ErrNoInputAllowed
+		if freeChip.Chips > constant.MaxChipAllowAdd {
+			logger.Error("freeChip.Chips (%d) > MaxChipAllowAdd (%d)", freeChip.Chips, constant.MaxChipAllowAdd)
+			return "", presenter.ErrInvalidInput
 		}
 		freeChip.SenderId = constant.UUID_USER_SYSTEM
 		freeChip.Action = entity.WalletActionFreeChip.String()
