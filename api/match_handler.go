@@ -405,7 +405,7 @@ func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	if len(profile.PlayingMatch.Code) != 0 {
 		gameCode = profile.PlayingMatch.Code
 		req.MarkUnit = int32(profile.PlayingMatch.Mcb)
-		req.Bet = profile.PlayingMatch.Bet
+		req.LastBet = profile.PlayingMatch.Bet
 	} else {
 		req.MarkUnit = 0
 	}
