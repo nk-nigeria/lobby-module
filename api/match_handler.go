@@ -75,6 +75,7 @@ func init() {
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		emptyResp := "[]"
 		logger.Info("rpc find match: %v", payload)
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -169,7 +170,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		//  not found match,
 		if len(resMatches.Matches) <= 0 {
 			logger.Error("Not found match for user %s", userID)
-			return "", presenter.ErrMatchNotFound
+			return emptyResp, nil
 		}
 
 		response, err := marshaler.Marshal(resMatches)
