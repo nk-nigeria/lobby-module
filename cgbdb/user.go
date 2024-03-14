@@ -392,6 +392,7 @@ func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *s
 		MatchId:   pl.MatchId,
 		LeaveTime: pl.LeaveTime,
 		Mcb:       pl.Mcb,
+		Bet:       pl.Bet,
 	}
 	data, err := conf.Marshaler.Marshal(v)
 	if err != nil {

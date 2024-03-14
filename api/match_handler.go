@@ -38,7 +38,9 @@ const kDefaultMaxSize = 3
 
 type MatchLabel struct {
 	Open         int32  `json:"open"`
-	Bet          int32  `json:"bet"`
+	Mcb          int32  `json:"mcb"`
+	Bet          int64  `json:"bet"`
+	LastBet      int64  `json:"last_bet"`
 	Code         string `json:"code"`
 	Name         string `json:"name"`
 	Password     string `json:"password"`
@@ -73,6 +75,7 @@ func init() {
 
 func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		emptyResp := "[]"
 		logger.Info("rpc find match: %v", payload)
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -129,9 +132,10 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				Size:         match.Size,
 				MaxSize:      label.MaxSize, // Get from label
 				Name:         label.Name,
-				MarkUnit:     label.Bet,
+				MarkUnit:     int32(label.Bet),
 				Open:         label.Open > 0,
 				MockCodeCard: label.MockCodeCard,
+				LastBet:      label.LastBet,
 			})
 		}
 		if len(resMatches.Matches) <= 0 && request.Create {
@@ -166,7 +170,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		//  not found match,
 		if len(resMatches.Matches) <= 0 {
 			logger.Error("Not found match for user %s", userID)
-			return "", presenter.ErrMatchNotFound
+			return emptyResp, nil
 		}
 
 		response, err := marshaler.Marshal(resMatches)
@@ -265,6 +269,7 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 			Name:     request.Name,
 			MarkUnit: int32(bets[0].MarkUnit),
 			Open:     true,
+			LastBet:  request.LastBet,
 		})
 		response, err := marshaler.Marshal(resMatches)
 		if err != nil {
@@ -288,7 +293,8 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 			Size:     match.Size,
 			MaxSize:  label.MaxSize, // Get from label
 			Name:     label.Name,
-			MarkUnit: label.Bet,
+			MarkUnit: int32(label.Bet),
+			LastBet:  label.LastBet,
 		})
 	}
 
@@ -400,6 +406,7 @@ func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	if len(profile.PlayingMatch.Code) != 0 {
 		gameCode = profile.PlayingMatch.Code
 		req.MarkUnit = int32(profile.PlayingMatch.Mcb)
+		req.LastBet = profile.PlayingMatch.Bet
 	} else {
 		req.MarkUnit = 0
 	}
