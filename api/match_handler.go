@@ -17,7 +17,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -68,7 +67,7 @@ func init() {
 			counter += 1
 			newVal := counter
 			mt.Unlock()
-			return fmt.Sprintf("%05d\n", newVal)
+			return fmt.Sprintf("%05d", newVal)
 		}
 	}()
 }
@@ -93,10 +92,10 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		maxSize := kDefaultMaxSize
 
 		var query string
-		if request.WithNonOpen {
-			query = fmt.Sprintf("+label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+		if !request.WithNonOpen {
+			query = fmt.Sprintf("+label.name:%s +label.markUnit:%d", request.GameCode, request.MarkUnit)
 		} else {
-			query = fmt.Sprintf("+label.open:>0 +label.code:%s +label.bet:%d", request.GameCode, request.MarkUnit)
+			query = fmt.Sprintf("+label.open:>0 +label.name:%s +label.markUnit:%d", request.GameCode, request.MarkUnit)
 		}
 
 		// request.MockCodeCard = 0
@@ -118,14 +117,14 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		for _, match := range matches {
 			// var label MatchLabel
 			matchInfo := &pb.Match{}
-			err = json.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+			err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
 			if err != nil {
 				logger.Error("unmarshal label error %v", err)
 				continue
 			}
 
-			logger.Debug("find match size: %v", match.Size)
-			if match.Size >= matchInfo.MaxSize {
+			// logger.Debug("find match size: %v", match.Size)
+			if matchInfo.Size >= matchInfo.MaxSize {
 				continue
 			}
 			resMatches.Matches = append(resMatches.Matches, matchInfo)
@@ -158,12 +157,22 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			// 	MockCodeCard: request.MockCodeCard,
 			// 	// UserData:     request.UserData,
 			// })
-			return createMatch(ctx, logger, db, nk, &pb.RpcCreateMatchRequest{
+			resMatches.Matches, err = createMatch(ctx, logger, db, nk, &pb.RpcCreateMatchRequest{
 				GameCode: request.GameCode,
 				MarkUnit: request.MarkUnit,
 				MaxSize:  int64(maxSize),
 				Password: request.GetPassword(),
 			})
+			if err != nil {
+				logger.WithField("err", err).Error("error creating match")
+				return "", presenter.ErrInternalError
+			}
+			response, err := conf.MarshalerDefault.Marshal(resMatches)
+			if err != nil {
+				logger.Error("error marshaling response payload: %v", err.Error())
+				return "", presenter.ErrMarshal
+			}
+			return string(response), nil
 		}
 		//  not found match,
 		if len(resMatches.Matches) <= 0 {
@@ -231,13 +240,14 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 	// 	// UserCreated: ,
 	// }
 	if len(matches) == 0 {
-		return createMatch(ctx, logger, db, nk, request)
+		resMatches.Matches, err = createMatch(ctx, logger, db, nk, request)
+
 	}
 	// There are one or more ongoing matches the user could join.
 	for _, match := range matches {
 		// var label MatchLabel
 		mInfo := &pb.Match{}
-		err = json.Unmarshal([]byte(match.Label.GetValue()), mInfo)
+		err = unmarshaler.Unmarshal([]byte(match.Label.GetValue()), mInfo)
 		if err != nil {
 			logger.Error("unmarshal label error %v", err)
 			continue
@@ -274,45 +284,30 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			logger.Error("unmarshal create match error %v", err)
 			return "", presenter.ErrUnmarshal
 		}
-		// if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
-		// 	return "", err
-		// }
-		// // No available matches found, create a new one.
-		// matchID, err := nk.MatchCreate(ctx, request.GameCode, map[string]interface{}{
-		// 	"bet":      request.MarkUnit,
-		// 	"code":     request.GameCode,
-		// 	"name":     request.Name,
-		// 	"password": request.Password,
-		// 	"table_id": GetTableId(),
-		// })
-		// if err != nil {
-		// 	logger.Error("error creating match: %v", err)
-		// 	return "", presenter.ErrInternalError
-		// }
-
-		// response, err := marshaler.Marshal(&pb.RpcCreateMatchResponse{MatchId: matchID})
-		// if err != nil {
-		// 	logger.Error("error marshaling response payload: %v", err.Error())
-		// 	return "", presenter.ErrMarshal
-		// }
-
-		// logger.Info("create match response=", response)
-
-		// return string(response), nil
-		return createMatch(ctx, logger, db, nk, request)
+		matchs, err := createMatch(ctx, logger, db, nk, request)
+		if err != nil {
+			logger.WithField("err", err).Error("error creating match")
+			return "", presenter.ErrInternalError
+		}
+		response, err := conf.MarshalerDefault.Marshal(&pb.RpcCreateMatchResponse{MatchId: matchs[0].MatchId})
+		if err != nil {
+			logger.Error("error marshaling response payload: %v", err.Error())
+			return "", presenter.ErrMarshal
+		}
+		return string(response), nil
 	}
 }
 
-func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, request *pb.RpcCreateMatchRequest) (string, error) {
+func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, request *pb.RpcCreateMatchRequest) ([]*pb.Match, error) {
 	defer Recovery(logger)
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
-		return "", presenter.ErrNoUserIdFound
+		return nil, presenter.ErrNoUserIdFound
 	}
 	account, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 	if err != nil {
 		logger.WithField("err", err).Error("get account failed")
-		return "", err
+		return nil, err
 	}
 	matchInfo := &pb.Match{
 		Size:     1,
@@ -330,9 +325,18 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 			DisplayName: account.DisplayName,
 		},
 	}
+	if len(matchInfo.Name) == 0 {
+		matchInfo.Name = request.GameCode
+	}
+	if matchInfo.MaxSize <= 0 {
+		matchInfo.MaxSize = kDefaultMaxSize
+	}
+	if matchInfo.NumBot <= 0 {
+		matchInfo.NumBot = 1
+	}
 	bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
 	if err != nil {
-		return "", presenter.ErrInternalError
+		return nil, presenter.ErrInternalError
 	}
 	if len(bets) > 0 {
 		sort.Slice(bets, func(i, j int) bool {
@@ -340,14 +344,14 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		})
 		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
 			logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-			return "", err
+			return nil, err
 		}
 	} else {
 		game, ok := mapGameByCode.Load(request.GameCode)
 		gameId := game.(entity.Game).ID
 		if !ok {
 			logger.WithField("gamecode", request.GameCode).Error("not found game")
-			return "", presenter.ErrMatchNotFound
+			return nil, presenter.ErrMatchNotFound
 		}
 		bet := entity.Bet{
 			MarkUnit: int(request.GetMarkUnit()),
@@ -366,17 +370,12 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
 	if err != nil {
 		logger.WithField("data", data).Error("error creating match: %v", err)
-		return "", presenter.ErrInternalError
+		return nil, presenter.ErrInternalError
 	}
 	matchInfo.MatchId = matchID
 	resMatches := &pb.RpcFindMatchResponse{}
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
-	response, err := conf.MarshalerDefault.Marshal(resMatches)
-	if err != nil {
-		logger.Error("error marshaling response payload: %v", err.Error())
-		return "", presenter.ErrMarshal
-	}
-	return string(response), nil
+	return resMatches.Matches, nil
 }
 func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, betWantCheck int64, quickJoin bool) error {
 	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
