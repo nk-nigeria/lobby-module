@@ -130,33 +130,6 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			resMatches.Matches = append(resMatches.Matches, matchInfo)
 		}
 		if len(resMatches.Matches) <= 0 && request.Create {
-			// not found match, auto create match if request need
-			// arg := map[string]interface{}{
-			// 	"bet":      int32(request.MarkUnit),
-			// 	"code":     request.GameCode,
-			// 	"max_size": int32(2),
-			// 	"name":     request.GameCode,
-			// 	"table_id": GetTableId(),
-			// }
-			// if request.GetMockCodeCard() > 0 {
-			// 	arg["mock_code_card"] = request.GetMockCodeCard()
-			// }
-			// // No available matches found, create a new one.
-			// matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
-			// if err != nil {
-			// 	logger.Error("error creating match: %v", err)
-			// 	return "", presenter.ErrInternalError
-			// }
-			// logger.Info("Create new match with arg %v", arg)
-			// resMatches.Matches = append(resMatches.Matches, &pb.Match{
-			// 	MatchId:      matchID,
-			// 	Size:         1,
-			// 	MaxSize:      arg["max_size"].(int32),
-			// 	MarkUnit:     arg["bet"].(int32),
-			// 	Open:         true,
-			// 	MockCodeCard: request.MockCodeCard,
-			// 	// UserData:     request.UserData,
-			// })
 			resMatches.Matches, err = createMatch(ctx, logger, db, nk, &pb.RpcCreateMatchRequest{
 				GameCode: request.GameCode,
 				MarkUnit: request.MarkUnit,
@@ -304,6 +277,9 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if !ok {
 		return nil, presenter.ErrNoUserIdFound
 	}
+	// if request.MarkUnit <0 {
+	// 	return nil, presenter.ErrNoInputAllowed
+	// }
 	account, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 	if err != nil {
 		logger.WithField("err", err).Error("get account failed")
@@ -318,6 +294,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		TableId:  GetTableId(),
 		Password: request.Password,
 		NumBot:   1,
+		MarkUnit: request.MarkUnit,
 		UserCreated: &pb.Profile{
 			UserId:      account.UserId,
 			UserSid:     account.UserSid,
@@ -364,7 +341,24 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	// No available matches found, create a new one.
 	arg := make(map[string]any)
 	matchInfo.TableId = GetTableId()
-	matchInfo.MarkUnit = int32(bets[0].MarkUnit)
+	if len(bets) == 0 && matchInfo.MarkUnit <= 0 {
+		return nil, presenter.ErrNoInputAllowed
+	}
+	// check bet in list config bet
+	if len(bets) > 0 {
+		if matchInfo.MarkUnit == 0 {
+			matchInfo.MarkUnit = int32(bets[0].MarkUnit)
+		}
+		validMarkUnit := false
+		for _, bet := range bets {
+			if bet.MarkUnit == int(matchInfo.MarkUnit) {
+				validMarkUnit = true
+			}
+		}
+		if !validMarkUnit {
+			return nil, presenter.ErrNoInputAllowed
+		}
+	}
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
