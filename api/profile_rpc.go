@@ -40,6 +40,7 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 		if len(profile.PlayingMatch.MatchId) > 0 {
 			match, err := nk.MatchGet(ctx, profile.PlayingMatch.MatchId)
 			if err != nil || match == nil {
+				logger.WithField("err", err).WithField("match", match).Error("MatchGet error")
 				profile.PlayingMatch.MatchId = ""
 				cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userID, profile.PlayingMatch)
 			}
