@@ -152,6 +152,11 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			logger.Error("Not found match for user %s", userID)
 			return emptyResp, nil
 		}
+		for _, match := range resMatches.Matches {
+			match.NumBot = 0
+			match.MockCodeCard = 0
+			match.Open = len(match.Password) > 0
+		}
 
 		response, err := marshaler.Marshal(resMatches)
 		if err != nil {
@@ -367,6 +372,9 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return nil, presenter.ErrInternalError
 	}
 	matchInfo.MatchId = matchID
+	matchInfo.NumBot = 0
+	matchInfo.MockCodeCard = 0
+	matchInfo.Open = len(matchInfo.Password) > 0
 	resMatches := &pb.RpcFindMatchResponse{}
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
