@@ -19,7 +19,9 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/ciaolink-game-platform/cgp-common/define"
 
@@ -60,14 +62,15 @@ func init() {
 	// }
 	GetTableId = func() func() string {
 		// var counter atomic.Int64 // feature only available on go 1.19
-		var counter int64 = 0
+		var counter int64 = time.Now().Unix()
 		var mt sync.Mutex
 		return func() string {
 			mt.Lock()
 			counter += 1
 			newVal := counter
 			mt.Unlock()
-			return fmt.Sprintf("%05d", newVal)
+			str := fmt.Sprintf("%05d", newVal)
+			return str[len(str)-5:]
 		}
 	}()
 }
@@ -91,17 +94,24 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 
 		maxSize := kDefaultMaxSize
 
-		var query string
-		if !request.WithNonOpen {
-			query = fmt.Sprintf("+label.name:%s +label.markUnit:%d", request.GameCode, request.MarkUnit)
-		} else {
-			query = fmt.Sprintf("+label.open:>0 +label.name:%s +label.markUnit:%d", request.GameCode, request.MarkUnit)
+		queryBuilder := strings.Builder{}
+		queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
+		if request.MarkUnit > 0 {
+			queryBuilder.WriteString(fmt.Sprintf("+label.markUnit:%d", request.MarkUnit))
+		}
+		if len(request.TableId) > 0 {
+			queryBuilder.WriteString(fmt.Sprintf("+label.tableId:%s ", request.TableId))
+		}
+		if request.WithNonOpen {
+			queryBuilder.WriteString(fmt.Sprintf("+label.open:>0"))
 		}
 
 		// request.MockCodeCard = 0
 		if request.MockCodeCard > 0 {
-			query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
+			// query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
+			queryBuilder.WriteString(fmt.Sprintf("+label.mock_code_card:%d ", request.MockCodeCard))
 		}
+		query := queryBuilder.String()
 
 		logger.Info("match query %v", query)
 
@@ -151,6 +161,12 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if len(resMatches.Matches) <= 0 {
 			logger.Error("Not found match for user %s", userID)
 			return emptyResp, nil
+		}
+		for _, match := range resMatches.Matches {
+			match.NumBot = 0
+			match.MockCodeCard = 0
+			match.Open = len(match.Password) == 0
+			match.Password = ""
 		}
 
 		response, err := marshaler.Marshal(resMatches)
@@ -367,6 +383,10 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return nil, presenter.ErrInternalError
 	}
 	matchInfo.MatchId = matchID
+	matchInfo.NumBot = 0
+	matchInfo.MockCodeCard = 0
+	matchInfo.Open = len(matchInfo.Password) == 0
+	matchInfo.Password = ""
 	resMatches := &pb.RpcFindMatchResponse{}
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
