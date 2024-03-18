@@ -156,6 +156,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			match.NumBot = 0
 			match.MockCodeCard = 0
 			match.Open = len(match.Password) > 0
+			match.Password = ""
 		}
 
 		response, err := marshaler.Marshal(resMatches)
@@ -375,6 +376,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	matchInfo.NumBot = 0
 	matchInfo.MockCodeCard = 0
 	matchInfo.Open = len(matchInfo.Password) > 0
+	matchInfo.Password = ""
 	resMatches := &pb.RpcFindMatchResponse{}
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
