@@ -134,6 +134,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if true {
 		cgbdb.RunMigrations(ctx, logger, db)
 	}
+
 	api.InitListGame(ctx, logger, db, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitDailyRewardTemplate(ctx, logger, nk)

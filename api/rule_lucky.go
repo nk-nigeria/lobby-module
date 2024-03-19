@@ -8,7 +8,9 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
@@ -63,6 +65,10 @@ func RpcRuleLuckyAdd() func(context.Context, runtime.Logger, *sql.DB, runtime.Na
 			return "", presenter.ErrInternalError
 		}
 		dataJson, _ := conf.MarshalerDefault.Marshal(req)
+		nk.Event(ctx, &api.Event{
+			Name:       define.NakEventRuleLuckyChange,
+			Properties: map[string]string{"data": string(dataJson)},
+		})
 		return string(dataJson), nil
 	}
 }
@@ -90,6 +96,10 @@ func RpcRuleLuckyUpdate() func(context.Context, runtime.Logger, *sql.DB, runtime
 			return "", presenter.ErrInternalError
 		}
 		dataJson, _ := conf.MarshalerDefault.Marshal(result)
+		nk.Event(ctx, &api.Event{
+			Name:       define.NakEventRuleLuckyChange,
+			Properties: map[string]string{"data": string(dataJson)},
+		})
 		return string(dataJson), nil
 	}
 }
