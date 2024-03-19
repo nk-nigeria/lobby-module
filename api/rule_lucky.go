@@ -65,10 +65,10 @@ func RpcRuleLuckyAdd() func(context.Context, runtime.Logger, *sql.DB, runtime.Na
 			return "", presenter.ErrInternalError
 		}
 		dataJson, _ := conf.MarshalerDefault.Marshal(req)
-		nk.Event(ctx, &api.Event{
-			Name:       define.NakEventRuleLuckyChange,
-			Properties: map[string]string{"data": string(dataJson)},
-		})
+		// nk.Event(ctx, &api.Event{
+		// 	Name:       define.NakEventRuleLuckyChange,
+		// 	Properties: map[string]string{"data": string(dataJson)},
+		// })
 		return string(dataJson), nil
 	}
 }
@@ -96,10 +96,7 @@ func RpcRuleLuckyUpdate() func(context.Context, runtime.Logger, *sql.DB, runtime
 			return "", presenter.ErrInternalError
 		}
 		dataJson, _ := conf.MarshalerDefault.Marshal(result)
-		nk.Event(ctx, &api.Event{
-			Name:       define.NakEventRuleLuckyChange,
-			Properties: map[string]string{"data": string(dataJson)},
-		})
+
 		return string(dataJson), nil
 	}
 }
@@ -130,5 +127,35 @@ func RpcRuleLuckyDelete() func(context.Context, runtime.Logger, *sql.DB, runtime
 			return "", presenter.ErrInternalError
 		}
 		return "", nil
+	}
+}
+
+func RpcRuleLuckyEmitEvemt() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if userID != "" {
+			return "", errors.New("Unath.")
+		}
+		if len(payload) == 0 {
+			logger.Error("Error when unmarshal is empty payload")
+			return "", presenter.ErrInvalidInput
+		}
+		unmarshaler := conf.Unmarshaler
+		req := &pb.RuleLucky{}
+		err := unmarshaler.Unmarshal([]byte(payload), req)
+		if err != nil {
+			logger.WithField("err", err).Error("Error when unmarshal payload")
+			return "", presenter.ErrUnmarshal
+		}
+		if len(req.GameCode) == 0 {
+			return "", nil
+		}
+		_ = cgbdb.UpdateEmitEventLucky(ctx, db, req)
+		nk.Event(ctx, &api.Event{
+			Name:       define.NakEventRuleLuckyChange,
+			Properties: map[string]string{"game_code": req.GameCode},
+		})
+		return "", nil
+
 	}
 }
