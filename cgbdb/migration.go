@@ -459,7 +459,9 @@ CREATE TABLE public.rules_lucky (
 	base_1 int8 DEFAULT 0,
 	base_2 int8 DEFAULT 0,
 	base_3 int8 DEFAULT 0,
-	base_4 int8 DEFAULT 0
+	base_4 int8 DEFAULT 0,
+	emit_event_at_unix int8 DEFAULT 1
+	deleted_at int8 DEFAULT 0,
 );
 `)
 

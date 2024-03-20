@@ -106,10 +106,11 @@ const (
 	// leader board
 	rpcLeaderBoardInfo = "leaderboard_info"
 
-	rpcRuleLucky       = "rule_lucky"
-	rpcRuleLuckyAdd    = "rule_lucky_add"
-	rpcRuleLuckyUpdate = "rule_lucky_update"
-	rpcRuleLuckyDelete = "rule_lucky_delete"
+	rpcRuleLucky          = "rule_lucky"
+	rpcRuleLuckyAdd       = "rule_lucky_add"
+	rpcRuleLuckyUpdate    = "rule_lucky_update"
+	rpcRuleLuckyDelete    = "rule_lucky_delete"
+	rpcRuleLuckyEmitEvent = "rule_lucky_emit_event"
 	// Jackpot
 	rpcJackpot = "jackpot"
 )
@@ -134,6 +135,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if true {
 		cgbdb.RunMigrations(ctx, logger, db)
 	}
+
 	api.InitListGame(ctx, logger, db, nk)
 	api.InitDeal(ctx, logger, nk, marshaler)
 	api.InitDailyRewardTemplate(ctx, logger, nk)
@@ -455,6 +457,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcRuleLuckyDelete, api.RpcRuleLuckyDelete()); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcRuleLuckyEmitEvent, api.RpcRuleLuckyEmitEvemt()); err != nil {
 		return err
 	}
 
