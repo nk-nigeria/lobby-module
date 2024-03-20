@@ -71,7 +71,7 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	gameCode := evt.Properties["game_code"]
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
-	matchId := ""
+	matchId := evt.Properties["match_id"]
 	bet, _ := strconv.ParseInt(evt.Properties["bet"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
 	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
