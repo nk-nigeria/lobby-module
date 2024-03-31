@@ -38,13 +38,13 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := ""
-	bet, _ := strconv.ParseInt(evt.Properties["bet"], 10, 64)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
 	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
 		Code:      gameCode,
 		MatchId:   matchId,
 		LeaveTime: tsEndUnix,
-		Mcb:       bet,
+		Mcb:       mcb,
 		Bet:       lastBet,
 	})
 }
@@ -55,13 +55,13 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := evt.Properties["match_id"]
-	bet, _ := strconv.ParseInt(evt.Properties["bet"], 10, 64)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
 	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
 		Code:      gameCode,
 		MatchId:   matchId,
 		LeaveTime: tsEndUnix,
-		Mcb:       bet,
+		Mcb:       mcb,
 		Bet:       lastBet,
 	})
 }
@@ -72,13 +72,13 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := evt.Properties["match_id"]
-	bet, _ := strconv.ParseInt(evt.Properties["bet"], 10, 64)
+	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
 	cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
 		Code:      gameCode,
 		MatchId:   matchId,
 		LeaveTime: tsEndUnix,
-		Mcb:       bet,
+		Mcb:       mcb,
 		Bet:       lastBet,
 	})
 }
