@@ -198,17 +198,25 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 		// return "", presenter.ErrInvalidInput
 		return quickMatchAtLobby(ctx, logger, db, nk, request)
 	}
-	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
+	// if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
+	// 	logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	// 	return "", presenter.ErrNotEnoughChip
+	// }
+	bestBet, err := findMaxBetForUser(ctx, logger, db, nk, userID, request.GameCode, false)
+	if err != nil {
 		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-		return "", presenter.ErrNotEnoughChip
+		return "", err
 	}
-	maxSize := kDefaultMaxSize
-	query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
 
 	resMatches := &pb.RpcFindMatchResponse{}
 	var matches []*api.Match
-	var err error
+	// var err error
 	if define.IsAllowJoinInGameOnProgress(request.GameCode) {
+		maxSize := kDefaultMaxSize
+		query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
+		if bestBet.MarkUnit > 0 {
+			query += fmt.Sprintf(" +label.markUnit:%d", bestBet.MarkUnit)
+		}
 		matches, err = nk.MatchList(ctx, 100, true, "", nil, &maxSize, query)
 		if err != nil {
 			logger.Error("error listing matches: %v", err)
@@ -217,20 +225,9 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 
 		logger.Debug("MatchList result %v", matches)
 	}
-	// matchInfo := &pb.Match{
-	// 	Size:     1,
-	// 	MaxSize:  int32(maxSize),
-	// 	Name:     request.Name,
-	// 	Open:     len(request.Password) > 0,
-	// 	LastBet:  request.LastBet,
-	// 	TableId:  GetTableId(),
-	// 	Password: request.Password,
-	// 	NumBot:   1,
-	// 	// UserCreated: ,
-	// }
+
 	if len(matches) == 0 {
 		resMatches.Matches, err = createMatch(ctx, logger, db, nk, request)
-
 	}
 	// There are one or more ongoing matches the user could join.
 	for _, match := range matches {
@@ -331,28 +328,36 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if err != nil {
 		return nil, presenter.ErrInternalError
 	}
-	if len(bets) > 0 {
-		sort.Slice(bets, func(i, j int) bool {
-			return bets[i].MarkUnit < bets[j].MarkUnit
-		})
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
-			logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	// if len(bets) > 0 {
+	// 	sort.Slice(bets, func(i, j int) bool {
+	// 		return bets[i].MarkUnit < bets[j].MarkUnit
+	// 	})
+	// 	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
+	// 		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	game, ok := mapGameByCode.Load(request.GameCode)
+	// 	gameId := game.(entity.Game).ID
+	// 	if !ok {
+	// 		logger.WithField("gamecode", request.GameCode).Error("not found game")
+	// 		return nil, presenter.ErrMatchNotFound
+	// 	}
+	// 	bet := entity.Bet{
+	// 		MarkUnit: int(request.GetMarkUnit()),
+	// 		Enable:   true,
+	// 		Id:       0,
+	// 		GameId:   int(gameId),
+	// 	}
+	// 	bets = append(bets, bet)
+	// }
+	if request.MarkUnit <= 0 {
+		bestBet, err := findMaxBetForUser(ctx, logger, db, nk, userID, request.GameCode, true)
+		if err != nil {
+			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("not enough chip for bet")
 			return nil, err
 		}
-	} else {
-		game, ok := mapGameByCode.Load(request.GameCode)
-		gameId := game.(entity.Game).ID
-		if !ok {
-			logger.WithField("gamecode", request.GameCode).Error("not found game")
-			return nil, presenter.ErrMatchNotFound
-		}
-		bet := entity.Bet{
-			MarkUnit: int(request.GetMarkUnit()),
-			Enable:   true,
-			Id:       0,
-			GameId:   int(gameId),
-		}
-		bets = append(bets, bet)
+		matchInfo.MarkUnit = int32(bestBet.MarkUnit)
 	}
 	// No available matches found, create a new one.
 	arg := make(map[string]any)
@@ -362,9 +367,6 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	}
 	// check bet in list config bet
 	if len(bets) > 0 {
-		if matchInfo.MarkUnit == 0 {
-			matchInfo.MarkUnit = int32(bets[0].MarkUnit)
-		}
 		validMarkUnit := false
 		for _, bet := range bets {
 			if bet.MarkUnit == int(matchInfo.MarkUnit) {
@@ -374,6 +376,10 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		if !validMarkUnit {
 			return nil, presenter.ErrNoInputAllowed
 		}
+	}
+	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
+		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+		return nil, err
 	}
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
@@ -431,6 +437,53 @@ func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.D
 	return nil
 }
 
+func findMaxBetForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, quickJoin bool) (entity.Bet, error) {
+	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	if err != nil {
+		return entity.Bet{}, presenter.ErrInternalError
+	}
+	if len(bets) == 0 {
+		return entity.Bet{}, nil
+	}
+	// var bet entity.Bet
+	// for _, v := range bets {
+	// 	if betWantCheck == 0 {
+	// 		bet = v
+	// 		break
+	// 	}
+	// 	if v.MarkUnit == int(betWantCheck) {
+	// 		bet = v
+	// 		break
+	// 	}
+	// }
+	// if bet.MarkUnit <= 0 {
+	// 	return presenter.ErrBetNotFound
+	// }
+	// sort desc by mark unit
+	sort.Slice(bets, func(i, j int) bool {
+		return bets[i].MarkUnit > bets[j].MarkUnit
+	})
+	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
+	if err != nil {
+		logger.Error("read wallet user %s error %s",
+			userID, err.Error())
+		return entity.Bet{}, presenter.ErrInternalError
+	}
+	if wallet.Chips <= 0 {
+		return entity.Bet{}, presenter.ErrNotEnoughChip
+	}
+	for _, bet := range bets {
+		minChipRequire := bet.AGJoin
+		if quickJoin {
+			minChipRequire = bet.AGPlaynow
+		}
+		if wallet.Chips < int64(minChipRequire) {
+			continue
+		}
+		return bet, nil
+	}
+	return entity.Bet{}, presenter.ErrNotEnoughChip
+}
 func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *pb.RpcCreateMatchRequest) (string, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
