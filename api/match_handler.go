@@ -377,8 +377,8 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 			return nil, presenter.ErrNoInputAllowed
 		}
 	}
-	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), true); err != nil {
-		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true); err != nil {
+		logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
 		return nil, err
 	}
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
