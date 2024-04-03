@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strconv"
+	"sync"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-common/define"
@@ -11,6 +12,11 @@ import (
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
+
+type countPlayerInMatch map[int]int // [mcb]num_player
+
+var trackUserInGame map[string]countPlayerInMatch = make(map[string]countPlayerInMatch) // [gamecode]
+var mt sync.Mutex
 
 func CustomEventHandler(db *sql.DB) func(ctx context.Context, logger runtime.Logger, evt *nkapi.Event) {
 	return func(ctx context.Context, logger runtime.Logger, evt *nkapi.Event) {
@@ -34,6 +40,9 @@ func CustomEventHandler(db *sql.DB) func(ctx context.Context, logger runtime.Log
 
 func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
 	userId := evt.Properties["user_id"]
+	if len(userId) == 0 {
+		return
+	}
 	gameCode := evt.Properties["game_code"]
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
@@ -47,10 +56,20 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		Mcb:       mcb,
 		Bet:       lastBet,
 	})
+	mt.Lock()
+	v, exist := trackUserInGame[gameCode]
+	if !exist {
+		v = make(countPlayerInMatch)
+	}
+	v[int(mcb)]--
+	trackUserInGame[gameCode] = v
 }
 
 func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
 	userId := evt.Properties["user_id"]
+	if len(userId) == 0 {
+		return
+	}
 	gameCode := evt.Properties["game_code"]
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
@@ -64,10 +83,20 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Mcb:       mcb,
 		Bet:       lastBet,
 	})
+	mt.Lock()
+	v, exist := trackUserInGame[gameCode]
+	if !exist {
+		v = make(countPlayerInMatch)
+	}
+	v[int(mcb)]++
+	trackUserInGame[gameCode] = v
 }
 
 func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
 	userId := evt.Properties["user_id"]
+	if len(userId) == 0 {
+		return
+	}
 	gameCode := evt.Properties["game_code"]
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
@@ -81,4 +110,11 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 		Mcb:       mcb,
 		Bet:       lastBet,
 	})
+	mt.Lock()
+	v, exist := trackUserInGame[gameCode]
+	if !exist {
+		v = make(countPlayerInMatch)
+	}
+	v[int(mcb)]--
+	trackUserInGame[gameCode] = v
 }

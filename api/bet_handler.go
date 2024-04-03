@@ -68,6 +68,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		}
 		userChip := account.AccountChip
 		msg := &pb.Bets{}
+		countPlayerInMatch := trackUserInGame[request.Code]
 		for _, bet := range bets {
 			bet.Enable = true
 			if userChip < int64(bet.AGJoin) {
@@ -75,6 +76,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			} else {
 				bet.Enable = true
 			}
+			bet.CountPlaying = countPlayerInMatch[bet.MarkUnit]
 			msg.Bets = append(msg.Bets, bet.ToPb())
 		}
 		if len(bets) > 1 {
