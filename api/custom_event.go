@@ -63,6 +63,7 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 	}
 	v[int(mcb)]--
 	trackUserInGame[gameCode] = v
+	mt.Unlock()
 }
 
 func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
@@ -90,6 +91,7 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	v[int(mcb)]++
 	trackUserInGame[gameCode] = v
+	mt.Unlock()
 }
 
 func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
@@ -117,4 +119,5 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	}
 	v[int(mcb)]--
 	trackUserInGame[gameCode] = v
+	mt.Unlock()
 }
