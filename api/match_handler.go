@@ -326,6 +326,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	// }
 	bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
 	if err != nil {
+		logger.WithField("err", err).Error("load bets failed")
 		return nil, presenter.ErrInternalError
 	}
 	// if len(bets) > 0 {
@@ -385,7 +386,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	arg["data"] = string(data)
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
 	if err != nil {
-		logger.WithField("data", data).Error("error creating match: %v", err)
+		logger.WithField("data", string(data)).Error("error creating match: %v", err)
 		return nil, presenter.ErrInternalError
 	}
 	matchInfo.MatchId = matchID
