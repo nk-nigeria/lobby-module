@@ -363,23 +363,23 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	arg := make(map[string]any)
 	matchInfo.TableId = GetTableId()
 	if len(bets) == 0 && matchInfo.MarkUnit <= 0 {
-		return nil, presenter.ErrNoInputAllowed
-	}
-	// check bet in list config bet
-	if len(bets) > 0 {
-		validMarkUnit := false
-		for _, bet := range bets {
-			if bet.MarkUnit == int(matchInfo.MarkUnit) {
-				validMarkUnit = true
+	} else {
+		// check bet in list config bet
+		if len(bets) > 0 {
+			validMarkUnit := false
+			for _, bet := range bets {
+				if bet.MarkUnit == int(matchInfo.MarkUnit) {
+					validMarkUnit = true
+				}
+			}
+			if !validMarkUnit {
+				return nil, presenter.ErrNoInputAllowed
 			}
 		}
-		if !validMarkUnit {
-			return nil, presenter.ErrNoInputAllowed
+		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true); err != nil {
+			logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+			return nil, err
 		}
-	}
-	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true); err != nil {
-		logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-		return nil, err
 	}
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
