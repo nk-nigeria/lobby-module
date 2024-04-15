@@ -24,6 +24,7 @@ const (
 	rpcIdFindMatch   = "find_match"
 	rpcIdCreateMatch = "create_match"
 	rpcIdQuickMatch  = "quick_match"
+	rpcIdInfoMatch   = "info_match"
 
 	rpcIdListBet = "list_bet"
 	// bet admin
@@ -177,6 +178,9 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := initializer.RegisterRpc(rpcIdQuickMatch, api.RpcQuickMatch); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcIdInfoMatch, api.RpcInfoMatch(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

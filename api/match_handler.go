@@ -284,6 +284,59 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 	}
 }
 
+func RpcInfoMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		_, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+		if !ok {
+			return "", presenter.ErrNoUserIdFound
+		}
+		request := &pb.MatchInfoRequest{}
+		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			logger.Error("unmarshal create match error %v", err)
+			return "", presenter.ErrUnmarshal
+		}
+		match, err := nk.MatchGet(ctx, request.MatchId)
+		if err != nil {
+			logger.WithField("err", err).WithField("match_id", request.MatchId).Error("error get match")
+			return "", presenter.ErrMatchNotFound
+		}
+		if match == nil {
+			return "", presenter.ErrMatchNotFound
+		}
+		matchInfo := &pb.Match{}
+		err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+		if err != nil {
+			logger.Error("unmarshal label error %v", err)
+			return "", presenter.ErrUnmarshal
+		}
+		if request.QueryUser {
+			userUuids := make([]string, 0)
+			for _, profile := range matchInfo.Profiles {
+				userUuids = append(userUuids, profile.GetUserId())
+			}
+			accounts, err := cgbdb.GetProfileUsers(ctx, db, userUuids...)
+			if err != nil {
+				logger.WithField("err", err).Error("get account failed")
+				return "", presenter.ErrInternalError
+			}
+			accountByUuid := accounts.ToMap()
+			// matchInfo.Profiles = make([]*pb.SimpleProfile, 0)
+			for idx, profile := range matchInfo.Profiles {
+				v := accountByUuid[profile.UserId]
+				// matchInfo.Profiles = append(matchInfo.Profiles, profile)
+				matchInfo.Profiles[idx] = v
+			}
+		}
+
+		response, err := conf.MarshalerDefault.Marshal(matchInfo)
+		if err != nil {
+			logger.Error("error marshaling response payload: %v", err.Error())
+			return "", presenter.ErrMarshal
+		}
+		return string(response), nil
+	}
+}
+
 func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, request *pb.RpcCreateMatchRequest) ([]*pb.Match, error) {
 	defer Recovery(logger)
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
