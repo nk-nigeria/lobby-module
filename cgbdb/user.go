@@ -443,6 +443,7 @@ func GetProfileUsers(ctx context.Context, db *sql.DB, userIDs ...string) (ListPr
 			Status:      entity.InterfaceToString(metadata["status"]),
 			AvatarId:    entity.InterfaceToString(metadata["avatar_id"]),
 			VipLevel:    entity.ToInt64(metadata["vip_level"], 0),
+			UserSid:     acc.Sid,
 		}
 		playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
 
