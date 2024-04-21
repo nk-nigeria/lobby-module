@@ -1,6 +1,8 @@
 package entity
 
-import "github.com/heroiclabs/nakama-common/api"
+import (
+	"github.com/heroiclabs/nakama-common/api"
+)
 
 type Account struct {
 	api.Account
