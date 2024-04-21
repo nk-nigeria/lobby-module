@@ -374,9 +374,9 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if matchInfo.MaxSize <= 0 {
 		matchInfo.MaxSize = kDefaultMaxSize
 	}
-	// if matchInfo.NumBot <= 0 {
-	// 	matchInfo.NumBot = 1
-	// }
+	if matchInfo.NumBot <= 0 {
+		matchInfo.NumBot = 1
+	}
 	bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
 	if err != nil {
 		logger.WithField("err", err).Error("load bets failed")
