@@ -88,7 +88,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			return "", presenter.ErrUnmarshal
 		}
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
+		if _, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
 			return "", err
 		}
 
@@ -430,10 +430,12 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 				return nil, presenter.ErrNoInputAllowed
 			}
 		}
-		if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true); err != nil {
+		bet, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true)
+		if err != nil {
 			logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
 			return nil, err
 		}
+		matchInfo.Bet = bet
 	}
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
@@ -451,13 +453,18 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
 }
-func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, betWantCheck int64, quickJoin bool) error {
+func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, betWantCheck int64, quickJoin bool) (*pb.Bet, error) {
 	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
 	if err != nil {
-		return presenter.ErrInternalError
+		return nil, presenter.ErrInternalError
 	}
 	if len(bets) == 0 {
-		return nil
+		return &pb.Bet{
+			MarkUnit:  float32(betWantCheck),
+			AgJoin:    betWantCheck,
+			AgPlayNow: betWantCheck,
+			AgLeave:   betWantCheck,
+		}, nil
 	}
 	var bet entity.Bet
 	for _, v := range bets {
@@ -471,7 +478,7 @@ func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.D
 		}
 	}
 	if bet.MarkUnit <= 0 {
-		return presenter.ErrBetNotFound
+		return nil, presenter.ErrBetNotFound
 	}
 	minChipRequire := bet.AGJoin
 	if quickJoin {
@@ -481,14 +488,14 @@ func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.D
 	if err != nil {
 		logger.Error("read wallet user %s error %s",
 			userID, err.Error())
-		return presenter.ErrInternalError
+		return nil, presenter.ErrInternalError
 	}
 	if wallet.Chips <= 0 || wallet.Chips < int64(minChipRequire) {
 		logger.Error("User %s not enough chip [%d] to join game bet [%d]",
 			userID, wallet.Chips, bet)
-		return presenter.ErrNotEnoughChip
+		return nil, presenter.ErrNotEnoughChip
 	}
-	return nil
+	return bet.ToPb(), nil
 }
 
 func findMaxBetForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, quickJoin bool) (entity.Bet, error) {
