@@ -13,10 +13,17 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 )
 
-type countPlayerInMatch map[int]int // [mcb]num_player
+type players map[string]struct{}
 
-var trackUserInGame map[string]countPlayerInMatch = make(map[string]countPlayerInMatch) // [gamecode]
+type playerByMcb map[int]players // [mcb]num_player
+
+var trackUserInGame map[string]playerByMcb = make(map[string]playerByMcb) // [gamecode]
 var mt sync.Mutex
+
+func (c playerByMcb) TotalPlayer(mcb int) int {
+	player := c[mcb]
+	return len(player)
+}
 
 func CustomEventHandler(db *sql.DB) func(ctx context.Context, logger runtime.Logger, evt *nkapi.Event) {
 	return func(ctx context.Context, logger runtime.Logger, evt *nkapi.Event) {
@@ -57,12 +64,14 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		Bet:       lastBet,
 	})
 	mt.Lock()
-	v, exist := trackUserInGame[gameCode]
+	trackGame, exist := trackUserInGame[gameCode]
 	if !exist {
-		v = make(countPlayerInMatch)
+		trackGame = make(playerByMcb)
 	}
-	v[int(mcb)]--
-	trackUserInGame[gameCode] = v
+	playerByMcb := trackGame[int(mcb)]
+	delete(playerByMcb, userId)
+	trackGame[int(mcb)] = playerByMcb
+	trackUserInGame[gameCode] = trackGame
 	mt.Unlock()
 }
 
@@ -85,12 +94,17 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Bet:       lastBet,
 	})
 	mt.Lock()
-	v, exist := trackUserInGame[gameCode]
+	trackGame, exist := trackUserInGame[gameCode]
 	if !exist {
-		v = make(countPlayerInMatch)
+		trackGame = make(playerByMcb)
 	}
-	v[int(mcb)]++
-	trackUserInGame[gameCode] = v
+	playerByMcb := trackGame[int(mcb)]
+	if playerByMcb == nil {
+		playerByMcb = make(players)
+	}
+	playerByMcb[userId] = struct{}{}
+	trackGame[int(mcb)] = playerByMcb
+	trackUserInGame[gameCode] = trackGame
 	mt.Unlock()
 }
 
@@ -113,11 +127,12 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 		Bet:       lastBet,
 	})
 	mt.Lock()
-	v, exist := trackUserInGame[gameCode]
-	if !exist {
-		v = make(countPlayerInMatch)
+	trackGame, exist := trackUserInGame[gameCode]
+	if exist {
+		playerByMcb := trackGame[int(mcb)]
+		delete(playerByMcb, userId)
+		trackGame[int(mcb)] = playerByMcb
+		trackUserInGame[gameCode] = trackGame
 	}
-	v[int(mcb)]--
-	trackUserInGame[gameCode] = v
 	mt.Unlock()
 }
