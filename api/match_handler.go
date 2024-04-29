@@ -37,25 +37,6 @@ import (
 
 const kDefaultMaxSize = 3
 
-var MaxSizeMatchByGame = map[define.GameName]int{
-	define.BlackjackName:   4,
-	define.BandarqqName:    4,
-	define.SicboName:       4,
-	define.BaccaratName:    4,
-	define.ColorGameName:   4,
-	define.DragontigerName: 4,
-	define.GapleDomino:     4,
-	define.ChinesePoker:    4,
-}
-
-func GetMaxSizeByGame(gameName define.GameName) int {
-	size, exist := MaxSizeMatchByGame[gameName]
-	if !exist {
-		return kDefaultMaxSize
-	}
-	return size
-}
-
 type MatchLabel struct {
 	Open         int32  `json:"open"`
 	Mcb          int32  `json:"mcb"`
@@ -111,7 +92,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			return "", err
 		}
 
-		maxSize := GetMaxSizeByGame(define.GameName(request.GameCode))
+		maxSize := define.GetMaxSizeByGame(define.GameName(request.GameCode))
 
 		queryBuilder := strings.Builder{}
 		queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
@@ -231,7 +212,7 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 	var matches []*api.Match
 	// var err error
 	if define.IsAllowJoinInGameOnProgress(request.GameCode) {
-		maxSize := GetMaxSizeByGame(define.GameName(request.GameCode))
+		maxSize := define.GetMaxSizeByGame(define.GameName(request.GameCode))
 		query := fmt.Sprintf("+label.code:%s +label.open:1", request.GameCode)
 		if bestBet.MarkUnit > 0 {
 			query += fmt.Sprintf(" +label.markUnit:%d", bestBet.MarkUnit)
@@ -391,7 +372,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		matchInfo.Name = request.GameCode
 	}
 	if matchInfo.MaxSize <= 0 {
-		matchInfo.MaxSize = int32(GetMaxSizeByGame(define.GameName(request.GameCode)))
+		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(request.GameCode)))
 	}
 	if matchInfo.NumBot <= 0 {
 		matchInfo.NumBot = 1
