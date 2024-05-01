@@ -106,6 +106,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		{
 			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
 			if err != nil {
+				logger.WithField("sender", userID).Error("user not found")
 				return "", presenter.ErrUserNotFound
 			}
 			bank.SenderId = userID
@@ -113,9 +114,18 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		// check recv
 		{
-
-			account, err := cgbdb.GetAccount(ctx, db, bank.GetRecipientId(), bank.GetRecipientSid())
+			userSid := bank.GetRecipientSid()
+			userId := bank.GetRecipientId()
+			if userSid <= 0 {
+				id, _ := strconv.Atoi(bank.GetRecipientId())
+				if id > 0 {
+					userId = ""
+					userSid = int64(id)
+				}
+			}
+			account, err := cgbdb.GetAccount(ctx, db, userId, userSid)
 			if err != nil {
+				logger.WithField("recv id", userId).WithField("recv sid", userSid).Error("Recv user not found")
 				return "", presenter.ErrUserNotFound
 			}
 			bank.RecipientId = account.User.Id
