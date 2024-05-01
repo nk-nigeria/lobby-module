@@ -143,7 +143,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			resMatches.Matches, err = createMatch(ctx, logger, db, nk, &pb.RpcCreateMatchRequest{
 				GameCode: request.GameCode,
 				MarkUnit: request.MarkUnit,
-				MaxSize:  int64(maxSize),
+				// MaxSize:  int64(maxSize),
 				Password: request.GetPassword(),
 			})
 			if err != nil {
@@ -372,8 +372,9 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		matchInfo.Name = request.GameCode
 	}
 	if matchInfo.MaxSize <= 0 {
-		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(request.GameCode)))
+		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(matchInfo.Name)))
 	}
+	// matchInfo.MaxSize = 4
 	if matchInfo.NumBot <= 0 {
 		matchInfo.NumBot = 1
 	}

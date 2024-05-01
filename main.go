@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	"github.com/go-co-op/gocron"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -127,7 +128,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}()
 	initStart := time.Now()
 	conf.Init()
-
+	define.Init()
 	var err error
 	node := conf.SnowlakeNode
 
