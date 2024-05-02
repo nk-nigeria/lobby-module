@@ -13,6 +13,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,6 +30,9 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
 			logger.Error("RpcBetList Unmarshal payload error: %s", err.Error())
 			return "", presenter.ErrUnmarshal
+		}
+		if define.IsSlotGame(define.GameName(request.Code)) {
+			return slotsGameBetConfig(ctx, logger, db, nk, payload)
 		}
 
 		bets, err := LoadBets(ctx, logger, db, nk, request.Code)
@@ -242,4 +246,34 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	})
 	mapBetsByGameCode.Store(game.LobbyId, bets)
 	return bets, nil
+}
+
+func slotsGameBetConfig(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+	betsValue := []int{100, 200, 500, 1000}
+	bets := make([]*pb.Bet, 0)
+	for _, val := range betsValue {
+		bets = append(bets, &pb.Bet{
+			Enable:   true,
+			MarkUnit: float32(val),
+		})
+	}
+	userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
+	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
+	if err != nil {
+		logger.WithField("user", userID).WithField("err", err).Error("read wallet failed")
+		return "", err
+	}
+	msg := &pb.Bets{
+		Bets: bets,
+	}
+	for _, v := range bets {
+		if v.MarkUnit < float32(wallet.Chips/50) {
+			msg.BestChoice = &pb.Bet{
+				Enable:   true,
+				MarkUnit: v.MarkUnit,
+			}
+		}
+	}
+	betsJson, _ := conf.MarshalerDefault.Marshal(msg)
+	return string(betsJson), nil
 }
