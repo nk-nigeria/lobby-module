@@ -100,6 +100,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		err := unmarshaler.Unmarshal([]byte(payload), bank)
 		if err != nil {
+			logger.WithField("err", err).WithField("payload", payload).Error("body unmarshal failed")
 			return "", presenter.ErrUnmarshal
 		}
 		// check sender
@@ -135,6 +136,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		if bank.Chips == 0 {
 			bank.Chips = bank.ChipsInBank
 		}
+		bank.AmountFee = bank.Chips * 3 / 100 //fee 3%
 		_, err = entity.BankSendGift(ctx, logger, nk, bank)
 		if err != nil {
 			return "", err

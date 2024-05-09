@@ -71,7 +71,7 @@ func RpcClaimGiftCode() func(context.Context, runtime.Logger, *sql.DB, runtime.N
 			return "", err
 		}
 		if dbGiftCode.ErrCode == 0 {
-			wallet := entity.Wallet{
+			wallet := lib.Wallet{
 				Chips: dbGiftCode.Value,
 			}
 			metadata := make(map[string]interface{})

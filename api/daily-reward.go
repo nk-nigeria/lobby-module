@@ -12,6 +12,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -188,7 +189,7 @@ func RpcClaimDailyReward() func(context.Context, runtime.Logger, *sql.DB, runtim
 			version = lastClaimObject.GetVersion()
 		}
 		SaveLastClaimReward(ctx, nk, logger, savelastClaim, version, userID)
-		wallet := entity.Wallet{
+		wallet := lib.Wallet{
 			Chips: reward.TotalChip,
 		}
 

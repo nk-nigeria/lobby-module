@@ -111,7 +111,7 @@ func topupChipIAP(ctx context.Context, logger runtime.Logger, db *sql.DB, nk run
 	}
 	metadata["rp"] = deal.Price
 	metadata["unit"] = deal.GetCurrency()
-	wallet := entity.Wallet{
+	wallet := lib.Wallet{
 		UserId: userID,
 		Chips:  deal.AmountChips,
 	}

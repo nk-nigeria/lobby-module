@@ -13,6 +13,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 )
@@ -349,7 +350,7 @@ func SendReferRewardToWallet(ctx context.Context, logger runtime.Logger, db *sql
 		metadata["action"] = entity.WalletActionReferReward
 		metadata["sender"] = constant.UUID_USER_SYSTEM
 
-		wallet := entity.Wallet{}
+		wallet := lib.Wallet{}
 		for _, reward := range listReward {
 			wallet.UserId = reward.UserId
 			wallet.Chips = reward.EstReward

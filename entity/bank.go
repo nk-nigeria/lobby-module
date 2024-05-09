@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -116,23 +117,23 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	}
 	senderWallet := wallets[0]
 
-	if senderWallet.Chips < bank.GetChips() {
+	if senderWallet.ChipsInBank < bank.GetChips() {
 		logger.Error("Sender %s amout chip smaller than amout chip request send gift, chips in wallet: %d, request send gift: %d",
-			bank.GetSenderId(), senderWallet.Chips, bank.GetChips())
+			bank.GetSenderId(), senderWallet.ChipsInBank, bank.GetChips())
 		err = errors.New("Sender amout chip smaller than amout chip request send gift")
 		return nil, err
 	}
 
-	senderNewWallet := Wallet{}
-	senderNewWallet.Chips = -bank.Chips - AbsInt64(bank.AmountFee)
+	senderNewWallet := lib.Wallet{}
+	senderNewWallet.ChipsInBank = -bank.Chips - AbsInt64(bank.AmountFee)
 	newSenderBank := pb.Bank{
 		SenderId:     bank.SenderId,
 		SenderSid:    bank.SenderSid,
 		RecipientId:  bank.RecipientId,
 		RecipientSid: bank.RecipientSid,
-		Chips:        senderNewWallet.Chips,
-		ChipsInBank:  0,
-		Action:       pb.Bank_ACTION_SEND_GIFT,
+		// Chips:        senderNewWallet.Chips,
+		ChipsInBank: senderNewWallet.ChipsInBank,
+		Action:      pb.Bank_ACTION_SEND_GIFT,
 	}
 	err = updateBank(ctx, nk, logger, &newSenderBank)
 	if err != nil {
@@ -140,8 +141,8 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 		logger.Error("Update wallet sender %s error: %s, data %s", bank.GetSenderId(), err.Error(), string(data))
 		return nil, err
 	}
-
-	newSenderBank.Chips += senderNewWallet.Chips
+	newSenderBank.Chips = senderNewWallet.Chips
+	newSenderBank.Chips += senderNewWallet.ChipsInBank
 	return &newSenderBank, nil
 }
 
@@ -155,7 +156,7 @@ func updateBank(ctx context.Context, nk runtime.NakamaModule, logger runtime.Log
 	metadata["recv"] = strconv.FormatInt(bank.GetRecipientSid(), 10)
 	metadata["action"] = WalletActionBankTopup
 
-	wallet := Wallet{
+	wallet := lib.Wallet{
 		Chips:       bank.GetChips(),
 		ChipsInBank: bank.GetChipsInBank(),
 	}

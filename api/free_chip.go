@@ -147,7 +147,7 @@ func RpcClaimFreeChip(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			logger.WithField("user id", userID).WithField("freechip id", freeChip.Id).WithField("err", err).Error("claim free chip failed")
 			return "", err
 		}
-		wallet := entity.Wallet{
+		wallet := lib.Wallet{
 			Chips:  freeChip.Chips,
 			UserId: userID,
 		}
