@@ -168,21 +168,21 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			report.ReportEvent(ctx, "send-chip", userID, string(payload))
 		}
 		// todo send noti
-		// noti := pb.Notification{
-		// 	RecipientId: bank.RecipientId,
-		// 	Type:        pb.TypeNotification_GIFT,
-		// 	Title:       "Gift",
-		// 	Content:     freeChip.GetContent(),
-		// 	SenderId:    "",
-		// 	Read:        false,
-		// }
 		noti := pb.Notification{
 			RecipientId: bank.RecipientId,
 			Type:        pb.TypeNotification_GIFT,
-			Title:       "Freechip",
-			Content:     "Freechip",
+			Title:       "Gift",
+			Content:     freeChip.GetContent(),
 			SenderId:    "",
 			Read:        false,
+		}
+		// noti := pb.Notification{
+		// 	RecipientId: bank.RecipientId,
+		// 	Type:        pb.TypeNotification_GIFT,
+		// 	Title:       "Freechip",
+		// 	Content:     "Freechip",
+		// 	SenderId:    "",
+		// 	Read:        false,
 		}
 		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
 		if err != nil {
