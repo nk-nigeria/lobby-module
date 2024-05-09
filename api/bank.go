@@ -183,7 +183,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		// 	Content:     "Freechip",
 		// 	SenderId:    "",
 		// 	Read:        false,
-		}
+		// }
 		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
 		if err != nil {
 			logger.Warn("Add freechip noti err %s, body %s",
