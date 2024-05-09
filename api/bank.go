@@ -139,11 +139,12 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		bank.AmountFee = bank.Chips * 3 / 100 //fee 3%
 		_, err = entity.BankSendGift(ctx, logger, nk, bank)
 		if err != nil {
+			logger.WithField("err", err).Error("BankSendGift err")
 			return "", err
 		}
 		freeChip := &pb.FreeChip{
-			SenderId:    bank.SenderId,
-			RecipientId: bank.RecipientId,
+			SenderId:    strconv.FormatInt(bank.GetSenderSid(), 10),
+			RecipientId: strconv.FormatInt(bank.GetRecipientSid(), 10),
 			Title:       "User send gift",
 			Content:     "User send gift",
 			Chips:       bank.Chips,
@@ -151,6 +152,7 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		err = cgbdb.AddClaimableFreeChip(ctx, logger, db, freeChip)
 		if err != nil {
+			logger.WithField("err", err).Error("AddClaimableFreeChip err")
 			return "", err
 		}
 		// emit event doris
@@ -166,19 +168,29 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			report.ReportEvent(ctx, "send-chip", userID, string(payload))
 		}
 		// todo send noti
+		// noti := pb.Notification{
+		// 	RecipientId: bank.RecipientId,
+		// 	Type:        pb.TypeNotification_GIFT,
+		// 	Title:       "Gift",
+		// 	Content:     freeChip.GetContent(),
+		// 	SenderId:    "",
+		// 	Read:        false,
+		// }
 		noti := pb.Notification{
-			RecipientId: freeChip.RecipientId,
+			RecipientId: bank.RecipientId,
 			Type:        pb.TypeNotification_GIFT,
-			Title:       "Gift",
-			Content:     freeChip.GetContent(),
-			SenderId:    bank.GetSenderId(),
+			Title:       "Freechip",
+			Content:     "Freechip",
+			SenderId:    "",
 			Read:        false,
 		}
 		err = cgbdb.AddNotification(ctx, logger, db, nk, &noti)
 		if err != nil {
 			logger.Warn("Add freechip noti err %s, body %s",
 				err.Error(), freeChip.String())
+			return "", err
 		}
+		// logger.WithField("user_id", noti.RecipientId).Info("Add freechip noti")
 		jsonStr, _ := marshaler.Marshal(freeChip)
 		return string(jsonStr), nil
 	}

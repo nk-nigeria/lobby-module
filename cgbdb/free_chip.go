@@ -48,9 +48,14 @@ func AddClaimableFreeChip(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	freeChip.Id = conf.SnowlakeNode.Generate().Int64()
 	claimable := 0
+	statusAction := int(pb.FreeChip_CLAIM_STATUS_WAIT_ADMIN_ACCEPT)
+	if freeChip.Action == entity.WalletActionUserGift.String() {
+		statusAction = int(pb.FreeChip_CLAIM_STATUS_WAIT_USER_CLAIM)
+		claimable = 1
+	}
 	query := "INSERT INTO " + FreeChipTableName + " (id, sender_id, recipient_id, title, content, chips, claimable, action, create_time, update_time, claim_time, claim_status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now(), $9,$10)"
 	result, err := db.ExecContext(ctx, query, freeChip.Id, freeChip.SenderId, freeChip.RecipientId, freeChip.Title, freeChip.Content,
-		freeChip.Chips, claimable, freeChip.GetAction(), nil, pb.FreeChip_CLAIM_STATUS_WAIT_ADMIN_ACCEPT.Number())
+		freeChip.Chips, claimable, freeChip.GetAction(), nil, statusAction)
 	if err != nil {
 		logger.Error("Add new claimable, sender: %s, recv: %s, chips: %d, error %s",
 			freeChip.SenderId, freeChip.RecipientId, freeChip.Chips, err.Error())

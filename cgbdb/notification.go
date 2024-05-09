@@ -62,7 +62,7 @@ func AddNotification(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		logger.Error("Send notification type: %s, title: %s, content: %s, error %s",
 			notification.Type, notification.Title, notification.Content, err.Error())
 	}
-	return nil
+	return err
 }
 
 func GetNotificationById(ctx context.Context, logger runtime.Logger, db *sql.DB, id int64, user_id string) (*pb.Notification, error) {
