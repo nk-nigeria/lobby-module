@@ -83,8 +83,14 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			bet.CountPlaying = trackGame.TotalPlayer(bet.MarkUnit)
 			msg.Bets = append(msg.Bets, bet.ToPb())
 		}
-		if len(bets) > 1 {
-			msg.BestChoice = bets[(len(bets)-1)/2].ToPb()
+		// best choice = first max bet enable
+		for i := len(bets) - 1; i >= 0; i-- {
+			bet := bets[i]
+			if !bet.Enable {
+				continue
+			}
+			msg.BestChoice = bet.ToPb()
+			break
 		}
 		betsJson, _ := marshaler.Marshal(msg)
 		// logger.Info("bets results %s", betsJson)
