@@ -73,15 +73,17 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 		userChip := account.AccountChip
 		msg := &pb.Bets{}
 		trackGame := trackUserInGame[request.Code]
-		for _, bet := range bets {
-			bet.Enable = true
-			if userChip < int64(bet.AGJoin) {
-				bet.Enable = false
-			} else {
-				bet.Enable = true
+		for idx, bet := range bets {
+			if bet.Enable {
+				if userChip < int64(bet.AGJoin) {
+					bet.Enable = false
+				} else {
+					bet.Enable = true
+				}
 			}
 			bet.CountPlaying = trackGame.TotalPlayer(bet.MarkUnit)
 			msg.Bets = append(msg.Bets, bet.ToPb())
+			bets[idx] = bet
 		}
 		// best choice = first max bet enable
 		for i := len(bets) - 1; i >= 0; i-- {
