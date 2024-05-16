@@ -19,6 +19,16 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// 1. bank (ẩn vip 0 1) > vip 0 1 vẫn hiện bank nhưng khi bấm vào có
+//   thông báo vip 2 trở lên ms đc dùng hoặc có 1 nhãn vip 2 và k click vào đc
+// 2. vip 0 vào được sảnh chọn mcb (hiện đầy đủ), chỉ chọn đc mcb thấp nhất, những mcb khác tối màu (k ẩn)
+// 3.vip 0,1 k tạo được bàn > thêm 1 thông báo khi click vào: vip 2 trở lên ms tạo đc bàn
+// 4.các mcb trong tab chọn mcb và tab chọn bàn hiển thị đầy đủ vs các user
+//    + user k đủ tiền bấm vào sẽ hiện thông báo k đủ tiền và có 1 btn trỏ tới shop
+//    + user vip 0 1 > vẫn hiển thị mcb cao nhất > click vào hiện thông báo dành cho vip 2 trở lên
+//    + user vip 2 trở lên > vẫn hiện mcb thấp nhất > click vào hiện thông báo dành cho user vip 0 1
+// 5.vip farm: hiện cho all vip> có dán nhãn vip 2 hoặc click vào có thông báo trên vip 2 ms đc dùng
+
 const (
 	kBetsCollection  = "bets"
 	kChinesePokerKey = "chinese-poker"
@@ -37,7 +47,7 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			return "", presenter.ErrUnmarshal
 		}
 		quickJoin := false
-		msg, err := loadBetsForUser(ctx, logger, db, nk, userID, quickJoin, request.Code)
+		msg, err := loadBetsForUser(ctx, logger, db, nk, request.Code, quickJoin, userID)
 		if err != nil {
 			return "", err
 		}
@@ -185,24 +195,32 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	query += "game_id=?"
 
 	args = append(args, game.LobbyId)
-	ml, _, err := cgbdb.QueryBet(ctx, db, 1000, 0, query, args...)
+	bets, _, err := cgbdb.QueryBet(ctx, db, 1000, 0, query, args...)
 	if err != nil {
 		logger.Error("Error when unmarshal list bets, error %s", err.Error())
 		return nil, presenter.ErrInternalError
 	}
-	bets := make([]entity.Bet, 0)
-	for _, v := range ml {
-		x := v
-		x.Enable = true
-		x.MaxVip = 100
-		bets = append(bets, x)
-	}
+	// bets := make([]entity.Bet, 0)
 	// sort asc by mark unit
 	sort.Slice(bets, func(i, j int) bool {
 		x := bets[i]
 		y := bets[j]
 		return x.MarkUnit < y.MarkUnit
 	})
+	for idx, v := range bets {
+		x := v
+		x.Enable = true
+		x.MaxVip = 100
+		if idx == 0 {
+			x.MaxVip = 1
+		} else {
+			x.MinVip = 1
+		}
+		if idx == len(bets)-1 {
+			x.MinVip = 2
+		}
+		bets[idx] = x
+	}
 	mapBetsByGameCode.Store(game.LobbyId, bets)
 	response := make([]entity.Bet, len(bets))
 	copy(response, bets)
@@ -255,27 +273,15 @@ func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		logger.Error("Error when read user account error %s", err.Error())
 		return nil, err
 	}
-
-	if len(bets) > 0 {
-		vipLv := account.VipLevel
-		if vipLv < 2 {
-			// user vip 0 1 > vẫn hiển thị mcb cao nhất > click vào hiện thông báo dành cho vip 2 trở lên
-			if len(bets) > 0 {
-				bet := bets[len(bets)-1]
-				bet.MinVip = 2
-				bet.Enable = false
-				bets[len(bets)-1] = bet
-			}
-		} else {
-			//  user vip 2 trở lên > vẫn hiện mcb thấp nhất > click vào hiện thông báo dành cho user vip 0 1
-			if len(bets) > 0 {
-				bet := bets[0]
-				bet.MinVip = 0
-				bet.MaxVip = 1
-				bet.Enable = false
-				bets[0] = bet
-			}
+	vipLv := int(account.VipLevel)
+	for idx, bet := range bets {
+		if vipLv > bet.MaxVip {
+			bet.Enable = false
 		}
+		if vipLv < bet.MinVip {
+			bet.Enable = false
+		}
+		bets[idx] = bet
 	}
 	userChip := account.AccountChip
 	msg := &pb.Bets{}

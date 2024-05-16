@@ -185,7 +185,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(marshaler, unmarshaler)); err != nil {
+	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(conf.MarshalerDefault, unmarshaler)); err != nil {
 		return err
 	}
 	if err := initializer.RegisterRpc(rpcAdminAddBetAddNew, api.RpcAdminAddBet(marshaler, unmarshaler)); err != nil {
