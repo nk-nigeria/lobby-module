@@ -140,7 +140,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			resMatches.Matches = append(resMatches.Matches, matchInfo)
 		}
 		if len(resMatches.Matches) <= 0 && request.Create {
-			resMatches.Matches, err = createMatch(ctx, logger, db, nk, &pb.RpcCreateMatchRequest{
+			resMatches.Matches, err = createMatch(ctx, logger, db, nk, false, &pb.RpcCreateMatchRequest{
 				GameCode: request.GameCode,
 				MarkUnit: request.MarkUnit,
 				// MaxSize:  int64(maxSize),
@@ -227,7 +227,7 @@ func RpcQuickMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk ru
 	}
 
 	if len(matches) == 0 {
-		resMatches.Matches, err = createMatch(ctx, logger, db, nk, request)
+		resMatches.Matches, err = createMatch(ctx, logger, db, nk, true, request)
 	}
 	// There are one or more ongoing matches the user could join.
 	for _, match := range matches {
@@ -270,7 +270,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			logger.Error("unmarshal create match error %v", err)
 			return "", presenter.ErrUnmarshal
 		}
-		matchs, err := createMatch(ctx, logger, db, nk, request)
+		matchs, err := createMatch(ctx, logger, db, nk, false, request)
 		if err != nil {
 			logger.WithField("err", err).Error("error creating match")
 			return "", err
@@ -337,7 +337,7 @@ func RpcInfoMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 	}
 }
 
-func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, request *pb.RpcCreateMatchRequest) ([]*pb.Match, error) {
+func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, quickJoin bool, request *pb.RpcCreateMatchRequest) ([]*pb.Match, error) {
 	defer Recovery(logger)
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
@@ -378,66 +378,73 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if matchInfo.NumBot <= 0 {
 		matchInfo.NumBot = 1
 	}
-	bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
-	if err != nil {
-		logger.WithField("err", err).Error("load bets failed")
-		return nil, presenter.ErrInternalError
-	}
-	// if len(bets) > 0 {
-	// 	sort.Slice(bets, func(i, j int) bool {
-	// 		return bets[i].MarkUnit < bets[j].MarkUnit
-	// 	})
-	// 	if err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(bets[0].MarkUnit), true); err != nil {
-	// 		logger.WithField("user", userID).WithField("min chip", request.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	// bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
+	// if err != nil {
+	// 	logger.WithField("err", err).Error("load bets failed")
+	// 	return nil, presenter.ErrInternalError
+	// }
+
+	// if request.MarkUnit <= 0 {
+	// 	bestBet, err := findMaxBetForUser(ctx, logger, db, nk, userID, request.GameCode, true)
+	// 	if err != nil {
+	// 		logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("not enough chip for bet")
 	// 		return nil, err
 	// 	}
-	// } else {
-	// 	game, ok := mapGameByCode.Load(request.GameCode)
-	// 	gameId := game.(entity.Game).ID
-	// 	if !ok {
-	// 		logger.WithField("gamecode", request.GameCode).Error("not found game")
-	// 		return nil, presenter.ErrMatchNotFound
-	// 	}
-	// 	bet := entity.Bet{
-	// 		MarkUnit: int(request.GetMarkUnit()),
-	// 		Enable:   true,
-	// 		Id:       0,
-	// 		GameId:   int(gameId),
-	// 	}
-	// 	bets = append(bets, bet)
+	// 	matchInfo.MarkUnit = int32(bestBet.MarkUnit)
 	// }
-	if request.MarkUnit <= 0 {
-		bestBet, err := findMaxBetForUser(ctx, logger, db, nk, userID, request.GameCode, true)
+	if IsNeedCheckBets(request.GameCode) {
+		bets, err := loadBetsForUser(ctx, logger, db, nk, request.GameCode, quickJoin, userID)
 		if err != nil {
-			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("not enough chip for bet")
+			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("load bets failed")
 			return nil, err
 		}
-		matchInfo.MarkUnit = int32(bestBet.MarkUnit)
+		if bets.BestChoice == nil {
+			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("list bets is empty")
+			return nil, err
+		}
+		if matchInfo.MarkUnit == 0 {
+			matchInfo.MarkUnit = int32(bets.BestChoice.MarkUnit)
+		}
+		// check mark unit allowed
+		allowed := false
+		for _, bet := range bets.Bets {
+			if int32(bet.MarkUnit) == matchInfo.MarkUnit {
+				allowed = bet.Enable
+				matchInfo.Bet = bet
+				break
+			}
+		}
+		if !allowed {
+			return nil, presenter.ErrInvalidInput
+		}
 	}
 	// No available matches found, create a new one.
 	arg := make(map[string]any)
 	matchInfo.TableId = GetTableId()
-	if len(bets) == 0 && matchInfo.MarkUnit <= 0 {
-	} else {
-		// check bet in list config bet
-		if len(bets) > 0 {
-			validMarkUnit := false
-			for _, bet := range bets {
-				if bet.MarkUnit == int(matchInfo.MarkUnit) {
-					validMarkUnit = true
-				}
-			}
-			if !validMarkUnit {
-				return nil, presenter.ErrNoInputAllowed
-			}
-		}
-		bet, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true)
-		if err != nil {
-			logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-			return nil, err
-		}
-		matchInfo.Bet = bet
-	}
+	// if len(bets) == 0 && matchInfo.MarkUnit <= 0 {
+	// } else {
+	// 	// check bet in list config bet
+	// 	if len(bets) > 0 {
+	// 		validMarkUnit := false
+	// 		for _, bet := range bets {
+	// 			if !bet.Enable {
+	// 				continue
+	// 			}
+	// 			if bet.MarkUnit == int(matchInfo.MarkUnit) {
+	// 				validMarkUnit = true
+	// 			}
+	// 		}
+	// 		if !validMarkUnit {
+	// 			return nil, presenter.ErrNoInputAllowed
+	// 		}
+	// 	}
+	// 	bet, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true)
+	// 	if err != nil {
+	// 		logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
+	// 		return nil, err
+	// 	}
+	// 	matchInfo.Bet = bet
+	// }
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
@@ -561,4 +568,11 @@ func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	}
 	req.GameCode = gameCode
 	return RpcQuickMatch(ctx, logger, db, nk, req.String())
+}
+
+func IsNeedCheckBets(gameCode string) bool {
+	if define.IsSlotGame(define.GameName(gameCode)) {
+		return false
+	}
+	return true
 }
