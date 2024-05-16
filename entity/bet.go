@@ -19,6 +19,8 @@ type Bet struct {
 	AGFee        int     `gorm:"-" json:"agFee,omitempty"`                    // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: chip)
 	NewFee       float32 `gorm:"column:new_fee" json:"newFee,omitempty"`      // mức tiền hồ áp dụng khi số chip mang vào =< Xfee hoặc AGFee
 	CountPlaying int     `gorm:"-" json:"count_playing,omitempty"`
+	MinVip       int     `json:"min_vip,omitempty"`
+	MaxVip       int     `json:"max_vip,omitempty"`
 }
 
 func (b Bet) ToPb() *pb.Bet {
@@ -37,10 +39,15 @@ func (b Bet) ToPb() *pb.Bet {
 		AgFee:        int64(b.AGFee),
 		NewFee:       b.NewFee,
 		CountPlaying: int64(b.CountPlaying),
+		MinVip:       int64(b.MinVip),
+		MaxVip:       int64(b.MaxVip),
 	}
 }
 
 func PbBetToBet(pb *pb.Bet) *Bet {
+	if pb == nil {
+		return &Bet{}
+	}
 	return &Bet{
 		Id:        pb.Id,
 		Enable:    pb.GetEnable(),
@@ -55,6 +62,8 @@ func PbBetToBet(pb *pb.Bet) *Bet {
 		Xfee:      (pb.XFee),
 		AGFee:     int(pb.AgFee),
 		NewFee:    pb.NewFee,
+		MinVip:    int(pb.MinVip),
+		MaxVip:    int(pb.MaxVip),
 	}
 }
 

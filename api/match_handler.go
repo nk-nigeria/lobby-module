@@ -273,7 +273,7 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 		matchs, err := createMatch(ctx, logger, db, nk, request)
 		if err != nil {
 			logger.WithField("err", err).Error("error creating match")
-			return "", presenter.ErrInternalError
+			return "", err
 		}
 		response, err := conf.MarshalerDefault.Marshal(&pb.RpcCreateMatchResponse{MatchId: matchs[0].MatchId})
 		if err != nil {
@@ -500,51 +500,47 @@ func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.D
 }
 
 func findMaxBetForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, quickJoin bool) (entity.Bet, error) {
-	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	// bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	// if err != nil {
+	// 	return entity.Bet{}, presenter.ErrInternalError
+	// }
+	// if len(bets) == 0 {
+	// 	return entity.Bet{}, nil
+	// }
+
+	// // sort desc by mark unit
+	// sort.Slice(bets, func(i, j int) bool {
+	// 	return bets[i].MarkUnit > bets[j].MarkUnit
+	// })
+	// wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
+	// if err != nil {
+	// 	logger.Error("read wallet user %s error %s",
+	// 		userID, err.Error())
+	// 	return entity.Bet{}, presenter.ErrInternalError
+	// }
+	// if wallet.Chips <= 0 {
+	// 	return entity.Bet{}, presenter.ErrNotEnoughChip
+	// }
+	// for _, bet := range bets {
+	// 	minChipRequire := bet.AGJoin
+	// 	if quickJoin {
+	// 		minChipRequire = bet.AGPlaynow
+	// 	}
+	// 	if wallet.Chips < int64(minChipRequire) {
+	// 		continue
+	// 	}
+	// 	return bet, nil
+	// }
+	// return entity.Bet{}, presenter.ErrNotEnoughChip
+	// quickJoin := true
+	bets, err := loadBetsForUser(ctx, logger, db, nk, gameCode, quickJoin, userID)
 	if err != nil {
-		return entity.Bet{}, presenter.ErrInternalError
+		return entity.Bet{}, err
 	}
-	if len(bets) == 0 {
+	if bets == nil || bets.BestChoice == nil {
 		return entity.Bet{}, nil
 	}
-	// var bet entity.Bet
-	// for _, v := range bets {
-	// 	if betWantCheck == 0 {
-	// 		bet = v
-	// 		break
-	// 	}
-	// 	if v.MarkUnit == int(betWantCheck) {
-	// 		bet = v
-	// 		break
-	// 	}
-	// }
-	// if bet.MarkUnit <= 0 {
-	// 	return presenter.ErrBetNotFound
-	// }
-	// sort desc by mark unit
-	sort.Slice(bets, func(i, j int) bool {
-		return bets[i].MarkUnit > bets[j].MarkUnit
-	})
-	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
-	if err != nil {
-		logger.Error("read wallet user %s error %s",
-			userID, err.Error())
-		return entity.Bet{}, presenter.ErrInternalError
-	}
-	if wallet.Chips <= 0 {
-		return entity.Bet{}, presenter.ErrNotEnoughChip
-	}
-	for _, bet := range bets {
-		minChipRequire := bet.AGJoin
-		if quickJoin {
-			minChipRequire = bet.AGPlaynow
-		}
-		if wallet.Chips < int64(minChipRequire) {
-			continue
-		}
-		return bet, nil
-	}
-	return entity.Bet{}, presenter.ErrNotEnoughChip
+	return *entity.PbBetToBet(bets.BestChoice), nil
 }
 func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *pb.RpcCreateMatchRequest) (string, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)

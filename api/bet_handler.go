@@ -26,76 +26,22 @@ const (
 
 func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
-		request := &pb.BetListRequest{}
-		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
-			logger.Error("RpcBetList Unmarshal payload error: %s", err.Error())
-			return "", presenter.ErrUnmarshal
-		}
-		if define.IsSlotGame(define.GameName(request.Code)) {
-			return slotsGameBetConfig(ctx, logger, db, nk, payload)
-		}
-
-		bets, err := LoadBets(ctx, logger, db, nk, request.Code)
-		if err != nil {
-			logger.WithField("err", err).Error("load bets failed")
-			return "", err
-		}
-		if len(bets) == 0 {
-			return "", nil
-		}
-
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
 			logger.Error("context did not contain user ID.")
 			return "", presenter.ErrInternalError
 		}
-
-		account, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+		request := &pb.BetListRequest{}
+		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
+			logger.Error("RpcBetList Unmarshal payload error: %s", err.Error())
+			return "", presenter.ErrUnmarshal
+		}
+		quickJoin := false
+		msg, err := loadBetsForUser(ctx, logger, db, nk, userID, quickJoin, request.Code)
 		if err != nil {
-			logger.Error("Error when read user account error %s", err.Error())
 			return "", err
 		}
-		// Vip >= 2 bỏ mức cược thấp nhất,
-		// Vip 0,1  bỏ mức cược cao nhất
-		if len(bets) > 1 {
-			vipLv := account.VipLevel
-			if vipLv < 2 {
-				v := bets[len(bets)-1]
-				v.Enable = false
-				bets[len(bets)-1] = v
-			}
-			if vipLv >= 2 {
-				v := bets[0]
-				v.Enable = false
-				bets[0] = v
-			}
-		}
-		userChip := account.AccountChip
-		msg := &pb.Bets{}
-		trackGame := trackUserInGame[request.Code]
-		for idx, bet := range bets {
-			if bet.Enable {
-				if userChip < int64(bet.AGJoin) {
-					bet.Enable = false
-				} else {
-					bet.Enable = true
-				}
-			}
-			bet.CountPlaying = trackGame.TotalPlayer(bet.MarkUnit)
-			msg.Bets = append(msg.Bets, bet.ToPb())
-			bets[idx] = bet
-		}
-		// best choice = first max bet enable
-		for i := len(bets) - 1; i >= 0; i-- {
-			bet := bets[i]
-			if !bet.Enable {
-				continue
-			}
-			msg.BestChoice = bet.ToPb()
-			break
-		}
 		betsJson, _ := marshaler.Marshal(msg)
-		// logger.Info("bets results %s", betsJson)
 		return string(betsJson), nil
 	}
 }
@@ -229,7 +175,10 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	values, exist := mapBetsByGameCode.Load(game.LobbyId)
 	if exist {
 		// return nil, fmt.Errorf("not found game id from game code %s", gameCode)
-		return values.([]entity.Bet), nil
+		ml := values.([]entity.Bet)
+		response := make([]entity.Bet, len(ml))
+		copy(response, ml)
+		return response, nil
 	}
 	query := ""
 	args := make([]interface{}, 0)
@@ -243,8 +192,10 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 	}
 	bets := make([]entity.Bet, 0)
 	for _, v := range ml {
-		v.Enable = true
-		bets = append(bets, v)
+		x := v
+		x.Enable = true
+		x.MaxVip = 100
+		bets = append(bets, x)
 	}
 	// sort asc by mark unit
 	sort.Slice(bets, func(i, j int) bool {
@@ -253,10 +204,12 @@ func LoadBets(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime
 		return x.MarkUnit < y.MarkUnit
 	})
 	mapBetsByGameCode.Store(game.LobbyId, bets)
-	return bets, nil
+	response := make([]entity.Bet, len(bets))
+	copy(response, bets)
+	return response, nil
 }
 
-func slotsGameBetConfig(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+func slotsGameBetConfig(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) (*pb.Bets, error) {
 	betsValue := []int{100, 200, 500, 1000}
 	bets := make([]*pb.Bet, 0)
 	for _, val := range betsValue {
@@ -269,7 +222,7 @@ func slotsGameBetConfig(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	wallet, err := entity.ReadWalletUser(ctx, nk, logger, userID)
 	if err != nil {
 		logger.WithField("user", userID).WithField("err", err).Error("read wallet failed")
-		return "", err
+		return nil, err
 	}
 	msg := &pb.Bets{
 		Bets: bets,
@@ -282,6 +235,75 @@ func slotsGameBetConfig(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 			}
 		}
 	}
-	betsJson, _ := conf.MarshalerDefault.Marshal(msg)
-	return string(betsJson), nil
+	return msg, nil
+}
+
+func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, gameCode string, quickJoin bool, userID string) (*pb.Bets, error) {
+	if define.IsSlotGame(define.GameName(gameCode)) {
+		return slotsGameBetConfig(ctx, logger, db, nk)
+	}
+	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	if err != nil {
+		logger.WithField("err", err).Error("load bets failed")
+		return nil, err
+	}
+	if len(bets) == 0 {
+		return &pb.Bets{Bets: []*pb.Bet{}}, nil
+	}
+	account, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
+	if err != nil {
+		logger.Error("Error when read user account error %s", err.Error())
+		return nil, err
+	}
+
+	if len(bets) > 0 {
+		vipLv := account.VipLevel
+		if vipLv < 2 {
+			// user vip 0 1 > vẫn hiển thị mcb cao nhất > click vào hiện thông báo dành cho vip 2 trở lên
+			if len(bets) > 0 {
+				bet := bets[len(bets)-1]
+				bet.MinVip = 2
+				bet.Enable = false
+				bets[len(bets)-1] = bet
+			}
+		} else {
+			//  user vip 2 trở lên > vẫn hiện mcb thấp nhất > click vào hiện thông báo dành cho user vip 0 1
+			if len(bets) > 0 {
+				bet := bets[0]
+				bet.MinVip = 0
+				bet.MaxVip = 1
+				bet.Enable = false
+				bets[0] = bet
+			}
+		}
+	}
+	userChip := account.AccountChip
+	msg := &pb.Bets{}
+	trackGame := trackUserInGame[gameCode]
+	for idx, bet := range bets {
+		if bet.Enable {
+			chipRequire := bet.AGJoin
+			if quickJoin {
+				chipRequire = bet.AGPlaynow
+			}
+			if userChip < int64(chipRequire) {
+				bet.Enable = false
+			} else {
+				bet.Enable = true
+			}
+		}
+		bet.CountPlaying = trackGame.TotalPlayer(bet.MarkUnit)
+		msg.Bets = append(msg.Bets, bet.ToPb())
+		bets[idx] = bet
+	}
+	// best choice = first max bet enable
+	for i := len(bets) - 1; i >= 0; i-- {
+		bet := bets[i]
+		if !bet.Enable {
+			continue
+		}
+		msg.BestChoice = bet.ToPb()
+		break
+	}
+	return msg, nil
 }

@@ -105,13 +105,16 @@ func RpcBankSendGift(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 		}
 		// check sender
 		{
-			account, err := cgbdb.GetAccount(ctx, db, userID, 0)
+			profile, _, err := cgbdb.GetProfileUser(ctx, db, userID, nil)
 			if err != nil {
 				logger.WithField("sender", userID).Error("user not found")
 				return "", presenter.ErrUserNotFound
 			}
+			if profile.VipLevel < constant.MinLvAllowUseBank {
+				return "", presenter.ErrFuncDisableByVipLv
+			}
 			bank.SenderId = userID
-			bank.SenderSid = account.Sid
+			bank.SenderSid = profile.UserSid
 		}
 		// check recv
 		{
