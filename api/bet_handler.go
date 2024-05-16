@@ -311,5 +311,8 @@ func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		msg.BestChoice = bet.ToPb()
 		break
 	}
+	if msg.BestChoice == nil {
+		msg.BestChoice = bets[len(bets)-1].ToPb()
+	}
 	return msg, nil
 }

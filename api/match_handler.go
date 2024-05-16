@@ -398,7 +398,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("load bets failed")
 			return nil, err
 		}
-		if bets.BestChoice == nil {
+		if bets.BestChoice == nil || !bets.BestChoice.Enable {
 			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("list bets is empty")
 			return nil, err
 		}
@@ -544,7 +544,7 @@ func findMaxBetForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	if err != nil {
 		return entity.Bet{}, err
 	}
-	if bets == nil || bets.BestChoice == nil {
+	if bets == nil || bets.BestChoice == nil || !bets.BestChoice.Enable {
 		return entity.Bet{}, nil
 	}
 	return *entity.PbBetToBet(bets.BestChoice), nil
@@ -559,13 +559,34 @@ func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 		logger.WithField("user id", userID).WithField("err", err).Error("get profile failed")
 		return "", err
 	}
+	markUnitSuggest := int64(0)
+	req.MarkUnit = 0
 	if len(profile.PlayingMatch.Code) != 0 {
 		gameCode = profile.PlayingMatch.Code
-		req.MarkUnit = int32(profile.PlayingMatch.Mcb)
+		// req.MarkUnit = int32(profile.PlayingMatch.Mcb)
+		markUnitSuggest = profile.PlayingMatch.Mcb
 		req.LastBet = profile.PlayingMatch.Bet
-	} else {
-		req.MarkUnit = 0
 	}
+	bets, err := loadBetsForUser(ctx, logger, db, nk, gameCode, true, userID)
+	if err != nil {
+		logger.WithField("user id", userID).WithField("err", err).Error("load bets failed")
+		return "", err
+	}
+	if bets != nil {
+		for _, bet := range bets.Bets {
+			if !bet.Enable {
+				continue
+			}
+			if markUnitSuggest == bet.AgPlayNow {
+				req.MarkUnit = int32(markUnitSuggest)
+				break
+			}
+		}
+		if req.MarkUnit == 0 && bets.BestChoice != nil && bets.BestChoice.Enable {
+			req.MarkUnit = int32(bets.BestChoice.MarkUnit)
+		}
+	}
+
 	req.GameCode = gameCode
 	return RpcQuickMatch(ctx, logger, db, nk, req.String())
 }
