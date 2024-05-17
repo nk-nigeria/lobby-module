@@ -450,7 +450,7 @@ CREATE TABLE public.rules_lucky (
 	id bigserial NOT NULL,
 	create_at timestamptz NULL DEFAULT now(),
 	game_code varchar(31) NOT NULL,	
-	emit_event_at_unix int8 DEFAULT 1
+	emit_event_at_unix int8 DEFAULT 1,
 	deleted_at int8 DEFAULT 0,
 	rtp_min int8 NOT NULL DEFAULT 0,
 	rtp_max int8 NOT NULL DEFAULT 0,
@@ -458,9 +458,9 @@ CREATE TABLE public.rules_lucky (
 	mark_max int8 NOT NULL DEFAULT 0,
 	vip_min int4 NOT NULL DEFAULT 0,
 	vip_max int4 NOT NULL DEFAULT 0,
-	mark_win_ratio_min int8 NOT NULL DEFAULT 0,
-	mark_win_ratio_max int8 NOT NULL DEFAULT 0,
-	redeal int8 NOT NULL DEFAULT 0
+	win_mark_ratio_min int8 NOT NULL DEFAULT 0,
+	win_mark_ratio_max int8 NOT NULL DEFAULT 0,
+	re_deal int8 NOT NULL DEFAULT 0
 );
 `)
 

@@ -17,7 +17,7 @@ type rulesLucky struct {
 	RtpMin          int64     `json:"rtp_min,omitempty"`
 	RtpMax          int64     `json:"rtp_max,omitempty"`
 	MarkMin         int64     `json:"mark_min,omitempty"`
-	MarkpMax        int64     `json:"markp_max,omitempty"`
+	MarkMax         int64     `json:"mark_max,omitempty"`
 	VipMin          int64     `json:"vip_min,omitempty"`
 	VipMax          int64     `json:"vip_max,omitempty"`
 	WinMarkRatioMin int64     `json:"win_mark_ratio_min,omitempty"`
@@ -51,7 +51,7 @@ func (r *rulesLucky) Trasnfer(rule *pb.RuleLucky) {
 	rule.EmitEventAtUnix = r.EmitEventAtUnix
 	rule.DeletedAt = r.DeletedAt
 	rule.Rtp = &pb.Range{Min: r.RtpMin, Max: r.RtpMax}
-	rule.Mark = &pb.Range{Min: r.MarkMin, Max: r.MarkpMax}
+	rule.Mark = &pb.Range{Min: r.MarkMin, Max: r.MarkMax}
 	rule.Vip = &pb.Range{Min: r.VipMin, Max: r.VipMax}
 	rule.WinMarkRatio = &pb.Range{Min: r.WinMarkRatioMin, Max: r.WinMarkRatioMax}
 	rule.ReDeal = r.ReDeal
