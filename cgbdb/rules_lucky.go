@@ -12,18 +12,17 @@ type rulesLucky struct {
 	Id              uint      `gorm:"primarykey" json:"id,omitempty"`
 	CreateAt        time.Time `json:"create_at,omitempty"`
 	GameCode        string    `json:"game_code,omitempty"`
-	CoRateMin       float32   `json:"co_rate_min,omitempty"`
-	CoRateMax       float32   `json:"co_rate_max,omitempty"`
-	CiMin           float32   `json:"ci_min,omitempty"`
-	CiMax           float32   `json:"ci_max,omitempty"`
-	CoIndayMin      float32   `json:"co_inday_min,omitempty"`
-	CoIndayMax      float32   `json:"co_inday_max,omitempty"`
-	Base_1          int       `json:"base_1,omitempty"`
-	Base_2          int       `json:"base_2,omitempty"`
-	Base_3          int       `json:"base_3,omitempty"`
-	Base_4          int       `json:"base_4,omitempty"`
 	EmitEventAtUnix int64     `json:"emit_event_at_unix,omitempty"`
 	DeletedAt       int64     `json:"deleted_at,omitempty"`
+	RtpMin          int64     `json:"rtp_min,omitempty"`
+	RtpMax          int64     `json:"rtp_max,omitempty"`
+	MarkMin         int64     `json:"mark_min,omitempty"`
+	MarkMax         int64     `json:"mark_max,omitempty"`
+	VipMin          int64     `json:"vip_min,omitempty"`
+	VipMax          int64     `json:"vip_max,omitempty"`
+	WinMarkRatioMin int64     `json:"win_mark_ratio_min,omitempty"`
+	WinMarkRatioMax int64     `json:"win_mark_ratio_max,omitempty"`
+	ReDeal          int64     `json:"re_deal,omitempty"`
 }
 
 func (*rulesLucky) TableName() string {
@@ -33,37 +32,30 @@ func (*rulesLucky) TableName() string {
 func (r *rulesLucky) Copy(rule *pb.RuleLucky) {
 	r.Id = uint(rule.Id)
 	r.GameCode = rule.GameCode
-	r.CoRateMin = rule.CoRateMin
-	r.CoRateMax = rule.CoRateMax
-	r.CiMin = rule.CiMin
-	r.CiMax = rule.CiMax
-	r.CoIndayMin = rule.CoIndayMin
-	r.CoIndayMax = rule.CoIndayMax
-	r.Base_1 = int(rule.Base_1)
-	r.Base_2 = int(rule.Base_2)
-	r.Base_3 = int(rule.Base_3)
-	r.Base_4 = int(rule.Base_4)
 	r.EmitEventAtUnix = rule.EmitEventAtUnix
 	r.DeletedAt = rule.DeletedAt
+	r.RtpMax = rule.Rtp.Max
+	r.RtpMin = rule.Rtp.Min
+	r.MarkMin = rule.Mark.Min
+	r.RtpMax = rule.Mark.Max
+	r.VipMin = rule.Vip.Min
+	r.VipMax = rule.Vip.Max
+	r.WinMarkRatioMin = rule.WinMarkRatio.Min
+	r.WinMarkRatioMax = rule.WinMarkRatio.Max
+	r.ReDeal = rule.ReDeal
 }
 
 func (r *rulesLucky) Trasnfer(rule *pb.RuleLucky) {
 	rule.Id = int64(r.Id)
 	rule.GameCode = r.GameCode
-	rule.CoRateMin = r.CoRateMin
-	rule.CoRateMax = r.CoRateMax
-	rule.CiMin = r.CiMin
-	rule.CiMax = r.CiMax
-	rule.CoIndayMin = r.CoIndayMin
-	rule.CoIndayMax = r.CoIndayMax
-	rule.Base_1 = int64(r.Base_1)
-	rule.Base_2 = int64(r.Base_2)
-	rule.Base_3 = int64(r.Base_3)
-	rule.Base_4 = int64(r.Base_4)
 	rule.EmitEventAtUnix = r.EmitEventAtUnix
 	rule.DeletedAt = r.DeletedAt
+	rule.Rtp = &pb.Range{Min: r.RtpMin, Max: r.RtpMax}
+	rule.Mark = &pb.Range{Min: r.MarkMin, Max: r.MarkMax}
+	rule.Vip = &pb.Range{Min: r.VipMin, Max: r.VipMax}
+	rule.WinMarkRatio = &pb.Range{Min: r.WinMarkRatioMin, Max: r.WinMarkRatioMax}
+	rule.ReDeal = r.ReDeal
 }
-
 func InsertRulesLucky(ctx context.Context, db *sql.DB, rule *pb.RuleLucky) error {
 	r := &rulesLucky{}
 	r.Copy(rule)
@@ -87,16 +79,15 @@ func UpdateRulesLucky(ctx context.Context, db *sql.DB, rule *pb.RuleLucky) (*pb.
 	}
 	tx := gOrm.Model(new(rulesLucky)).Where("id = ? and deleted_at = 0", rule.Id).
 		Updates(map[string]interface{}{
-			"co_rate_min":        rule.CoRateMin,
-			"co_rate_max":        rule.CoRateMax,
-			"ci_min":             rule.CiMin,
-			"ci_max":             rule.CiMax,
-			"co_inday_min":       rule.CoIndayMin,
-			"co_inday_max":       rule.CoIndayMax,
-			"base_1":             rule.Base_1,
-			"base_2":             rule.Base_2,
-			"base_3":             rule.Base_3,
-			"base_4":             rule.Base_4,
+			"rtp_min":            rule.Rtp.Min,
+			"rtp_max":            rule.Rtp.Max,
+			"vip_min":            rule.Vip.Min,
+			"vip_max":            rule.Vip.Max,
+			"mark_min":           rule.Mark.Min,
+			"mark_max":           rule.Mark.Max,
+			"win_mark_ratio_min": rule.WinMarkRatio.Min,
+			"win_mark_ratio_max": rule.WinMarkRatio.Max,
+			"re_deal":            rule.ReDeal,
 			"emit_event_at_unix": 1,
 		})
 	return rule, tx.Error

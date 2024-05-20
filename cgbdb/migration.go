@@ -449,19 +449,18 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 CREATE TABLE public.rules_lucky (
 	id bigserial NOT NULL,
 	create_at timestamptz NULL DEFAULT now(),
-	game_code varchar(31) NOT NULL,
-	co_rate_min real DEFAULT 0,
-	co_rate_max real DEFAULT 0,
-	ci_min real DEFAULT 0,
-	ci_max real DEFAULT 0,
-	co_inday_min real DEFAULT 0,
-	co_inday_max real DEFAULT 0,
-	base_1 int8 DEFAULT 0,
-	base_2 int8 DEFAULT 0,
-	base_3 int8 DEFAULT 0,
-	base_4 int8 DEFAULT 0,
-	emit_event_at_unix int8 DEFAULT 1
+	game_code varchar(31) NOT NULL,	
+	emit_event_at_unix int8 DEFAULT 1,
 	deleted_at int8 DEFAULT 0,
+	rtp_min int8 NOT NULL DEFAULT 0,
+	rtp_max int8 NOT NULL DEFAULT 0,
+	mark_min int8 NOT NULL DEFAULT 0,
+	mark_max int8 NOT NULL DEFAULT 0,
+	vip_min int4 NOT NULL DEFAULT 0,
+	vip_max int4 NOT NULL DEFAULT 0,
+	win_mark_ratio_min int8 NOT NULL DEFAULT 0,
+	win_mark_ratio_max int8 NOT NULL DEFAULT 0,
+	re_deal int8 NOT NULL DEFAULT 0
 );
 `)
 
