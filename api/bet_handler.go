@@ -277,9 +277,11 @@ func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 	for idx, bet := range bets {
 		if vipLv > bet.MaxVip {
 			bet.Enable = false
+			bet.BetDisableType = pb.BetDisableType_BET_DISABLE_TYPE_ABOVE_MAX_VIP
 		}
 		if vipLv < bet.MinVip {
 			bet.Enable = false
+			bet.BetDisableType = pb.BetDisableType_BET_DISABLE_TYPE_BELOW_MIN_VIP
 		}
 		bets[idx] = bet
 	}
@@ -294,6 +296,7 @@ func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 			}
 			if userChip < int64(chipRequire) {
 				bet.Enable = false
+				bet.BetDisableType = pb.BetDisableType_BET_DISABLE_TYPE_NOT_ENOUGH_CHIP
 			} else {
 				bet.Enable = true
 			}

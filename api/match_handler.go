@@ -275,6 +275,10 @@ func RpcCreateMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 			logger.WithField("err", err).Error("error creating match")
 			return "", err
 		}
+		logger.WithField("matchs", matchs).Info("created match")
+		if len(matchs) == 0 {
+			return "", presenter.ErrInternalError
+		}
 		response, err := conf.MarshalerDefault.Marshal(&pb.RpcCreateMatchResponse{MatchId: matchs[0].MatchId})
 		if err != nil {
 			logger.Error("error marshaling response payload: %v", err.Error())
@@ -400,7 +404,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		}
 		if bets.BestChoice == nil || !bets.BestChoice.Enable {
 			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("list bets is empty")
-			return nil, err
+			return nil, presenter.ErrNotEnoughChip
 		}
 		if matchInfo.MarkUnit == 0 {
 			matchInfo.MarkUnit = int32(bets.BestChoice.MarkUnit)
@@ -421,30 +425,6 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	// No available matches found, create a new one.
 	arg := make(map[string]any)
 	matchInfo.TableId = GetTableId()
-	// if len(bets) == 0 && matchInfo.MarkUnit <= 0 {
-	// } else {
-	// 	// check bet in list config bet
-	// 	if len(bets) > 0 {
-	// 		validMarkUnit := false
-	// 		for _, bet := range bets {
-	// 			if !bet.Enable {
-	// 				continue
-	// 			}
-	// 			if bet.MarkUnit == int(matchInfo.MarkUnit) {
-	// 				validMarkUnit = true
-	// 			}
-	// 		}
-	// 		if !validMarkUnit {
-	// 			return nil, presenter.ErrNoInputAllowed
-	// 		}
-	// 	}
-	// 	bet, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(matchInfo.MarkUnit), true)
-	// 	if err != nil {
-	// 		logger.WithField("user", userID).WithField("min chip", matchInfo.MarkUnit).WithField("err", err).Error("not enough chip for bet")
-	// 		return nil, err
-	// 	}
-	// 	matchInfo.Bet = bet
-	// }
 	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
 	arg["data"] = string(data)
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
