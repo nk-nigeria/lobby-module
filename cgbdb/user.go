@@ -471,7 +471,19 @@ func CreateNewUser(ctx context.Context, db *sql.DB, user *api.Account) error {
 		return err
 	}
 	defer stmt.Close()
-
+	var createTime, updateTime, verifyTime, disableTime time.Time
+	if user.User.CreateTime != nil {
+		createTime = user.User.CreateTime.AsTime()
+	}
+	if user.User.UpdateTime != nil {
+		updateTime = user.User.UpdateTime.AsTime()
+	}
+	if user.VerifyTime != nil {
+		verifyTime = user.VerifyTime.AsTime()
+	}
+	if user.DisableTime != nil {
+		disableTime = user.DisableTime.AsTime()
+	}
 	// Execute the SQL statement with appropriate values for the new row
 	_, err = stmt.Exec(
 		user.User.Id,
@@ -484,12 +496,12 @@ func CreateNewUser(ctx context.Context, db *sql.DB, user *api.Account) error {
 		user.User.Metadata, // JSONB metadata
 		"{}",               // JSONB wallet
 		user.Email,
-		uuid.New().String(),  // bytea password
-		0,                    // edge_count
-		user.User.CreateTime, // create_time
-		user.User.CreateTime, // update_time
-		user.VerifyTime,      // verify_time
-		user.DisableTime,     // disable_time
+		uuid.New().String(), // bytea password
+		0,                   // edge_count
+		createTime,          // create_time
+		updateTime,          // update_time
+		verifyTime,          // verify_time
+		disableTime,         // disable_time
 	)
 	if err != nil {
 		return err

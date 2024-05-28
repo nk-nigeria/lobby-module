@@ -9,6 +9,7 @@ require (
 	github.com/ciaolink-game-platform/cgp-common v0.0.0-20240520153524-9fc190a2f5d2
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gofrs/uuid v4.0.0+incompatible
+	github.com/google/uuid v1.3.0
 	github.com/heroiclabs/nakama-common v1.30.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgtype v1.14.0
@@ -29,7 +30,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.12.80 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
