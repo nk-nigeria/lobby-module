@@ -15,6 +15,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	"github.com/google/uuid"
 
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -462,4 +463,36 @@ func GetProfileUsers(ctx context.Context, db *sql.DB, userIDs ...string) (ListPr
 		listProfile = append(listProfile, &profile)
 	}
 	return listProfile, nil
+}
+
+func CreateNewUser(ctx context.Context, db *sql.DB, user *api.Account) error {
+	stmt, err := db.Prepare("INSERT INTO public.users (id, username, display_name, avatar_url, lang_tag, location, timezone, metadata, wallet, email, password, edge_count, create_time, update_time, verify_time, disable_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// Execute the SQL statement with appropriate values for the new row
+	_, err = stmt.Exec(
+		user.User.Id,
+		user.User.Username,
+		user.User.DisplayName,
+		user.User.AvatarUrl,
+		"en",
+		nil,
+		nil,
+		user.User.Metadata, // JSONB metadata
+		"{}",               // JSONB wallet
+		user.Email,
+		uuid.New().String(),  // bytea password
+		0,                    // edge_count
+		user.User.CreateTime, // create_time
+		user.User.CreateTime, // update_time
+		user.VerifyTime,      // verify_time
+		user.DisableTime,     // disable_time
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

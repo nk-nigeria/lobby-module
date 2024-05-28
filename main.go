@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgp-common/define"
 	"github.com/go-co-op/gocron"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -492,6 +497,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// message_queue.GetNatsService().RegisterAllSubject()
 	cgbdb.AutoMigrate(db)
 
+	CreateAccountBot(ctx, db, logger)
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
@@ -509,4 +515,43 @@ func InitObjectStorage(logger runtime.Logger) (objectstorage.ObjStorage, error) 
 		logger.Error("Init Object Storage Engine Minio error: %s", err.Error())
 	}
 	return w, err
+}
+
+func CreateAccountBot(ctx context.Context, db *sql.DB, logger runtime.Logger) {
+	file, err := os.Open("indonesian_names.txt")
+	if err != nil {
+		logger.WithField("err", err).Error("open indonesian_names.txt error")
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	// Read and process each line
+	maxAccountCreated := 100
+	count := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Process the line here, for example, print it
+		fmt.Println(line)
+		user := &nkapi.Account{
+			User: &nkapi.User{
+				Id:          uuid.New().String(),
+				Username:    line,
+				DisplayName: line,
+				Metadata:    "{\"bot\":\"true\"}",
+			},
+			VerifyTime:  &timestamppb.Timestamp{Seconds: time.Now().Unix()},
+			DisableTime: &timestamppb.Timestamp{Seconds: time.Now().Unix()},
+			Email:       strings.ReplaceAll(line, "", "") + "@gmail.com",
+		}
+		err = cgbdb.CreateNewUser(ctx, db, user)
+		if err != nil {
+			logger.WithField("err", err).Error("create new user bot error")
+		}
+		count++
+		if count >= maxAccountCreated {
+			break
+		}
+	}
+
 }
