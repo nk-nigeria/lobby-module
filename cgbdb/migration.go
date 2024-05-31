@@ -463,7 +463,13 @@ CREATE TABLE public.rules_lucky (
 	re_deal int8 NOT NULL DEFAULT 0
 );
 `)
-
+	ddls = append(ddls, `
+CREATE TABLE public.users_bot (
+	id bigserial NOT NULL,
+	user_id varchar(36) NOT NULL,
+	game_code varchar(31) NOT NULL
+);
+`)
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {

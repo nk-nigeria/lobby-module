@@ -527,12 +527,24 @@ func CreateAccountBot(ctx context.Context, db *sql.DB, logger runtime.Logger) {
 
 	scanner := bufio.NewScanner(file)
 	// Read and process each line
-	maxAccountCreated := 100
+	maxAccountCreated := 100000
 	count := 0
+	maxAccoutPerGame := 10000
+	games := []define.GameName{
+		define.GapleDomino,
+		define.ChinesePoker,
+		define.SicboName,
+		define.BaccaratName,
+		define.ColorGameName,
+		define.BlackjackName,
+		define.BandarqqName,
+		define.DragontigerName,
+	}
+	curGameIdx := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Process the line here, for example, print it
-		fmt.Println(line)
+		// fmt.Println(line)
 		user := &nkapi.Account{
 			User: &nkapi.User{
 				Id:          uuid.New().String(),
@@ -550,8 +562,17 @@ func CreateAccountBot(ctx context.Context, db *sql.DB, logger runtime.Logger) {
 		err = cgbdb.CreateNewUser(ctx, db, user)
 		if err != nil {
 			logger.WithField("err", err).Error("create new user bot error")
+		} else {
+			cgbdb.CreateNewUserbot(ctx, db, user.User.Id, string(games[curGameIdx].String()))
 		}
+
 		count++
+		if count%maxAccoutPerGame == 0 {
+			curGameIdx++
+		}
+		if curGameIdx >= len(games) {
+			break
+		}
 		if count >= maxAccountCreated {
 			break
 		}
