@@ -76,7 +76,7 @@ func eventNakamaMatchEnd(ctx context.Context, logger runtime.Logger, db *sql.DB,
 		trackGame[int(mcb)] = playerByMcb
 		trackUserInGame[gameCode] = trackGame
 	}
-	mt.Unlock()
+
 }
 
 func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, evt *nkapi.Event) {
@@ -127,6 +127,7 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
 	mt.Lock()
+	defer mt.Unlock()
 	for _, userId := range strings.Split(userIds, ",") {
 		cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userId, &api.PlayingMatch{
 			Code:      gameCode,
@@ -144,5 +145,5 @@ func eventNakamaMatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 			trackUserInGame[gameCode] = trackGame
 		}
 	}
-	mt.Unlock()
+
 }
