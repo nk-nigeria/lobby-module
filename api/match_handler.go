@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ciaolink-game-platform/cgp-common/define"
+	"github.com/ciaolink-game-platform/cgp-common/lib"
 
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
@@ -36,6 +37,8 @@ import (
 )
 
 const kDefaultMaxSize = 3
+
+var GameStateDurationByGame = make(map[define.GameName]lib.GameStateDuration)
 
 type MatchLabel struct {
 	Open         int32  `json:"open"`
@@ -167,6 +170,7 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 			match.MockCodeCard = 0
 			match.Open = len(match.Password) == 0
 			match.Password = ""
+			match.GameStateDuration = GetGameStateDurationByGameName(define.GameName(match.Name)).ToPb()
 		}
 
 		response, err := marshaler.Marshal(resMatches)
@@ -437,6 +441,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	matchInfo.MockCodeCard = 0
 	matchInfo.Open = len(matchInfo.Password) == 0
 	matchInfo.Password = ""
+	matchInfo.GameStateDuration = GetGameStateDurationByGameName(define.GameName(matchInfo.Name)).ToPb()
 	resMatches := &pb.RpcFindMatchResponse{}
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
@@ -576,4 +581,13 @@ func IsNeedCheckBets(gameCode string) bool {
 		return false
 	}
 	return true
+}
+
+func GetGameStateDurationByGameName(gameName define.GameName) lib.GameStateDuration {
+	v, exist := GameStateDurationByGame[gameName]
+	if !exist {
+		v = lib.GetGameStateDurationByGameCode(gameName)
+		GameStateDurationByGame[gameName] = v
+	}
+	return v
 }
