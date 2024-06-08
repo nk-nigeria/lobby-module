@@ -335,6 +335,7 @@ func RpcInfoMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 				matchInfo.Profiles[idx] = v
 			}
 		}
+		matchInfo.GameStateDuration = GetGameStateDurationByGameName(define.GameName(matchInfo.Name)).ToPb()
 
 		response, err := conf.MarshalerDefault.Marshal(matchInfo)
 		if err != nil {
