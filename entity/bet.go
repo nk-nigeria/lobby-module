@@ -19,8 +19,8 @@ type Bet struct {
 	AGFee          int               `gorm:"-" json:"agFee,omitempty"`                    // mức tài sản tối đa để áp dụng ""New Fee"" (đơn vị: chip)
 	NewFee         float32           `gorm:"column:new_fee" json:"newFee,omitempty"`      // mức tiền hồ áp dụng khi số chip mang vào =< Xfee hoặc AGFee
 	CountPlaying   int               `gorm:"-" json:"count_playing,omitempty"`
-	MinVip         int               `json:"min_vip,omitempty"`
-	MaxVip         int               `json:"max_vip,omitempty"`
+	MinVip         int               `gorm:"-" json:"min_vip,omitempty"`
+	MaxVip         int               `gorm:"-" json:"max_vip,omitempty"`
 	BetDisableType pb.BetDisableType `gorm:"-"`
 }
 
