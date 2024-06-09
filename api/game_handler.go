@@ -107,6 +107,8 @@ func cacheListGame(ctx context.Context, db *sql.DB, logger runtime.Logger) {
 		return
 	}
 	for _, game := range ml {
-		mapGameByCode.Store(game.Code, game)
+		v := game
+		mapGameByCode.Store(game.Code, v)
 	}
+
 }
