@@ -10,6 +10,7 @@ import (
 	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
 	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/ciaolink-game-platform/cgp-common/define"
 	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -82,6 +83,9 @@ func RpcGameList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 			mapJp := make(map[string]*pb.Jackpot)
 			for _, jp := range jackpots {
 				v := jp
+				if v.GameCode == define.ChinesePoker.String() {
+					v.Chips = entity.MaxIn64(define.MinJpTreasure, v.Chips)
+				}
 				mapJp[v.GameCode] = v
 			}
 			for idx, game := range ml {
