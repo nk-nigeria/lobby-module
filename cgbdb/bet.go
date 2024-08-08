@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
 )
 
 func AddBet(ctx context.Context, db *sql.DB, bet *entity.Bet) error {

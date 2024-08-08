@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/api/presenter"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

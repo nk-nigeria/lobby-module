@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
 	"gorm.io/gorm"
 )
 

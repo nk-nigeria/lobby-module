@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgp-common/lib"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/api/presenter"
+	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
+	"github.com/nakamaFramework/cgb-lobby-module/conf"
+	"github.com/nakamaFramework/cgp-common/lib"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 )
 
 func RpcGetAllExchange() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {

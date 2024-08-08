@@ -1,7 +1,7 @@
 package entity
 
 import (
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 )
 
 type Bet struct {

@@ -9,19 +9,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-common/define"
 	"github.com/go-co-op/gocron"
 	"github.com/google/uuid"
+	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
+	"github.com/nakamaFramework/cgp-common/define"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/api"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
+	"github.com/nakamaFramework/cgb-lobby-module/api"
+	"github.com/nakamaFramework/cgb-lobby-module/conf"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	objectstorage "github.com/nakamaFramework/cgb-lobby-module/object-storage"
 )
 
 const (

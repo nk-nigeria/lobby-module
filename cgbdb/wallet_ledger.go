@@ -9,14 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"strings"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
 	"go.uber.org/zap"
 )
 

@@ -1,4 +1,4 @@
-PROJECT_NAME=github.com/ciaolink-game-platform/cgb-lobby-module
+PROJECT_NAME=github.com/nakamaFramework/cgb-lobby-module
 APP_NAME=lobby.so
 APP_PATH=$(PWD)
 NAKAMA_VER=3.19.0
@@ -8,13 +8,13 @@ update-submodule-dev:
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
-	go get github.com/ciaolink-game-platform/cgp-common@develop
+	go get github.com/nakamaFramework/cgp-common@develop
 update-submodule-stg:
 	git checkout staging && git pull
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout staging && git pull && cd ..
-	go get github.com/ciaolink-game-platform/cgp-common@staging
+	go get github.com/nakamaFramework/cgp-common@staging
 
 build:
 	./sync_pkg_3.11.sh
@@ -24,7 +24,7 @@ build:
 
 
 build-cmd:
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/ciaolink-game-platform go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/nakamaFramework go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 
 build-cross:
 	./sync_pkg_3.11.sh
@@ -53,7 +53,7 @@ v3.19.0:
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
-	go get github.com/ciaolink-game-platform/cgp-common@develop
+	go get github.com/nakamaFramework/cgp-common@develop
 	go mod tidy
 	go mod vendor
 	### build for deploy

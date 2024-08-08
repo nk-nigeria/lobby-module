@@ -2,7 +2,7 @@ Ciaolink Lobby Module
 ===
 
 ### Init submodule
-export GOPRIVATE=github.com/ciaolink-game-platform
+export GOPRIVATE=github.com/nakamaFramework
 git submodule update --remote
 go mod tidy
 go mod vendor

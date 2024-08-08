@@ -1,12 +1,11 @@
-module github.com/ciaolink-game-platform/cgb-lobby-module
+module github.com/nakamaFramework/cgb-lobby-module
 
 go 1.21
 
-replace github.com/ciaolink-game-platform/cgp-common => ./cgp-common
+replace github.com/nakamaFramework/cgp-common => ./cgp-common
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/ciaolink-game-platform/cgp-common v0.0.0-20240618155617-3969fde51981
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/google/uuid v1.3.0
@@ -15,6 +14,7 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
+	github.com/nakamaFramework/cgp-common v0.0.0-20240618155617-3969fde51981
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0

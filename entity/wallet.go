@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/ciaolink-game-platform/cgp-common/lib"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgp-common/lib"
 )
 
 type WalletTransaction struct {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgp-common/define"
-	api "github.com/ciaolink-game-platform/cgp-common/proto"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
+	"github.com/nakamaFramework/cgp-common/define"
+	api "github.com/nakamaFramework/cgp-common/proto"
 )
 
 type players map[string]struct{}

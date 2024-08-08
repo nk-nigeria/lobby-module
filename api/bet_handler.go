@@ -9,13 +9,13 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/cgbdb"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	"github.com/ciaolink-game-platform/cgp-common/define"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/api/presenter"
+	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
+	"github.com/nakamaFramework/cgb-lobby-module/conf"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	"github.com/nakamaFramework/cgp-common/define"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

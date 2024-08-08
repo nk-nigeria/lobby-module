@@ -6,8 +6,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"strings"
 
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

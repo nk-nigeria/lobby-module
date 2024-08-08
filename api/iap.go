@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/constant"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	lib "github.com/ciaolink-game-platform/cgp-common/lib"
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/constant"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	lib "github.com/nakamaFramework/cgp-common/lib"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

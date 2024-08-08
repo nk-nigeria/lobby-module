@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strconv"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
 )
 
 func AddGame(ctx context.Context, db *sql.DB, game *entity.Game) error {

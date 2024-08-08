@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/api/presenter"
-	objectstorage "github.com/ciaolink-game-platform/cgb-lobby-module/object-storage"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/api/presenter"
+	objectstorage "github.com/nakamaFramework/cgb-lobby-module/object-storage"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

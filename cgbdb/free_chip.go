@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	"github.com/ciaolink-game-platform/cgb-lobby-module/entity"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakamaFramework/cgb-lobby-module/conf"
+	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/ciaolink-game-platform/cgb-lobby-module/conf"
-	pb "github.com/ciaolink-game-platform/cgp-common/proto"
 	"github.com/jackc/pgtype"
+	"github.com/nakamaFramework/cgb-lobby-module/conf"
+	pb "github.com/nakamaFramework/cgp-common/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
