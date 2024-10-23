@@ -98,22 +98,22 @@ func RpcFindMatch(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Un
 		maxSize := define.GetMaxSizeByGame(define.GameName(request.GameCode))
 
 		queryBuilder := strings.Builder{}
-		queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
-		if request.MarkUnit > 0 {
-			queryBuilder.WriteString(fmt.Sprintf("+label.markUnit:%d", request.MarkUnit))
-		}
-		if len(request.TableId) > 0 {
-			queryBuilder.WriteString(fmt.Sprintf("+label.tableId:%s ", request.TableId))
-		}
-		if request.WithNonOpen {
-			queryBuilder.WriteString(fmt.Sprintf("+label.open:>0"))
-		}
+		// queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
+		// if request.MarkUnit > 0 {
+		// 	queryBuilder.WriteString(fmt.Sprintf("+label.markUnit:%d", request.MarkUnit))
+		// }
+		// if len(request.TableId) > 0 {
+		// 	queryBuilder.WriteString(fmt.Sprintf("+label.tableId:%s ", request.TableId))
+		// }
+		// if request.WithNonOpen {
+		// 	queryBuilder.WriteString(fmt.Sprintf("+label.open:>0"))
+		// }
 
-		// request.MockCodeCard = 0
-		if request.MockCodeCard > 0 {
-			// query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
-			queryBuilder.WriteString(fmt.Sprintf("+label.mock_code_card:%d ", request.MockCodeCard))
-		}
+		// // request.MockCodeCard = 0
+		// if request.MockCodeCard > 0 {
+		// 	// query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
+		// 	queryBuilder.WriteString(fmt.Sprintf("+label.mock_code_card:%d ", request.MockCodeCard))
+		// }
 		query := queryBuilder.String()
 
 		logger.Info("match query %v", query)

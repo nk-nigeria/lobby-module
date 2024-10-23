@@ -16,12 +16,12 @@ update-submodule-stg:
 	cd ./cgp-common && git checkout staging && git pull && cd ..
 	go get github.com/nakamaFramework/cgp-common@staging
 
+cpdev:
+	scp ./bin/${APP_NAME} nakama:/root/cgp-server-dev/dist/data/modules/
 build:
-	./sync_pkg_3.11.sh
-	go mod tidy
 	go mod vendor
 	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
-
+build-dev: build cpdev
 
 build-cmd:
 	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/nakamaFramework go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}

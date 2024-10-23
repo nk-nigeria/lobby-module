@@ -1,8 +1,8 @@
 module github.com/nakamaFramework/cgb-lobby-module
 
-go 1.21
+go 1.21.0
 
-replace github.com/nakamaFramework/cgp-common => ./cgp-common
+toolchain go1.22.5
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
@@ -14,7 +14,7 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
-	github.com/nakamaFramework/cgp-common v0.0.0-20240618155617-3969fde51981
+	github.com/nakamaFramework/cgp-common v0.0.0-20241015033948-e537efd24966
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
@@ -47,7 +47,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.6.6 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -59,9 +58,10 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
+	google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
