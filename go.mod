@@ -14,7 +14,7 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
-	github.com/nakamaFramework/cgp-common v0.0.0-20241023075957-5b7b45c7dba5
+	github.com/nakamaFramework/cgp-common v0.0.0-20241029025448-516394ec6c74
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0

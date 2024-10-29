@@ -1,4 +1,0 @@
-[submodule "cgp-common"]
-	path = cgp-common
-  url = git@github.com:nakamaFramework/cgp-common.git
-  branch=develop

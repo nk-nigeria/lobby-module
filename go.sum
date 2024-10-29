@@ -137,8 +137,10 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/modern-go/reflect2 v1.0.1 h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9AWI=
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
-github.com/nakamaFramework/cgp-common v0.0.0-20241023075957-5b7b45c7dba5 h1:1hJwGvhhxFj9kvKJ/SUPBfL1kN9A9RsgDRFrtSjYxYQ=
-github.com/nakamaFramework/cgp-common v0.0.0-20241023075957-5b7b45c7dba5/go.mod h1:TJd3xJ9ZwSXQ97tD0iSM3/pOOartioM5zetspmTqp24=
+github.com/nakamaFramework/cgp-common v0.0.0-20241025081859-c7bc70248007 h1:eO1T+coQXODrtq9LLk/2Eps7uEaQfOF2wX1YurvZsDU=
+github.com/nakamaFramework/cgp-common v0.0.0-20241025081859-c7bc70248007/go.mod h1:TJd3xJ9ZwSXQ97tD0iSM3/pOOartioM5zetspmTqp24=
+github.com/nakamaFramework/cgp-common v0.0.0-20241029025448-516394ec6c74 h1:XLWl4MIf3gpgKeY+oOybvjd9to1TVGVazFFtLorW19E=
+github.com/nakamaFramework/cgp-common v0.0.0-20241029025448-516394ec6c74/go.mod h1:TJd3xJ9ZwSXQ97tD0iSM3/pOOartioM5zetspmTqp24=
 github.com/nats-io/nats.go v1.16.0 h1:zvLE7fGBQYW6MWaFaRdsgm9qT39PJDQoju+DS8KsO1g=
 github.com/nats-io/nats.go v1.16.0/go.mod h1:BPko4oXsySz4aSWeFgOHLZs3G4Jq4ZAyE6/zMCxRT6w=
 github.com/nats-io/nats.go v1.24.0/go.mod h1:dVQF+BK3SzUZpwyzHedXsvH3EO38aVKuOPkkHlv5hXA=
