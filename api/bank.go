@@ -21,6 +21,7 @@ import (
 
 func RpcPushToBank(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+		logger.Info("rpc push to bank: %v", payload)
 		bank := &pb.Bank{}
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {

@@ -14,6 +14,8 @@ update-submodule-stg:
 
 cpdev:
 	scp ./bin/${APP_NAME} nakama:/root/cgp-server-dev/dist/data/modules/
+cplive:
+	scp ./bin/${APP_NAME} nakama:/root/cgp-server/dist/data/modules/bin
 build:
 	go mod vendor
 	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME} && cp ./bin/${APP_NAME} ../bin/
