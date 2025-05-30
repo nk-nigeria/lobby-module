@@ -1,0 +1,3 @@
+[submodule "cgp-common"]
+	path = cgp-common
+	url = https://github.com/nakama-nigeria/cgp-common.git
