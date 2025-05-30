@@ -14,9 +14,9 @@ import (
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
-	"github.com/nakamaFramework/cgb-lobby-module/conf"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
-	pb "github.com/nakamaFramework/cgp-common/proto"
+	"github.com/nakama-nigeria/lobby-module/conf"
+	"github.com/nakama-nigeria/lobby-module/entity"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

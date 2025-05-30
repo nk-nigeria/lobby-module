@@ -9,9 +9,9 @@ import (
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
-	"github.com/nakamaFramework/cgp-common/define"
-	api "github.com/nakamaFramework/cgp-common/proto"
+	"github.com/nakama-nigeria/lobby-module/cgbdb"
+	"github.com/nakama-nigeria/cgp-common/define"
+	api "github.com/nakama-nigeria/cgp-common/proto"
 )
 
 type players map[string]struct{}

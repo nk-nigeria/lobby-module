@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakamaFramework/cgp-common/lib"
-	pb "github.com/nakamaFramework/cgp-common/proto"
+	"github.com/nakama-nigeria/cgp-common/lib"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

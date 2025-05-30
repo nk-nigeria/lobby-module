@@ -15,11 +15,11 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/nakamaFramework/cgb-lobby-module/api/presenter"
-	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
-	objectstorage "github.com/nakamaFramework/cgb-lobby-module/object-storage"
-	pb "github.com/nakamaFramework/cgp-common/proto"
+	"github.com/nakama-nigeria/lobby-module/api/presenter"
+	"github.com/nakama-nigeria/lobby-module/cgbdb"
+	"github.com/nakama-nigeria/lobby-module/entity"
+	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 )
 
 const DefaultLevel = 0

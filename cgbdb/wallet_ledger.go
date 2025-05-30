@@ -9,14 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	pb "github.com/nakamaFramework/cgp-common/proto"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	"github.com/nakama-nigeria/lobby-module/entity"
 	"go.uber.org/zap"
 )
 

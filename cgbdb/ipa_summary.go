@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	"github.com/nakama-nigeria/lobby-module/entity"
 	"gorm.io/gorm"
 )
 

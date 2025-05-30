@@ -11,17 +11,17 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/google/uuid"
-	"github.com/nakamaFramework/cgb-lobby-module/cgbdb"
-	"github.com/nakamaFramework/cgp-common/define"
+	"github.com/nakama-nigeria/lobby-module/cgbdb"
+	"github.com/nakama-nigeria/cgp-common/define"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
 
-	"github.com/nakamaFramework/cgb-lobby-module/api"
-	"github.com/nakamaFramework/cgb-lobby-module/conf"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
-	objectstorage "github.com/nakamaFramework/cgb-lobby-module/object-storage"
+	"github.com/nakama-nigeria/lobby-module/api"
+	"github.com/nakama-nigeria/lobby-module/conf"
+	"github.com/nakama-nigeria/lobby-module/entity"
+	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
 )
 
 const (

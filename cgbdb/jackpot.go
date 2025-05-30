@@ -8,7 +8,7 @@ import (
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
-	pb "github.com/nakamaFramework/cgp-common/proto"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

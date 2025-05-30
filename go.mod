@@ -1,8 +1,8 @@
-module github.com/nakamaFramework/cgb-lobby-module
+module github.com/nakama-nigeria/lobby-module
 
-go 1.21.0
+go 1.24.3
 
-toolchain go1.22.5
+
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
@@ -14,7 +14,6 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
-	github.com/nakamaFramework/cgp-common v0.0.0-20241029025448-516394ec6c74
 	github.com/nats-io/nats.go v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0

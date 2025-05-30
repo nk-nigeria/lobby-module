@@ -8,7 +8,7 @@ import (
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
+	"github.com/nakama-nigeria/lobby-module/entity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

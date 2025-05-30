@@ -12,9 +12,9 @@ import (
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakamaFramework/cgb-lobby-module/constant"
-	"github.com/nakamaFramework/cgb-lobby-module/entity"
-	lib "github.com/nakamaFramework/cgp-common/lib"
+	"github.com/nakama-nigeria/lobby-module/constant"
+	"github.com/nakama-nigeria/lobby-module/entity"
+	lib "github.com/nakama-nigeria/cgp-common/lib"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
