@@ -1,0 +1,79 @@
+version: '3'
+services:
+  postgres:
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
+    container_name: backend_lobby_postgres
+    environment:
+      - POSTGRES_DB=nakama
+      - POSTGRES_PASSWORD=localdb
+    expose:
+      - "8080"
+      - "5432"
+    image: postgres:14.2-alpine
+    ports:
+      - "5432:5432"
+      - "8080:8080"
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  nakama:
+    build: .
+    container_name: lobby
+    depends_on:
+      - postgres
+    entrypoint:
+      - "/bin/sh"
+      - "-ecx"
+      - >
+        /nakama/nakama migrate up --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable &&
+        exec /nakama/nakama --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable
+    expose:
+      - "7349"
+      - "7350"
+      - "7351"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7350/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    links:
+      - "postgres:db"
+    ports:
+      - "7349:7349"
+      - "7350:7350"
+      - "7351:7351"
+    restart: unless-stopped
+    volumes:
+      - ./data:/nakama/data/
+
+  minio:
+    command: server --console-address ":9001" /data
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE
+      - MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG
+    expose:
+      - "9000"
+      - "9001"
+    image: quay.io/minio/minio:RELEASE.2022-04-26T01-20-24Z
+    ports:
+      - "9000:9000"
+      - "9001:9001"   
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    volumes:
+      - data-minio:/data
+  nats:
+    command: --user nats --pass Admin123 -DV
+    container_name: nats
+    image: 'nats:2.8.4-alpine3.15'
+    ports:
+      - 4222:4222
+      - 6222:6222
+      - 8222:8222
+volumes:
+  data:  
+  data-minio:
