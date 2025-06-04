@@ -8,14 +8,14 @@ import (
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/nakama-nigeria/cgp-common/lib"
 	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
 	CollectionBank = "collection_bank"
 )
 
-func BankPushToSafe(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, unmarshaler *protojson.UnmarshalOptions, bank *pb.Bank) (*pb.Bank, error) {
+func BankPushToSafe(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, unmarshaler *proto.UnmarshalOptions, bank *pb.Bank) (*pb.Bank, error) {
 	if bank.GetChipsInBank() <= 0 {
 		return nil, errors.New("Chips push to safe must larger than zero")
 	}
@@ -138,7 +138,7 @@ func BankSendGift(ctx context.Context, logger runtime.Logger, nk runtime.NakamaM
 	}
 	err = updateBank(ctx, nk, logger, &newSenderBank)
 	if err != nil {
-		data, _ := protojson.Marshal(&newSenderBank)
+		data, _ := proto.Marshal(&newSenderBank)
 		logger.Error("Update wallet sender %s error: %s, data %s", bank.GetSenderId(), err.Error(), string(data))
 		return nil, err
 	}

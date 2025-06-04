@@ -3,16 +3,17 @@ package api
 import (
 	"context"
 	"database/sql"
+
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/lobby-module/conf"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAddUserGroup(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userGroup := &pb.UserGroup{}
 		if err := unmarshaler.Unmarshal([]byte(payload), userGroup); err != nil {
@@ -28,7 +29,7 @@ func RpcAddUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 	}
 }
 
-func RpcUpdateUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcUpdateUserGroup(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userGroup := &pb.UserGroup{}
 		if err := unmarshaler.Unmarshal([]byte(payload), userGroup); err != nil {
@@ -45,7 +46,7 @@ func RpcUpdateUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 	}
 }
 
-func RpcListUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcListUserGroup(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userGroupRequest := &pb.UserGroupRequest{}
 		if payload != "" {
@@ -63,7 +64,7 @@ func RpcListUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 	}
 }
 
-func RpcDeleteUserGroup(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcDeleteUserGroup(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userGroup := &pb.UserGroup{}
 		if err := unmarshaler.Unmarshal([]byte(payload), userGroup); err != nil {

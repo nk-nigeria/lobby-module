@@ -8,7 +8,26 @@ import (
 )
 
 func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
+
 	_, err := db.ExecContext(ctx, `
+		CREATE SEQUENCE IF NOT EXISTS users_ext_sid_seq;
+
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users_ext') THEN
+				CREATE TABLE public.users_ext (
+					id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+					sid BIGINT DEFAULT nextval('users_ext_sid_seq')
+				);
+				ALTER SEQUENCE users_ext_sid_seq OWNED BY public.users_ext.sid;
+			END IF;
+		END$$;
+	`)
+	if err != nil {
+		logger.Error("Error creating users_ext table: %s", err.Error())
+	}
+
+	_, err = db.ExecContext(ctx, `
 		CREATE SEQUENCE IF NOT EXISTS user_group_id_seq;
 
 		CREATE TABLE IF NOT EXISTS public.user_group (

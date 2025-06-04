@@ -6,10 +6,10 @@ import (
 	"errors"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/conf"
 	"github.com/nakama-nigeria/lobby-module/constant"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -42,7 +42,7 @@ func InitLeaderBoard(ctx context.Context, logger runtime.Logger, nk runtime.Naka
 		operator := "incr"
 		reset := constant.RESET_SCHEDULER_LEADER_BOARD
 		metadata := map[string]interface{}{}
-		if err := nk.LeaderboardCreate(ctx, game.Code, authoritative, sort, operator, reset, metadata); err != nil {
+		if err := nk.LeaderboardCreate(ctx, game.Code, authoritative, sort, operator, reset, metadata, true); err != nil {
 			logger.Debug("Can not create leaderboard " + game.Code)
 		}
 	}

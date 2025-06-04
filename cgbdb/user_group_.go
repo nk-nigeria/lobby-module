@@ -8,16 +8,17 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
-	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/entity"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nakama-nigeria/lobby-module/entity"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func getCashOutData(ctx context.Context, logger runtime.Logger, db *sql.DB, userId string, data *entity.UserGroupUserInfo) {
@@ -130,7 +131,7 @@ func GetUserGroupUserInfo(ctx context.Context, logger runtime.Logger, db *sql.DB
 	return result, nil
 }
 
-func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) ([]string, error) {
+func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, id int64) ([]string, error) {
 	userGroup, err := GetUserGroupById(ctx, logger, db, unmarshaler, id)
 	if err != nil || userGroup.Name == "" {
 		return nil, err
@@ -141,7 +142,7 @@ func GetListUserIdsByUserGroup(ctx context.Context, logger runtime.Logger, db *s
 	return FetchUserIDWithCondition(ctx, db, condition, params)
 }
 
-func GetListUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, limit int64, cursor string) (*pb.ListUserGroup, error) {
+func GetListUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, limit int64, cursor string) (*pb.ListUserGroup, error) {
 	var incomingCursor = &entity.UserGroupListCursor{}
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)

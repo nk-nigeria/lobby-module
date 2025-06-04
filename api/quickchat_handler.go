@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/nakama-nigeria/lobby-module/api/presenter"
+	"google.golang.org/protobuf/proto"
 )
 
-func RpcUpdateQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcUpdateQuickChat(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -47,7 +47,7 @@ func RpcUpdateQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protoj
 	}
 }
 
-func RpcGetQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcGetQuickChat(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -73,7 +73,7 @@ func RpcGetQuickChat(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			}
 		}
 
-		marshaler.EmitUnpopulated = true
+		// marshaler.EmitUnpopulated = true
 		res, err := marshaler.Marshal(resData)
 		if err != nil {
 			return "", fmt.Errorf("Marharl texts error: %s", err.Error())

@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/google/uuid"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/cgp-common/define"
+	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
@@ -42,9 +42,9 @@ const (
 	rpcUserChangePass = "user_change_pass"
 	rpcLinkUsername   = "link_username"
 
-	rpcGetProfile      = "get_profile"
-	rpcUpdateProfile   = "update_profile"
-	rpcUpdatePassword  = "update_password"
+	rpcGetProfile    = "get_profile"
+	rpcUpdateProfile = "update_profile"
+	// rpcUpdatePassword  = "update_password"
 	rpcUpdateAvatar    = "update_avatar"
 	rpcUpdateQuickChat = "update_quickchat"
 	rpcGetQuickChat    = "get_quickchat"
@@ -140,16 +140,16 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	marshaler := conf.Marshaler
 	unmarshaler := conf.Unmarshaler
 	if true {
-		cgbdb.RunMigrations(ctx, logger, db)
+		// cgbdb.RunMigrations(ctx, logger, db)
 	}
 
-	api.InitListGame(ctx, logger, db, nk)
-	api.InitDeal(ctx, logger, nk, marshaler)
-	api.InitDailyRewardTemplate(ctx, logger, nk)
-	api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
+	// api.InitListGame(ctx, logger, db, nk)
+	// api.InitDeal(ctx, logger, nk, marshaler)
+	// api.InitDailyRewardTemplate(ctx, logger, nk)
+	// api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
 	// message_queue.InitNatsService(logger, constant.NastEndpoint)
-	api.InitExchangeList(ctx, logger, nk)
-	api.InitReferUserReward(ctx, logger, nk)
+	// api.InitExchangeList(ctx, logger, nk)
+	// api.InitReferUserReward(ctx, logger, nk)
 
 	s := gocron.NewScheduler(time.Local)
 
@@ -165,6 +165,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	} else {
 		objStorage.MakeBucket(entity.BucketAvatar)
 		objStorage.MakeBucket(entity.BucketBanners)
+	}
+
+	if err := initializer.RegisterAfterAuthenticateDevice(api.AfterAuthDevice); err != nil {
+		return err
 	}
 
 	// initializer.RegisterRpc(rpcTestRemoteNode, api.RpcTestProxyNode(nk))
@@ -407,12 +411,12 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}
 
-	if err := initializer.RegisterRpc(
-		rpcUpdatePassword,
-		api.RpcUpdatePassword(marshaler, unmarshaler),
-	); err != nil {
-		return err
-	}
+	// if err := initializer.RegisterRpc(
+	// 	rpcUpdatePassword,
+	// 	api.RpcUpdatePassword(marshaler, unmarshaler),
+	// ); err != nil {
+	// 	return err
+	// }
 
 	if err := initializer.RegisterRpc(
 		rpcUpdateAvatar,

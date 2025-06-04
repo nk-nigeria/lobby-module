@@ -1,17 +1,16 @@
-FROM heroiclabs/nakama-pluginbuilder:3.11.0 AS builder
+# Build plugin bằng Go 1.24.3
+FROM heroiclabs/nakama-pluginbuilder:3.27.0 AS builder
 
 ENV GO111MODULE on
 ENV CGO_ENABLED 1
-#ENV GOPRIVATE "github.com/nakamaFramework/cgb-lobby-module"
 
 WORKDIR /backend
 COPY . .
 
-RUN go build --trimpath --mod=readonly --buildmode=plugin -o ./lobby.so
+RUN go build -buildvcs=false --trimpath --buildmode=plugin -o ./lobby_plugin.so
 
-FROM heroiclabs/nakama:3.11.0
+# Runtime Nakama 3.27.0
+FROM heroiclabs/nakama:3.27.0
 
-COPY --from=builder /backend/bin/nakama /nakama/nakama
-COPY --from=builder /backend/lobby.so /nakama/data/modules
-COPY --from=builder /backend/bin/chinese-poker.so /nakama/data/modules
+COPY --from=builder /backend/lobby_plugin.so /nakama/data/modules
 COPY --from=builder /backend/local.yml /nakama/data/

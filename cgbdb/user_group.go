@@ -3,8 +3,9 @@ package cgbdb
 import (
 	"context"
 	"database/sql"
-	"google.golang.org/protobuf/encoding/protojson"
 	"strings"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	pb "github.com/nakama-nigeria/cgp-common/proto"
@@ -27,7 +28,7 @@ import (
 // ALTER SEQUENCE user_group_id_seq OWNED BY public.user_group.id;
 const UserGroupTableName = "user_group"
 
-func AddUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, userGroup *pb.UserGroup, marshaler *protojson.MarshalOptions) error {
+func AddUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, userGroup *pb.UserGroup, marshaler *proto.MarshalOptions) error {
 	if userGroup == nil || userGroup.Name == "" {
 		return status.Error(codes.InvalidArgument, "Error add user group.")
 	}
@@ -49,7 +50,7 @@ func AddUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, userGr
 	return nil
 }
 
-func GetUserGroupById(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) (*pb.UserGroup, error) {
+func GetUserGroupById(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, id int64) (*pb.UserGroup, error) {
 	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id is empty")
 	}
@@ -70,7 +71,7 @@ func GetUserGroupById(ctx context.Context, logger runtime.Logger, db *sql.DB, un
 	return &userGroup, nil
 }
 
-func UpdateUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, id int64, userGroup *pb.UserGroup) (*pb.UserGroup, error) {
+func UpdateUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions, id int64, userGroup *pb.UserGroup) (*pb.UserGroup, error) {
 	oldUserGroup, err := GetUserGroupById(ctx, logger, db, unmarshaler, id)
 	if err != nil || oldUserGroup.Name == "" {
 		return nil, err
@@ -89,7 +90,7 @@ func UpdateUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, mar
 	return oldUserGroup, nil
 }
 
-func DeleteUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) error {
+func DeleteUserGroup(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, id int64) error {
 	oldUserGroup, err := GetUserGroupById(ctx, logger, db, unmarshaler, id)
 	if err != nil || oldUserGroup.Name == "" {
 		return err

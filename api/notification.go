@@ -5,14 +5,14 @@ import (
 	"database/sql"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/lobby-module/conf"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-func RpcReadAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+func RpcReadAllNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// parse request
 		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -35,7 +35,7 @@ func RpcReadAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *pr
 	}
 }
 
-func RpcDeleteAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+func RpcDeleteAllNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// parse request
 		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -57,7 +57,7 @@ func RpcDeleteAllNotification(marshaler *protojson.MarshalOptions, unmarshaler *
 	}
 }
 
-func RpcReadNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+func RpcReadNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// parse request
 		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -85,7 +85,7 @@ func RpcReadNotification(marshaler *protojson.MarshalOptions, unmarshaler *proto
 	}
 }
 
-func RpcDeleteNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
+func RpcDeleteNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, _ string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// parse request
 		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
@@ -112,7 +112,7 @@ func RpcDeleteNotification(marshaler *protojson.MarshalOptions, unmarshaler *pro
 	}
 }
 
-func RpcListNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcListNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userId, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {

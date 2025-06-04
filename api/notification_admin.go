@@ -5,13 +5,13 @@ import (
 	"database/sql"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-func RpcAddNotification(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAddNotification(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		request := &pb.AddNotificationRequest{}
 		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil || len(request.RecipientIds) == 0 {

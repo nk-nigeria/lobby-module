@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/conf"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 
 var MapDeal = make(map[string]*pb.Deal)
 
-func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, marshaler *protojson.MarshalOptions) {
+func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, marshaler *proto.MarshalOptions) {
 	objectIds := []*runtime.StorageRead{
 		{
 			Collection: kDealCollection,
@@ -230,7 +230,7 @@ func InitDeal(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModul
 	}
 }
 
-func RpcDealList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcDealList(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		dealInShop, err := LoadDeals(ctx, logger, nk, unmarshaler)
 		if err != nil {
@@ -248,7 +248,7 @@ func RpcDealList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unm
 	}
 }
 
-func LoadDeals(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, unmarshaler *protojson.UnmarshalOptions) (*pb.DealInShop, error) {
+func LoadDeals(ctx context.Context, logger runtime.Logger, nk runtime.NakamaModule, unmarshaler *proto.UnmarshalOptions) (*pb.DealInShop, error) {
 	objectIds := []*runtime.StorageRead{
 		{
 			Collection: kDealCollection,

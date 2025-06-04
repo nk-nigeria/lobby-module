@@ -10,13 +10,14 @@ import (
 	"strconv"
 
 	"github.com/heroiclabs/nakama-common/runtime"
+	"github.com/nakama-nigeria/cgp-common/define"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nakama-nigeria/cgp-common/utilities"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/lobby-module/conf"
 	"github.com/nakama-nigeria/lobby-module/entity"
-	"github.com/nakama-nigeria/cgp-common/define"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // 1. bank (ẩn vip 0 1) > vip 0 1 vẫn hiện bank nhưng khi bấm vào có
@@ -34,7 +35,7 @@ const (
 	kChinesePokerKey = "chinese-poker"
 )
 
-func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcBetList(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -42,22 +43,25 @@ func RpcBetList(marshaler *protojson.MarshalOptions, unmarshaler *protojson.Unma
 			return "", presenter.ErrInternalError
 		}
 		request := &pb.BetListRequest{}
-		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
-			logger.Error("RpcBetList Unmarshal payload error: %s", err.Error())
-			return "", presenter.ErrUnmarshal
+		if err := utilities.DecodeBase64Proto(payload, request); err != nil {
+			return "", err
 		}
 		quickJoin := false
 		msg, err := loadBetsForUser(ctx, logger, db, nk, request.Code, quickJoin, userID)
 		if err != nil {
 			return "", err
 		}
-		betsJson, _ := marshaler.Marshal(msg)
-		return string(betsJson), nil
+		logger.Debug("load bets for game %s, total %d", request.Code, len(msg.Bets))
+		respBase64, err := utilities.EncodeBase64Proto(msg)
+		if err != nil {
+			return "", err
+		}
+		return respBase64, nil
 	}
 }
 
 // amdmin
-func RpcAdminAddBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAdminAddBet(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if userID != "" {
@@ -74,7 +78,7 @@ func RpcAdminAddBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.
 	}
 }
 
-func RpcAdminUpdateBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAdminUpdateBet(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if userID != "" {
@@ -105,7 +109,7 @@ func RpcAdminUpdateBet(marshaler *protojson.MarshalOptions, unmarshaler *protojs
 	}
 }
 
-func RpcAdminDeleteBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAdminDeleteBet(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if userID != "" {
@@ -133,7 +137,7 @@ func RpcAdminDeleteBet(marshaler *protojson.MarshalOptions, unmarshaler *protojs
 	}
 }
 
-func RpcAdminListBet(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcAdminListBet(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, _ := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if userID != "" {
@@ -261,6 +265,7 @@ func loadBetsForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		return slotsGameBetConfig(ctx, logger, db, nk)
 	}
 	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
+	logger.Debug("load bets for game %s, total %d", gameCode, len(bets))
 	if err != nil {
 		logger.WithField("err", err).Error("load bets failed")
 		return nil, err

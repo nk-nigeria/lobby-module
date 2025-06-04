@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -13,18 +12,19 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
+	pb "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nakama-nigeria/cgp-common/utilities"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/lobby-module/entity"
 	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
 )
 
 const DefaultLevel = 0
 
-func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcGetProfile(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -45,16 +45,16 @@ func RpcGetProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.U
 				cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userID, profile.PlayingMatch)
 			}
 		}
-		marshaler.EmitUnpopulated = true
-		dataString, err := marshaler.Marshal(profile)
+		// marshaler.EmitUnpopulated = true
+		respBase64, err := utilities.EncodeBase64Proto(profile)
 		if err != nil {
-			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
+			return "", err
 		}
-		return string(dataString), nil
+		return respBase64, nil
 	}
 }
 
-func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcUpdateProfile(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -138,16 +138,16 @@ func RpcUpdateProfile(marshaler *protojson.MarshalOptions, unmarshaler *protojso
 			}
 			cgbdb.AddUserRefer(ctx, logger, db, userRefer)
 		}
-		marshaler.EmitUnpopulated = true
-		dataString, err := marshaler.Marshal(newProfile)
+		// marshaler.EmitUnpopulated = true
+		respBase64, err := utilities.EncodeBase64Proto(newProfile)
 		if err != nil {
-			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
+			return "", err
 		}
-		return string(dataString), nil
+		return respBase64, nil
 	}
 }
 
-func RpcUpdatePassword(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcUpdatePassword(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		// userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		// if !ok {
@@ -162,7 +162,7 @@ func RpcUpdatePassword(marshaler *protojson.MarshalOptions, unmarshaler *protojs
 	}
 }
 
-func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
+func RpcUploadAvatar(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions, objStorage objectstorage.ObjStorage) func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {
 	return func(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
 		userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 		if !ok {
@@ -187,10 +187,10 @@ func RpcUploadAvatar(marshaler *protojson.MarshalOptions, unmarshaler *protojson
 			UserId:    userID,
 			AvatarUrl: presignUrl,
 		}
-		dataString, err := marshaler.Marshal(profile)
+		respBase64, err := utilities.EncodeBase64Proto(profile)
 		if err != nil {
-			return "", fmt.Errorf("Marharl profile error: %s", err.Error())
+			return "", err
 		}
-		return string(dataString), nil
+		return respBase64, nil
 	}
 }

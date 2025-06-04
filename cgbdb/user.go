@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/api/presenter"
 	"github.com/nakama-nigeria/lobby-module/conf"
 	"github.com/nakama-nigeria/lobby-module/constant"
 	"github.com/nakama-nigeria/lobby-module/entity"
 	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
 
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -164,15 +164,16 @@ func GetAccount(ctx context.Context, db *sql.DB, userID string, userSid int64) (
 SELECT u.id,u.username, u.display_name, u.avatar_url, u.lang_tag, u.location, u.timezone, u.metadata, u.wallet,
 	u.email, u.apple_id, u.facebook_id, u.facebook_instant_game_id, u.google_id, u.gamecenter_id, u.steam_id, u.custom_id, u.edge_count,
 	u.create_time, u.update_time, u.verify_time, u.disable_time, array(select ud.id from user_device ud where u.id = ud.user_id),
-	u.sid
+	ue.sid
 FROM users u
+JOIN users_ext ue ON u.id = ue.id
 WHERE `
 	args := make([]any, 0)
 	if len(userID) > 0 {
 		query += ` u.id = $1`
 		args = append(args, userID)
 	} else if userSid > 0 {
-		query += ` u.sid = $1`
+		query += ` ue.sid = $1`
 		args = append(args, userSid)
 	}
 

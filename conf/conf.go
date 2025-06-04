@@ -2,13 +2,13 @@ package conf
 
 import (
 	"github.com/bwmarrin/snowflake"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-var Marshaler *protojson.MarshalOptions
-var MarshalerDefault *protojson.MarshalOptions
+var Marshaler *proto.MarshalOptions
+var MarshalerDefault *proto.MarshalOptions
 
-var Unmarshaler *protojson.UnmarshalOptions
+var Unmarshaler *proto.UnmarshalOptions
 
 var SnowlakeNode *snowflake.Node
 
@@ -18,14 +18,9 @@ func Init() {
 	if err != nil {
 		panic(err)
 	}
-	Marshaler = &protojson.MarshalOptions{
-		UseEnumNumbers: true,
-	}
-	MarshalerDefault = &protojson.MarshalOptions{
-		EmitUnpopulated: true,
-		UseEnumNumbers:  true,
-	}
-	Unmarshaler = &protojson.UnmarshalOptions{
+	Marshaler = &proto.MarshalOptions{}
+	MarshalerDefault = &proto.MarshalOptions{}
+	Unmarshaler = &proto.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
 }

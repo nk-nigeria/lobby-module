@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
+	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"github.com/nakama-nigeria/lobby-module/constant"
 	"github.com/nakama-nigeria/lobby-module/entity"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -44,7 +44,7 @@ import (
 // ALTER TABLE public.in_app_message ADD COLUMN game_id text NULL;
 const InAppMessageTableName = "in_app_message"
 
-func AddInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *protojson.MarshalOptions, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
+func AddInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *proto.MarshalOptions, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
 	if inAppMessage == nil || inAppMessage.Type < 0 || inAppMessage.Data == nil {
 		return nil, status.Error(codes.InvalidArgument, "Error add inAppMessage.")
 	}
@@ -80,7 +80,7 @@ func AddInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, mar
 	return inAppMessage, nil
 }
 
-func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, id int64) (*pb.InAppMessage, error) {
+func GetInAppMessageById(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, id int64) (*pb.InAppMessage, error) {
 	if id <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "Id is empty")
 	}
@@ -140,7 +140,7 @@ func DeleteInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return nil
 }
 
-func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *protojson.MarshalOptions, unmarshaler *protojson.UnmarshalOptions, id int64, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
+func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalOptions, id int64, inAppMessage *pb.InAppMessage) (*pb.InAppMessage, error) {
 	oldInAppMessage, err := GetInAppMessageById(ctx, logger, db, unmarshaler, id)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func UpdateInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 	return oldInAppMessage, nil
 }
 
-func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *protojson.UnmarshalOptions, nk runtime.NakamaModule, limit int64, cursor string, typeInAppMessage pb.TypeInAppMessage) (*pb.ListInAppMessage, error) {
+func GetListInAppMessage(ctx context.Context, logger runtime.Logger, db *sql.DB, unmarshaler *proto.UnmarshalOptions, nk runtime.NakamaModule, limit int64, cursor string, typeInAppMessage pb.TypeInAppMessage) (*pb.ListInAppMessage, error) {
 	var incomingCursor = &entity.InAppMessageListCursor{}
 	if cursor != "" {
 		cb, err := base64.URLEncoding.DecodeString(cursor)
