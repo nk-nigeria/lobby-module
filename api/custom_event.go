@@ -9,9 +9,9 @@ import (
 
 	nkapi "github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
 	"github.com/nakama-nigeria/cgp-common/define"
 	api "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nakama-nigeria/lobby-module/cgbdb"
 )
 
 type players map[string]struct{}
@@ -32,6 +32,7 @@ func CustomEventHandler(db *sql.DB) func(ctx context.Context, logger runtime.Log
 			return
 		}
 		eventName := evt.GetName()
+		logger.Debug("CustomEventHandler", "event_name", eventName, "event_id", "event_properties", evt.GetProperties())
 		// event end of match
 		switch eventName {
 		case string(define.NakEventMatchEnd):
@@ -84,12 +85,14 @@ func eventNakamaMatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 	if len(userIds) == 0 {
 		return
 	}
+
 	gameCode := evt.Properties["game_code"]
 	tsEndStr := evt.Properties["end_match_unix"]
 	tsEndUnix, _ := strconv.ParseInt(tsEndStr, 10, 64)
 	matchId := evt.Properties["match_id"]
 	mcb, _ := strconv.ParseInt(evt.Properties["mcb"], 10, 64)
 	lastBet, _ := strconv.ParseInt(evt.Properties["last_bet"], 10, 64)
+	logger.Debug("eventNakamaMatchJoin", "game_code", gameCode, "match_id", matchId, "mcb", mcb, "last_bet", lastBet, "ts_end_unix", tsEndUnix)
 	mt.Lock()
 	defer mt.Unlock()
 	for _, userId := range strings.Split(userIds, ",") {

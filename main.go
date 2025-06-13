@@ -140,10 +140,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	marshaler := conf.Marshaler
 	unmarshaler := conf.Unmarshaler
 	if true {
-		// cgbdb.RunMigrations(ctx, logger, db)
+		cgbdb.RunMigrations(ctx, logger, db)
 	}
 
-	// api.InitListGame(ctx, logger, db, nk)
+	api.InitListGame(ctx, logger, db, nk)
 	// api.InitDeal(ctx, logger, nk, marshaler)
 	// api.InitDailyRewardTemplate(ctx, logger, nk)
 	// api.InitLeaderBoard(ctx, logger, nk, unmarshaler)
@@ -197,6 +197,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err := initializer.RegisterRpc(rpcIdListBet, api.RpcBetList(conf.MarshalerDefault, unmarshaler)); err != nil {
 		return err
 	}
+
 	if err := initializer.RegisterRpc(rpcAdminAddBetAddNew, api.RpcAdminAddBet(marshaler, unmarshaler)); err != nil {
 		return err
 	}

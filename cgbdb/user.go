@@ -396,7 +396,7 @@ func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *s
 		Mcb:       pl.Mcb,
 		Bet:       pl.Bet,
 	}
-	data, err := conf.Marshaler.Marshal(v)
+	data, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
@@ -407,11 +407,11 @@ func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *s
 				SET
 					metadata
 						= u.metadata
-						|| jsonb_build_object('playing_in_match','` + string(data) + `' )
+						|| jsonb_build_object('playing_in_match', $2 )
 				WHERE	
 					id =$1`)
 	query := queryBuilder.String()
-	_, err = db.ExecContext(ctx, query, userId)
+	_, err = db.ExecContext(ctx, query, userId, string(data))
 	if err != nil {
 		logger.WithField("err", err).Error("db.ExecContext match update error.")
 	}

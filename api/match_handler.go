@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/nakama-nigeria/cgp-common/define"
 	"github.com/nakama-nigeria/cgp-common/lib"
+	"github.com/nakama-nigeria/cgp-common/utilities"
 
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -88,9 +90,10 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 		}
 
 		request := &pb.RpcFindMatchRequest{}
-		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
-			return "", presenter.ErrUnmarshal
+		if err := utilities.DecodeBase64Proto(payload, request); err != nil {
+			return "", err
 		}
+
 		if _, err := checkEnoughChipForBet(ctx, logger, db, nk, userID, request.GameCode, int64(request.MarkUnit), false); err != nil {
 			return "", err
 		}
@@ -130,16 +133,20 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 		for _, match := range matches {
 			// var label MatchLabel
 			matchInfo := &pb.Match{}
-			err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+			logger.Debug("find match label: %v", match.Label.GetValue())
+			// err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+			err = json.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
 			if err != nil {
 				logger.Error("unmarshal label error %v", err)
 				continue
 			}
+			matchInfo.MatchId = match.MatchId
 
-			// logger.Debug("find match size: %v", match.Size)
-			if matchInfo.Size >= matchInfo.MaxSize {
+			logger.Debug("find match size: %v", match.Size)
+			if match.Size >= matchInfo.MaxSize {
 				continue
 			}
+
 			resMatches.Matches = append(resMatches.Matches, matchInfo)
 		}
 		if len(resMatches.Matches) <= 0 && request.Create {
@@ -153,12 +160,12 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 				logger.WithField("err", err).Error("error creating match")
 				return "", presenter.ErrInternalError
 			}
-			response, err := conf.MarshalerDefault.Marshal(resMatches)
+			respBase64, err := utilities.EncodeBase64Proto(resMatches)
 			if err != nil {
 				logger.Error("error marshaling response payload: %v", err.Error())
-				return "", presenter.ErrMarshal
+				return "", err
 			}
-			return string(response), nil
+			return respBase64, nil
 		}
 		//  not found match,
 		if len(resMatches.Matches) <= 0 {
@@ -172,14 +179,14 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 			match.Password = ""
 			match.GameStateDuration = GetGameStateDurationByGameName(define.GameName(match.Name)).ToPb()
 		}
-
-		response, err := marshaler.Marshal(resMatches)
+		logger.Debug("find match id res : %v", resMatches.Matches[0].MatchId)
+		respBase64, err := utilities.EncodeBase64Proto(resMatches)
 		if err != nil {
 			logger.Error("error marshaling response payload: %v", err.Error())
-			return "", presenter.ErrMarshal
+			return "", err
 		}
 
-		return string(response), nil
+		return respBase64, nil
 	}
 }
 
@@ -270,9 +277,8 @@ func RpcCreateMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.Unmarsha
 		}
 
 		request := &pb.RpcCreateMatchRequest{}
-		if err := unmarshaler.Unmarshal([]byte(payload), request); err != nil {
-			logger.Error("unmarshal create match error %v", err)
-			return "", presenter.ErrUnmarshal
+		if err := utilities.DecodeBase64Proto(payload, request); err != nil {
+			return "", err
 		}
 		matchs, err := createMatch(ctx, logger, db, nk, false, request)
 		if err != nil {
@@ -283,12 +289,11 @@ func RpcCreateMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.Unmarsha
 		if len(matchs) == 0 {
 			return "", presenter.ErrInternalError
 		}
-		response, err := conf.MarshalerDefault.Marshal(&pb.RpcCreateMatchResponse{MatchId: matchs[0].MatchId})
+		respBase64, err := utilities.EncodeBase64Proto(&pb.RpcCreateMatchResponse{MatchId: matchs[0].MatchId})
 		if err != nil {
-			logger.Error("error marshaling response payload: %v", err.Error())
-			return "", presenter.ErrMarshal
+			return "", err
 		}
-		return string(response), nil
+		return respBase64, nil
 	}
 }
 
@@ -312,7 +317,7 @@ func RpcInfoMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 			return "", presenter.ErrMatchNotFound
 		}
 		matchInfo := &pb.Match{}
-		err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+		err = json.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
 		if err != nil {
 			logger.Error("unmarshal label error %v", err)
 			return "", presenter.ErrUnmarshal
@@ -411,12 +416,17 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 			logger.WithField("user", userID).WithField("gameCode", request.GameCode).WithField("err", err).Error("list bets is empty")
 			return nil, presenter.ErrNotEnoughChip
 		}
+		logger.Debug("before matchInfo.MarkUnit %v", matchInfo.MarkUnit)
 		if matchInfo.MarkUnit == 0 {
+			logger.Debug("if matchInfo.MarkUnit %v", bets.BestChoice.MarkUnit)
 			matchInfo.MarkUnit = int32(bets.BestChoice.MarkUnit)
 		}
+		logger.Debug("after matchInfo.MarkUnit %v", matchInfo.MarkUnit)
+
 		// check mark unit allowed
 		allowed := false
-		for _, bet := range bets.Bets {
+		for idx, bet := range bets.Bets {
+			logger.Debug("check bet %v, %v", idx, bet.MarkUnit)
 			if int32(bet.MarkUnit) == matchInfo.MarkUnit {
 				allowed = bet.Enable
 				matchInfo.Bet = bet
@@ -428,13 +438,18 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		}
 	}
 	// No available matches found, create a new one.
-	arg := make(map[string]any)
 	matchInfo.TableId = GetTableId()
-	data, _ := conf.MarshalerDefault.Marshal(matchInfo)
-	arg["data"] = string(data)
+	labelBytes, err := proto.Marshal(matchInfo)
+	if err != nil {
+		logger.Error("failed to marshal match label: %v", err)
+		return nil, err
+	}
+	arg := make(map[string]any)
+	arg["label"] = string(labelBytes)
+	logger.Debug("create match data: %s", matchInfo)
 	matchID, err := nk.MatchCreate(ctx, request.GameCode, arg)
 	if err != nil {
-		logger.WithField("data", string(data)).Error("error creating match: %v", err)
+		logger.WithField("label", labelBytes).Error("error creating match: %v", err)
 		return nil, presenter.ErrInternalError
 	}
 	matchInfo.MatchId = matchID
@@ -447,6 +462,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	resMatches.Matches = append(resMatches.Matches, matchInfo)
 	return resMatches.Matches, nil
 }
+
 func checkEnoughChipForBet(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, userID string, gameCode string, betWantCheck int64, quickJoin bool) (*pb.Bet, error) {
 	bets, err := LoadBets(ctx, logger, db, nk, gameCode)
 	if err != nil {
@@ -535,6 +551,7 @@ func findMaxBetForUser(ctx context.Context, logger runtime.Logger, db *sql.DB, n
 	}
 	return *entity.PbBetToBet(bets.BestChoice), nil
 }
+
 func quickMatchAtLobby(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, req *pb.RpcCreateMatchRequest) (string, error) {
 	userID, ok := ctx.Value(runtime.RUNTIME_CTX_USER_ID).(string)
 	if !ok {
