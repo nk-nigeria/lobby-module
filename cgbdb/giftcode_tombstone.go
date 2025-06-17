@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

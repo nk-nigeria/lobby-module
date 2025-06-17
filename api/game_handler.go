@@ -7,11 +7,11 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/nakama-nigeria/cgp-common/define"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/entity"
+	"github.com/nk-nigeria/cgp-common/define"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/entity"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/proto"

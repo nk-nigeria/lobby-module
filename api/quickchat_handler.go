@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
 	"google.golang.org/protobuf/proto"
 )
 

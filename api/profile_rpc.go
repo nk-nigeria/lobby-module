@@ -14,12 +14,12 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/cgp-common/utilities"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/entity"
-	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/cgp-common/utilities"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/entity"
+	objectstorage "github.com/nk-nigeria/lobby-module/object-storage"
 )
 
 const DefaultLevel = 0
@@ -37,14 +37,28 @@ func RpcGetProfile(marshaler *proto.MarshalOptions, unmarshaler *proto.Unmarshal
 			return "", err
 		}
 		// check match valid in profile
+		logger.WithField("playing_match", profile.PlayingMatch).Info("Check match in profile")
 		if len(profile.PlayingMatch.MatchId) > 0 {
+			logger.WithField("match_id", profile.PlayingMatch.MatchId).Info("Check match in profile")
 			match, err := nk.MatchGet(ctx, profile.PlayingMatch.MatchId)
+			if err != nil {
+				logger.WithField("err", err).Error("MatchGet failed")
+			} else if match == nil {
+				logger.WithField("match_id", profile.PlayingMatch.MatchId).Warn("Match not found, cleaning up playing match")
+			}
+
 			if err != nil || match == nil {
-				logger.WithField("err", err).WithField("match", match).Error("MatchGet error")
-				profile.PlayingMatch.MatchId = ""
-				cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userID, profile.PlayingMatch)
+				// Clear playing match info in profile
+				profile.PlayingMatch = &pb.PlayingMatch{}
+				err = cgbdb.UpdateUsersPlayingInMatch(ctx, logger, db, userID, profile.PlayingMatch)
+				if err != nil {
+					logger.WithField("err", err).Error("UpdateUsersPlayingInMatch error")
+					return "", err
+				}
 			}
 		}
+		logger.WithField("playing_match 1", profile.PlayingMatch).Info("Check match in profile")
+
 		// marshaler.EmitUnpopulated = true
 		respBase64, err := utilities.EncodeBase64Proto(profile)
 		if err != nil {

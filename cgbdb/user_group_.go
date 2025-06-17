@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/entity"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/entity"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

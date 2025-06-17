@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 )
 
 const (

@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 	"go.uber.org/zap"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/conf"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/conf"
 )
 
 func RpcJackpot() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {

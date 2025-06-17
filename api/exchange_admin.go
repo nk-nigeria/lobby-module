@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/conf"
-	"github.com/nakama-nigeria/cgp-common/lib"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/conf"
+	"github.com/nk-nigeria/cgp-common/lib"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 )
 
 func RpcGetAllExchange() func(context.Context, runtime.Logger, *sql.DB, runtime.NakamaModule, string) (string, error) {

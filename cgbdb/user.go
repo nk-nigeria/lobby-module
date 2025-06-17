@@ -10,12 +10,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/conf"
-	"github.com/nakama-nigeria/lobby-module/constant"
-	"github.com/nakama-nigeria/lobby-module/entity"
-	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/constant"
+	"github.com/nk-nigeria/lobby-module/entity"
+	objectstorage "github.com/nk-nigeria/lobby-module/object-storage"
 
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -240,10 +239,15 @@ func GetProfileUser(ctx context.Context, db *sql.DB, userID string, objStorage o
 		CreateTimeUnix:     user.GetCreateTime().Seconds,
 		// LangAvailables:     []string{"en", "phi"},
 	}
-	playingMatchJson := entity.InterfaceToString(metadata["playing_in_match"])
+
+	raw := metadata["playing_in_match"]
 	profile.PlayingMatch = &pb.PlayingMatch{}
-	if len(playingMatchJson) > 0 {
-		conf.Unmarshaler.Unmarshal([]byte(playingMatchJson), profile.PlayingMatch)
+
+	if raw != nil {
+		jsonBytes, err := json.Marshal(raw)
+		if err == nil {
+			_ = json.Unmarshal(jsonBytes, profile.PlayingMatch)
+		}
 	}
 
 	profile.LangAvailables = append(profile.LangAvailables,
@@ -407,7 +411,7 @@ func UpdateUsersPlayingInMatch(ctx context.Context, logger runtime.Logger, db *s
 				SET
 					metadata
 						= u.metadata
-						|| jsonb_build_object('playing_in_match', $2 )
+						|| jsonb_build_object('playing_in_match', $2::jsonb )
 				WHERE	
 					id =$1`)
 	query := queryBuilder.String()

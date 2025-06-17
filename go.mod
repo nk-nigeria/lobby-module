@@ -1,6 +1,6 @@
-module github.com/nakama-nigeria/lobby-module
+module github.com/nk-nigeria/lobby-module
 
-replace github.com/nakama-nigeria/cgp-common => ./cgp-common
+replace github.com/nk-nigeria/cgp-common => ./cgp-common
 
 go 1.24.3
 
@@ -15,8 +15,8 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.0.23
-	github.com/nakama-nigeria/cgp-common v0.0.0-20250530040945-51a679c17fa2
 	github.com/nats-io/nats.go v1.42.0
+	github.com/nk-nigeria/cgp-common v0.0.0-20250530040945-51a679c17fa2
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.37.0

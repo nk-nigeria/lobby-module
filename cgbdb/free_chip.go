@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/lobby-module/conf"
-	"github.com/nakama-nigeria/lobby-module/entity"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/conf"
+	"github.com/nk-nigeria/lobby-module/entity"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

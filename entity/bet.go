@@ -1,7 +1,7 @@
 package entity
 
 import (
-	pb "github.com/nakama-nigeria/cgp-common/proto"
+	pb "github.com/nk-nigeria/cgp-common/proto"
 )
 
 type Bet struct {

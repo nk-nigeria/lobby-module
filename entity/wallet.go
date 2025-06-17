@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	"github.com/nakama-nigeria/cgp-common/lib"
+	"github.com/nk-nigeria/cgp-common/lib"
 )
 
 type WalletTransaction struct {

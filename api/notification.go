@@ -5,10 +5,10 @@ import (
 	"database/sql"
 
 	"github.com/heroiclabs/nakama-common/runtime"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/conf"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/conf"
 	"google.golang.org/protobuf/proto"
 )
 

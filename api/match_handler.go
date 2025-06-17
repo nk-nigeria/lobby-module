@@ -24,17 +24,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nakama-nigeria/cgp-common/define"
-	"github.com/nakama-nigeria/cgp-common/lib"
-	"github.com/nakama-nigeria/cgp-common/utilities"
+	"github.com/nk-nigeria/cgp-common/define"
+	"github.com/nk-nigeria/cgp-common/lib"
+	"github.com/nk-nigeria/cgp-common/utilities"
 
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/runtime"
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/conf"
-	"github.com/nakama-nigeria/lobby-module/entity"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/conf"
+	"github.com/nk-nigeria/lobby-module/entity"
 	"google.golang.org/protobuf/proto"
 )
 

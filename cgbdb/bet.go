@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/nakama-nigeria/lobby-module/entity"
+	"github.com/nk-nigeria/lobby-module/entity"
 )
 
 func AddBet(ctx context.Context, db *sql.DB, bet *entity.Bet) error {

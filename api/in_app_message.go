@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	pb "github.com/nakama-nigeria/cgp-common/proto"
-	"github.com/nakama-nigeria/lobby-module/api/presenter"
-	"github.com/nakama-nigeria/lobby-module/cgbdb"
-	"github.com/nakama-nigeria/lobby-module/conf"
-	objectstorage "github.com/nakama-nigeria/lobby-module/object-storage"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+	"github.com/nk-nigeria/lobby-module/api/presenter"
+	"github.com/nk-nigeria/lobby-module/cgbdb"
+	"github.com/nk-nigeria/lobby-module/conf"
+	objectstorage "github.com/nk-nigeria/lobby-module/object-storage"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 	"google.golang.org/protobuf/proto"

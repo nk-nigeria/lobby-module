@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strconv"
 
-	"github.com/nakama-nigeria/lobby-module/entity"
+	"github.com/nk-nigeria/lobby-module/entity"
 )
 
 func AddGame(ctx context.Context, db *sql.DB, game *entity.Game) error {

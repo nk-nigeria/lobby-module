@@ -1,16 +1,16 @@
-PROJECT_NAME=github.com/nakama-nigeria/lobby-module
+PROJECT_NAME=github.com/nk-nigeria/lobby-module
 APP_NAME=lobby_plugin.so
 APP_PATH=$(PWD)
 NAKAMA_VER=3.27.0
 
 update-submodule-dev:
-	go get github.com/nakama-nigeria/cgp-common@develop
+	go get github.com/nk-nigeria/cgp-common@develop
 update-submodule-stg:
 	git checkout staging && git pull
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout staging && git pull && cd ..
-	go get github.com/nakama-nigeria/cgp-common@staging
+	go get github.com/nk-nigeria/cgp-common@staging
 
 cpdev:
 	scp ./bin/${APP_NAME} nakama:/root/cgp-server-dev/dist/data/modules/
