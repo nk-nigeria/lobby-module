@@ -95,7 +95,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 
 	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS public.freechip (
-		id bigint NOT NULL,
+		id BIGINT NOT NULL PRIMARY KEY,
 		sender_id character varying(128) NOT NULL,
 		recipient_id character varying(128) NOT NULL,
 		title character varying(128) NOT NULL,
@@ -105,11 +105,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		action character varying(128) NOT NULL,
 		create_time timestamp with time zone NOT NULL DEFAULT now(),
 		update_time timestamp with time zone NOT NULL DEFAULT now()
-		);
-		ALTER TABLE
-		public.freechip
-		ADD
-		CONSTRAINT freechip_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -118,7 +114,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS
 		public.giftcode (
-			id bigint NOT NULL,
+			id bigint PRIMARY KEY,
 			code character varying(128) NOT NULL DEFAULT '',
 			UNIQUE(code),
 			n_current integer NOT NULL DEFAULT 0,
@@ -130,18 +126,12 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			vip integer NOT NULL DEFAULT 0,
 			gift_code_type smallint NOT NULL DEFAULT 1,			
 			create_time timestamp
-
 			with
 			time zone NOT NULL DEFAULT now(),
 			update_time timestamp
 			with
 			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.giftcode
-		ADD
-		CONSTRAINT giftcode_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -151,7 +141,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS
 		public.giftcodeclaim (
-			id bigint NOT NULL,
+			id bigint PRIMARY KEY,
 			id_code bigint NOT NULL,
 			code character varying(128) NOT NULL DEFAULT '',
 			user_id character varying(128) NOT NULL,
@@ -161,12 +151,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			update_time timestamp
 			with
 			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.giftcodeclaim
-		ADD
-  		CONSTRAINT giftcodeclaim_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -175,7 +160,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS public.exchange (
-		id bigint NOT NULL,
+		id bigint PRIMARY KEY,
 		id_deal character varying(128) NOT NULL,
 			chips integer NOT NULL DEFAULT 0,
 		price character varying(128) NOT NULL,
@@ -192,11 +177,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		reason character varying(128) NOT NULL,
 		create_time timestamp with time zone NOT NULL DEFAULT now(),
 		update_time timestamp with time zone NOT NULL DEFAULT now()
-		);
-		ALTER TABLE
-		public.exchange
-		ADD
-		CONSTRAINT exchange_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -219,13 +200,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			time zone NOT NULL DEFAULT now(),
 			update_time timestamp
 			with
-			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.giftcodetombstone
-		ADD
-		CONSTRAINT giftcodetombstone_pkey PRIMARY KEY (id)
+			time zone NOT NULL DEFAULT now(),
+			CONSTRAINT giftcodetombstone_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -243,13 +220,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			time zone NOT NULL DEFAULT now(),
 			update_time timestamp
 			with
-			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.referuser
-		ADD
-		CONSTRAINT referuser_pkey PRIMARY KEY (id)
+			time zone NOT NULL DEFAULT now(),
+			CONSTRAINT referuser_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -275,13 +248,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		time zone NOT NULL DEFAULT now(),
 		update_time timestamp
 		with
-		time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.reward_refer
-		ADD
+		time zone NOT NULL DEFAULT now(),
 		CONSTRAINT reward_refer_pkey PRIMARY KEY (id)
+		)
 	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -301,13 +270,10 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 				time zone NOT NULL DEFAULT now(),
 				update_time timestamp
 				with
-				time zone NOT NULL DEFAULT now()
-			);
-
-			ALTER TABLE
-			public.jackpot
-			ADD
-			CONSTRAINT jackpot_pkey PRIMARY KEY (id)`)
+				time zone NOT NULL DEFAULT now(),
+				CONSTRAINT jackpot_pkey PRIMARY KEY (id)
+			)
+	`)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
 	}
@@ -324,13 +290,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			time zone NOT NULL DEFAULT now(),
 			update_time timestamp
 			with
-			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-			public.feegame
-		ADD
-		CONSTRAINT feegame_pkey PRIMARY KEY (id)
+			time zone NOT NULL DEFAULT now(),
+			CONSTRAINT feegame_pkey PRIMARY KEY (id)
+		)
 `)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
@@ -349,13 +311,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			time zone NOT NULL DEFAULT now(),
 			update_time timestamp
 			with
-			time zone NOT NULL DEFAULT now()
-		);
-
-		ALTER TABLE
-		public.jackpot_history
-		ADD
-		CONSTRAINT jackpot_history_pkey PRIMARY KEY (id)
+			time zone NOT NULL DEFAULT now(),
+			CONSTRAINT jackpot_history_pkey PRIMARY KEY (id)
+		)
 `)
 	if err != nil {
 		logger.Error("Error: %s", err.Error())
