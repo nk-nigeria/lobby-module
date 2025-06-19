@@ -60,6 +60,8 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			read boolean NOT NULL,
 			create_time timestamp with time zone NOT NULL DEFAULT now(),
 			update_time timestamp with time zone NOT NULL DEFAULT now(),
+			app_package text NULL,
+	        game_id text NULL,
 			constraint cgb_notification_pk primary key (id)
 		);
 		ALTER SEQUENCE cgb_notification_id_seq OWNED BY public.cgb_notification.id;
@@ -81,6 +83,8 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			high_priority bigint NOT NULL,
 			create_time timestamp with time zone NOT NULL DEFAULT now(),
 			update_time timestamp with time zone NOT NULL DEFAULT now(),
+			app_package text NULL,
+	        game_id text NULL,
 			constraint in_app_message_pk primary key (id)
 		);
 		ALTER SEQUENCE in_app_message_id_seq OWNED BY public.in_app_message.id;
@@ -90,7 +94,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
-	_, err = db.ExecContext(ctx, `CREATE TABLE public.freechip (
+	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS public.freechip (
 		id bigint NOT NULL,
 		sender_id character varying(128) NOT NULL,
 		recipient_id character varying(128) NOT NULL,
@@ -112,7 +116,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
-	_, err = db.ExecContext(ctx, `CREATE TABLE
+	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS
 		public.giftcode (
 			id bigint NOT NULL,
 			code character varying(128) NOT NULL DEFAULT '',
@@ -145,7 +149,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 
 	_, err = db.ExecContext(ctx, `
-		CREATE TABLE
+		CREATE TABLE IF NOT EXISTS
 		public.giftcodeclaim (
 			id bigint NOT NULL,
 			id_code bigint NOT NULL,
@@ -170,7 +174,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 
 	_, err = db.ExecContext(ctx, `
-		CREATE TABLE public.exchange (
+		CREATE TABLE IF NOT EXISTS public.exchange (
 		id bigint NOT NULL,
 		id_deal character varying(128) NOT NULL,
 			chips integer NOT NULL DEFAULT 0,
@@ -198,7 +202,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		logger.Error("Error: %s", err.Error())
 	}
 
-	_, err = db.ExecContext(ctx, `CREATE TABLE
+	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS
 		public.giftcodetombstone (
 			id bigint NOT NULL,
 			code character varying(128) NOT NULL DEFAULT '',
@@ -228,7 +232,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	}
 
-	_, err = db.ExecContext(ctx, `CREATE TABLE
+	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS
 		public.referuser (
 			id bigint NOT NULL,
 			user_invitor character varying(128) NOT NULL,
@@ -253,7 +257,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 
 	_, err = db.ExecContext(ctx, `
-		CREATE TABLE
+		CREATE TABLE IF NOT EXISTS
 		public.reward_refer (
 			id bigint NOT NULL,
 			user_id character varying(128) NOT NULL,
@@ -286,7 +290,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	// jackpot
 	_, err = db.ExecContext(ctx, `
-				CREATE TABLE
+				CREATE TABLE IF NOT EXISTS
 			public.jackpot (
 				id bigint NOT NULL,
 				game character varying(128) NOT NULL,
@@ -309,7 +313,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 	// free game
 	_, err = db.ExecContext(ctx, `
-		CREATE TABLE
+		CREATE TABLE IF NOT EXISTS
 			public.feegame (
 			id bigint NOT NULL,
 			user_id character varying(128) NOT NULL,
@@ -334,7 +338,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 
 	// jackpot history
 	_, err = db.ExecContext(ctx, `
-		CREATE TABLE
+		CREATE TABLE IF NOT EXISTS
 			public.jackpot_history (
 			id bigint NOT NULL,
 			game character varying(128) NOT NULL,
@@ -358,7 +362,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 	}
 
 	ddls := []string{
-		`CREATE TABLE public.gold_statistics (
+		`CREATE TABLE IF NOT EXISTS public.gold_statistics (
 			id bigserial NOT NULL,
 			created_at timestamptz NULL,
 			updated_at timestamptz NULL,
@@ -372,9 +376,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 			chips int8 NULL,
 			CONSTRAINT gold_statistics_pkey PRIMARY KEY (id)
 		);
-		CREATE INDEX idx_gold_statistics_deleted_at ON public.gold_statistics USING btree (deleted_at);`,
+		CREATE INDEX IF NOT EXISTS idx_gold_statistics_deleted_at ON public.gold_statistics USING btree (deleted_at);`,
 	}
-	ddls = append(ddls, `CREATE TABLE public.op_match_details (
+	ddls = append(ddls, `CREATE TABLE IF NOT EXISTS public.op_match_details (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
 		updated_at timestamptz NULL,
@@ -389,9 +393,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		detail jsonb NULL,
 		CONSTRAINT op_match_details_pkey PRIMARY KEY (id)
 	);
-	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
+	CREATE INDEX IF NOT EXISTS idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
 
-	ddls = append(ddls, `CREATE TABLE public.op_players (
+	ddls = append(ddls, `CREATE TABLE IF NOT EXISTS public.op_players (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
 		updated_at timestamptz NULL,
@@ -412,9 +416,9 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		wallet text NULL,
 		CONSTRAINT op_players_pkey PRIMARY KEY (id)
 	);
-	CREATE INDEX idx_op_players_deleted_at ON public.op_players USING btree (deleted_at);`)
+	CREATE INDEX IF NOT EXISTS idx_op_players_deleted_at ON public.op_players USING btree (deleted_at);`)
 
-	ddls = append(ddls, `CREATE TABLE public.op_match_details (
+	ddls = append(ddls, `CREATE TABLE IF NOT EXISTS public.op_match_details (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
 		updated_at timestamptz NULL,
@@ -429,18 +433,18 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 		detail jsonb NULL,
 		CONSTRAINT op_match_details_pkey PRIMARY KEY (id)
 	);
-	CREATE INDEX idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
+	CREATE INDEX IF NOT EXISTS idx_op_match_details_deleted_at ON public.op_match_details USING btree (deleted_at);`)
 
+	// ddls = append(ddls, `
+	// ALTER TABLE public.in_app_message ADD COLUMN app_package text NULL;
+	// ALTER TABLE public.in_app_message ADD COLUMN game_id text NULL;
+	// `)
+	// ddls = append(ddls, `
+	// 	ALTER TABLE public.cgb_notification ADD COLUMN app_package text NULL;
+	// 	ALTER TABLE public.cgb_notification ADD COLUMN game_id text NULL;
+	// `)
 	ddls = append(ddls, `
-	ALTER TABLE public.in_app_message ADD COLUMN app_package text NULL;
-	ALTER TABLE public.in_app_message ADD COLUMN game_id text NULL;
-	`)
-	ddls = append(ddls, `
-		ALTER TABLE public.cgb_notification ADD COLUMN app_package text NULL;
-		ALTER TABLE public.cgb_notification ADD COLUMN game_id text NULL;
-	`)
-	ddls = append(ddls, `
-	CREATE TABLE public.bets (
+	CREATE TABLE IF NOT EXISTS public.bets (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL,
 		game_id int8 NULL,
@@ -455,7 +459,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 `)
 
 	ddls = append(ddls, `
-	CREATE TABLE public.games (
+	CREATE TABLE IF NOT EXISTS public.games (
 		id bigserial NOT NULL,
 		created_at timestamptz NULL DEFAULT now(),
 		code varchar(31) NOT NULL,
@@ -465,7 +469,7 @@ func RunMigrations(ctx context.Context, logger runtime.Logger, db *sql.DB) {
 `)
 
 	ddls = append(ddls, `
-CREATE TABLE public.rules_lucky (
+CREATE TABLE IF NOT EXISTS public.rules_lucky (
 	id bigserial NOT NULL,
 	create_at timestamptz NULL DEFAULT now(),
 	game_code varchar(31) NOT NULL,	
@@ -483,7 +487,7 @@ CREATE TABLE public.rules_lucky (
 );
 `)
 	ddls = append(ddls, `
-CREATE TABLE public.users_bot (
+CREATE TABLE IF NOT EXISTS public.users_bot (
 	id bigserial NOT NULL,
 	user_id varchar(36) NOT NULL,
 	game_code varchar(31) NOT NULL

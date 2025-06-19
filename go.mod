@@ -53,7 +53,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/qmuntal/stateless v1.6.8 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rs/xid v1.2.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/smartystreets/assertions v1.13.0 // indirect
