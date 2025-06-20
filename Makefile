@@ -18,11 +18,11 @@ cplive:
 	scp ./bin/${APP_NAME} nakama:/root/cgp-server/dist/data/modules/bin
 build:
 	go mod vendor
-	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME} && cp ./bin/${APP_NAME} ../bin/
+	docker run --rm -w "/app" -v "${APP_PATH}:/app" "heroiclabs/nakama-pluginbuilder:${NAKAMA_VER}" build -buildvcs=false --trimpath --buildmode=plugin -o ./bin/${APP_NAME} . && cp ./bin/${APP_NAME} ../bin/
 build-dev: build cpdev
 
 build-cmd:
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/nakamaFramework go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 GOPRIVATE=github.com/nk-nigeria go build --trimpath --buildmode=plugin -o ./bin/${APP_NAME}
 
 build-cross:
 	./sync_pkg_3.11.sh
@@ -51,7 +51,7 @@ v3.19.0:
 	git submodule update --init
 	git submodule update --remote
 	cd ./cgp-common && git checkout develop && git pull origin develop && cd ..
-	go get github.com/nakamaFramework/cgp-common@develop
+	go get github.com/nk-nigeria/cgp-common@develop
 	go mod tidy
 	go mod vendor
 	### build for deploy

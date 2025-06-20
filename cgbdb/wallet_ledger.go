@@ -9,11 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	pb "github.com/nk-nigeria/cgp-common/proto"
 	"strings"
 	"time"
 
-	"github.com/gofrs/uuid"
+	pb "github.com/nk-nigeria/cgp-common/proto"
+
+	"github.com/gofrs/uuid/v5"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/jackc/pgtype"
 	"github.com/nk-nigeria/lobby-module/entity"

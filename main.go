@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/nk-nigeria/cgp-common/define"
 	"github.com/nk-nigeria/lobby-module/cgbdb"
@@ -151,13 +151,15 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// api.InitExchangeList(ctx, logger, nk)
 	// api.InitReferUserReward(ctx, logger, nk)
 
-	s := gocron.NewScheduler(time.Local)
+	// s := gocron.NewScheduler(time.Local)
 
-	s.Every(1).Day().At("00:01").Do(func() {
-		logger.Info("Start SendReferRewardToWallet")
-		api.SendReferRewardToWallet(ctx, logger, db, nk)
-	})
-	s.StartAsync()
+	// s.Every(1).Day().At("00:01").Do(func() {
+	// 	logger.Info("Start SendReferRewardToWallet")
+	// 	api.SendReferRewardToWallet(ctx, logger, db, nk)
+	// })
+	// s.StartAsync()
+
+	ScheduleSendReferReward(ctx, logger, db, nk)
 
 	objStorage, err := InitObjectStorage(logger)
 	if err != nil {
@@ -506,6 +508,29 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
+}
+
+func ScheduleSendReferReward(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule) {
+	s, err := gocron.NewScheduler()
+	if err != nil {
+		logger.Error("failed to create scheduler ", err)
+		return
+	}
+
+	// Tạo Job chạy mỗi ngày lúc 00:01
+	_, err = s.NewJob(
+		gocron.CronJob("1 0 * * *", true), // “1 0 * * *” = 00:01 hằng ngày
+		gocron.NewTask(func() {
+			logger.Info("Start SendReferRewardToWallet")
+			api.SendReferRewardToWallet(ctx, logger, db, nk)
+		}),
+	)
+	if err != nil {
+		logger.Error("failed to schedule job ", err)
+		return
+	}
+
+	s.Start()
 }
 
 const (
