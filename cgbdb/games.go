@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/nk-nigeria/lobby-module/entity"
+	"gorm.io/gorm/clause"
 )
 
 func AddGame(ctx context.Context, db *sql.DB, game *entity.Game) error {
@@ -14,7 +15,11 @@ func AddGame(ctx context.Context, db *sql.DB, game *entity.Game) error {
 		return err
 	}
 	// game.ID = 0
-	return gDB.Model(game).Create(game).Error
+	// return gDB.Model(game).Create(game).Error
+	return gDB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoNothing: true,
+	}).Create(game).Error
 }
 
 func ListGames(ctx context.Context, db *sql.DB) ([]entity.Game, error) {
