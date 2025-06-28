@@ -505,6 +505,7 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	cgbdb.AutoMigrate(db)
 
 	// CreateAccountBot(ctx, db, logger)
+	// api.CreateSidForAllUsers(ctx, logger, db)
 	// api.RegisterSessionEvents()
 	logger.Info("Plugin loaded in '%d' msec.", time.Since(initStart).Milliseconds())
 	return nil
@@ -548,7 +549,9 @@ func InitObjectStorage(logger runtime.Logger) (objectstorage.ObjStorage, error) 
 }
 
 func CreateAccountBot(ctx context.Context, db *sql.DB, logger runtime.Logger) {
-	file, err := os.Open("indonesian_names.txt")
+	cwd, _ := os.Getwd()
+	logger.Info("Current working directory: %s", cwd)
+	file, err := os.Open("data/modules/indonesian_names.txt")
 	if err != nil {
 		logger.WithField("err", err).Error("open indonesian_names.txt error")
 		return
@@ -561,14 +564,15 @@ func CreateAccountBot(ctx context.Context, db *sql.DB, logger runtime.Logger) {
 	count := 0
 	maxAccoutPerGame := 10000
 	games := []define.GameName{
-		define.GapleDomino,
-		define.ChinesePoker,
-		define.SicboName,
-		define.BaccaratName,
-		define.ColorGameName,
-		define.BlackjackName,
-		define.BandarqqName,
-		define.DragontigerName,
+		// define.GapleDomino,
+		// define.ChinesePoker,
+		// define.SicboName,
+		// define.BaccaratName,
+		// define.ColorGameName,
+		// define.BlackjackName,
+		// define.BandarqqName,
+		// define.DragontigerName,
+		define.WhotGame,
 	}
 	curGameIdx := 0
 	for scanner.Scan() {

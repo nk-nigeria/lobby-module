@@ -93,6 +93,50 @@ func AfterAuthDevice(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 	return nil
 }
 
+func CreateSidForAllUsers(ctx context.Context, logger runtime.Logger, db *sql.DB) error {
+	rows, err := db.QueryContext(ctx, "SELECT id FROM users")
+	if err != nil {
+		logger.Error("Failed to query users: %v", err)
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			logger.Error("Failed to scan user id: %v", err)
+			continue
+		}
+
+		// Kiểm tra xem userID đã tồn tại trong users_ext chưa
+		var exists bool
+		err = db.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM users_ext WHERE id = $1)", userID).Scan(&exists)
+		if err != nil {
+			logger.Error("Failed to check users_ext existence for %s: %v", userID, err)
+			continue
+		}
+
+		if !exists {
+			sid := createSidFromUserID(userID)
+			_, err = db.ExecContext(ctx, "INSERT INTO users_ext (id, sid) VALUES ($1, $2)", userID, sid)
+			if err != nil {
+				logger.Error("Insert users_ext failed for %s: %v", userID, err)
+				continue
+			}
+			logger.Debug("Inserted users_ext for user %s", userID)
+		} else {
+			logger.Debug("users_ext already exists for user %s", userID)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Error("Row iteration error: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 var jwtSecret = []byte("YM0fahhp2aW9dcuqq2Z6gFj6AvyaJLAfMMofaCmJ91c=") // phải giống với giá trị `session.token_signing_key` trong nakama.yml
 
 func getUserIDFromToken(tokenStr string) (string, error) {

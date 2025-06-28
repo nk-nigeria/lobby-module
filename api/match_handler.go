@@ -20,8 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nk-nigeria/cgp-common/define"
@@ -35,6 +36,7 @@ import (
 	"github.com/nk-nigeria/lobby-module/cgbdb"
 	"github.com/nk-nigeria/lobby-module/conf"
 	"github.com/nk-nigeria/lobby-module/entity"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -57,25 +59,25 @@ type MatchLabel struct {
 var GetTableId func() string
 
 func init() {
-	// GetTableId = func() int64 {
-	// 	var counter atomic.Int64
-	// 	counter.Store(0)
-	// 	return func() int64 {
-	// 		newVal := counter.Add(1)
-	// 		return newVal
+	// GetTableId = func() func() string {
+	// 	// var counter atomic.Int64 // feature only available on go 1.19
+	// 	var counter int64 = time.Now().Unix()
+	// 	var mt sync.Mutex
+	// 	return func() string {
+	// 		mt.Lock()
+	// 		counter += 1
+	// 		newVal := counter
+	// 		mt.Unlock()
+	// 		str := fmt.Sprintf("%05d", newVal)
+	// 		return str[len(str)-5:]
 	// 	}
-	// }
+	// }()
 	GetTableId = func() func() string {
-		// var counter atomic.Int64 // feature only available on go 1.19
-		var counter int64 = time.Now().Unix()
-		var mt sync.Mutex
+		var counter atomic.Int64
+		counter.Store(time.Now().Unix())
 		return func() string {
-			mt.Lock()
-			counter += 1
-			newVal := counter
-			mt.Unlock()
-			str := fmt.Sprintf("%05d", newVal)
-			return str[len(str)-5:]
+			newVal := counter.Add(1)
+			return fmt.Sprintf("%05d", newVal%100000)
 		}
 	}()
 }
@@ -101,18 +103,18 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 		maxSize := define.GetMaxSizeByGame(define.GameName(request.GameCode))
 
 		queryBuilder := strings.Builder{}
-		// queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
-		// if request.MarkUnit > 0 {
-		// 	queryBuilder.WriteString(fmt.Sprintf("+label.markUnit:%d", request.MarkUnit))
-		// }
-		// if len(request.TableId) > 0 {
-		// 	queryBuilder.WriteString(fmt.Sprintf("+label.tableId:%s ", request.TableId))
-		// }
+		queryBuilder.WriteString(fmt.Sprintf("+label.name:%s ", request.GameCode))
+		if request.MarkUnit > 0 {
+			queryBuilder.WriteString(fmt.Sprintf("+label.markUnit:%d", request.MarkUnit))
+		}
+		if len(request.TableId) > 0 {
+			queryBuilder.WriteString(fmt.Sprintf("+label.tableId:%s ", request.TableId))
+		}
 		// if request.WithNonOpen {
 		// 	queryBuilder.WriteString(fmt.Sprintf("+label.open:>0"))
 		// }
 
-		// // request.MockCodeCard = 0
+		// request.MockCodeCard = 0
 		// if request.MockCodeCard > 0 {
 		// 	// query += fmt.Sprintf(" +label.mock_code_card:%d", request.MockCodeCard)
 		// 	queryBuilder.WriteString(fmt.Sprintf("+label.mock_code_card:%d ", request.MockCodeCard))
@@ -135,7 +137,7 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 			matchInfo := &pb.Match{}
 			logger.Debug("find match label: %v", match.Label.GetValue())
 			// err = conf.Unmarshaler.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
-			err = json.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
+			err = protojson.Unmarshal([]byte(match.Label.GetValue()), matchInfo)
 			if err != nil {
 				logger.Error("unmarshal label error %v", err)
 				continue
@@ -154,7 +156,8 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 				GameCode: request.GameCode,
 				MarkUnit: request.MarkUnit,
 				// MaxSize:  int64(maxSize),
-				Password: request.GetPassword(),
+				Password:   request.GetPassword(),
+				CustomData: "2",
 			})
 			if err != nil {
 				logger.WithField("err", err).Error("error creating match")
@@ -365,6 +368,12 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		logger.WithField("err", err).Error("get account failed")
 		return nil, err
 	}
+
+	numBot, err := strconv.Atoi(request.CustomData) // chuyển sang int (int mặc định)
+	if err != nil {
+		// xử lý lỗi nếu không phải số hợp lệ
+		logger.WithField("err", err).Error("invalid custom data num bot")
+	}
 	matchInfo := &pb.Match{
 		Size:     1,
 		MaxSize:  int32(request.MaxSize),
@@ -373,7 +382,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		LastBet:  request.LastBet,
 		TableId:  GetTableId(),
 		Password: request.Password,
-		NumBot:   1,
+		NumBot:   int32(numBot),
 		MarkUnit: request.MarkUnit,
 		UserCreated: &pb.Profile{
 			UserId:      account.UserId,
@@ -388,15 +397,14 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if matchInfo.MaxSize <= 0 {
 		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(matchInfo.Name)))
 	}
-	// matchInfo.MaxSize = 4
 	if matchInfo.NumBot <= 0 {
 		matchInfo.NumBot = 1
 	}
 	// bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
-	// if err != nil {
-	// 	logger.WithField("err", err).Error("load bets failed")
-	// 	return nil, presenter.ErrInternalError
-	// }
+	if err != nil {
+		logger.WithField("err", err).Error("load bets failed")
+		return nil, presenter.ErrInternalError
+	}
 
 	// if request.MarkUnit <= 0 {
 	// 	bestBet, err := findMaxBetForUser(ctx, logger, db, nk, userID, request.GameCode, true)
@@ -438,7 +446,6 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		}
 	}
 	// No available matches found, create a new one.
-	matchInfo.TableId = GetTableId()
 	labelBytes, err := proto.Marshal(matchInfo)
 	if err != nil {
 		logger.Error("failed to marshal match label: %v", err)
