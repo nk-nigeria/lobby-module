@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -369,20 +368,15 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return nil, err
 	}
 
-	numBot, err := strconv.Atoi(request.CustomData) // chuyển sang int (int mặc định)
-	if err != nil {
-		// xử lý lỗi nếu không phải số hợp lệ
-		logger.WithField("err", err).Error("invalid custom data num bot")
-	}
 	matchInfo := &pb.Match{
 		Size:     1,
 		MaxSize:  int32(request.MaxSize),
 		Name:     request.Name,
 		Open:     len(request.Password) > 0,
+		UserData: request.CustomData,
 		LastBet:  request.LastBet,
 		TableId:  GetTableId(),
 		Password: request.Password,
-		NumBot:   int32(numBot),
 		MarkUnit: request.MarkUnit,
 		UserCreated: &pb.Profile{
 			UserId:      account.UserId,
@@ -397,7 +391,7 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if matchInfo.MaxSize <= 0 {
 		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(matchInfo.Name)))
 	}
-	if matchInfo.NumBot <= 0 {
+	if matchInfo.NumBot <= 0 && matchInfo.Password == "" {
 		matchInfo.NumBot = 1
 	}
 	// bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)

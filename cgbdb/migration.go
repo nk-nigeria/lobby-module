@@ -451,6 +451,43 @@ CREATE TABLE IF NOT EXISTS public.users_bot (
 	game_code varchar(31) NOT NULL
 );
 `)
+
+	// Bot config table for bot management system
+	ddls = append(ddls, `
+CREATE TABLE IF NOT EXISTS public.bot_config (
+    id SERIAL PRIMARY KEY,
+    config_data JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_bot_config_active ON public.bot_config(is_active);
+CREATE INDEX IF NOT EXISTS idx_bot_config_created_at ON public.bot_config(created_at);
+
+-- Insert default configuration if table is empty
+INSERT INTO public.bot_config (config_data, is_active) 
+SELECT '{
+     "bot_join_rules": [
+    {"min_bet":0,"max_bet":51,"min_users":1,"max_users":1,"random_time_min":1,"random_time_max":2,"join_percent":100}
+    // ... các rule khác mapping từ Excel
+  ],
+  "bot_leave_rules": [
+    {"min_bet":0,"max_bet":10001,"last_result":-1,"leave_percent":30}
+    // ... các rule khác mapping từ Excel
+  ],
+  "bot_create_table_rules": [
+    {"min_bet":0,"max_bet":201,"min_active_tables":1,"max_active_tables":1,"wait_time_min":1000,"wait_time_max":10000,"retry_wait_min":0,"retry_wait_max":1}
+    // ... các rule khác mapping từ Excel
+  ],
+  "bot_group_rules": [
+    {"vip_min":0,"vip_max":2,"mcb_min":1,"mcb_max":10001}
+    // ... các rule khác mapping từ Excel
+  ]
+}'::jsonb, true
+WHERE NOT EXISTS (SELECT 1 FROM public.bot_config WHERE is_active = true);
+`)
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)
 		if err != nil {
