@@ -454,39 +454,70 @@ CREATE TABLE IF NOT EXISTS public.users_bot (
 
 	// Bot config table for bot management system
 	ddls = append(ddls, `
-CREATE TABLE IF NOT EXISTS public.bot_config (
+-- Bot Join Rules Table
+CREATE TABLE IF NOT EXISTS public.bot_join_rules (
     id SERIAL PRIMARY KEY,
-    config_data JSONB NOT NULL,
+    game_code VARCHAR(50) NOT NULL,
+    min_bet INTEGER NOT NULL,
+    max_bet INTEGER NOT NULL,
+    min_users INTEGER NOT NULL,
+    max_users INTEGER NOT NULL,
+    random_time_min INTEGER NOT NULL,
+    random_time_max INTEGER NOT NULL,
+    join_percent INTEGER NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bot Leave Rules Table
+CREATE TABLE IF NOT EXISTS public.bot_leave_rules (
+    id SERIAL PRIMARY KEY,
+    game_code VARCHAR(50) NOT NULL,
+    min_bet INTEGER NOT NULL,
+    max_bet INTEGER NOT NULL,
+    last_result INTEGER NOT NULL,
+    leave_percent INTEGER NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bot Create Table Rules Table
+CREATE TABLE IF NOT EXISTS public.bot_create_table_rules (
+    id SERIAL PRIMARY KEY,
+    game_code VARCHAR(50) NOT NULL,
+    min_bet INTEGER NOT NULL,
+    max_bet INTEGER NOT NULL,
+    min_active_tables INTEGER NOT NULL,
+    max_active_tables INTEGER NOT NULL,
+    wait_time_min INTEGER NOT NULL,
+    wait_time_max INTEGER NOT NULL,
+    retry_wait_min INTEGER NOT NULL,
+    retry_wait_max INTEGER NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bot Group Rules Table
+CREATE TABLE IF NOT EXISTS public.bot_group_rules (
+    id SERIAL PRIMARY KEY,
+    game_code VARCHAR(50) NOT NULL,
+    vip_min INTEGER NOT NULL,
+    vip_max INTEGER NOT NULL,
+    mcb_min INTEGER NOT NULL,
+    mcb_max INTEGER NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_bot_config_active ON public.bot_config(is_active);
-CREATE INDEX IF NOT EXISTS idx_bot_config_created_at ON public.bot_config(created_at);
-
--- Insert default configuration if table is empty
-INSERT INTO public.bot_config (config_data, is_active) 
-SELECT '{
-     "bot_join_rules": [
-    {"min_bet":0,"max_bet":51,"min_users":1,"max_users":1,"random_time_min":1,"random_time_max":2,"join_percent":100}
-    // ... các rule khác mapping từ Excel
-  ],
-  "bot_leave_rules": [
-    {"min_bet":0,"max_bet":10001,"last_result":-1,"leave_percent":30}
-    // ... các rule khác mapping từ Excel
-  ],
-  "bot_create_table_rules": [
-    {"min_bet":0,"max_bet":201,"min_active_tables":1,"max_active_tables":1,"wait_time_min":1000,"wait_time_max":10000,"retry_wait_min":0,"retry_wait_max":1}
-    // ... các rule khác mapping từ Excel
-  ],
-  "bot_group_rules": [
-    {"vip_min":0,"vip_max":2,"mcb_min":1,"mcb_max":10001}
-    // ... các rule khác mapping từ Excel
-  ]
-}'::jsonb, true
-WHERE NOT EXISTS (SELECT 1 FROM public.bot_config WHERE is_active = true);
+CREATE INDEX IF NOT EXISTS idx_bot_join_rules_game_active ON public.bot_join_rules(game_code, is_active);
+CREATE INDEX IF NOT EXISTS idx_bot_leave_rules_game_active ON public.bot_leave_rules(game_code, is_active);
+CREATE INDEX IF NOT EXISTS idx_bot_create_table_rules_game_active ON public.bot_create_table_rules(game_code, is_active);
+CREATE INDEX IF NOT EXISTS idx_bot_group_rules_game_active ON public.bot_group_rules(game_code, is_active);
 `)
 	for _, ddl := range ddls {
 		_, err = db.ExecContext(ctx, ddl)

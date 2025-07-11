@@ -142,9 +142,9 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 				continue
 			}
 			matchInfo.MatchId = match.MatchId
-
-			logger.Debug("find match size: %v", match.Size)
-			if match.Size >= matchInfo.MaxSize {
+			matchInfo.Size = match.Size + matchInfo.NumBot
+			logger.Debug("find match size: %v", matchInfo.Size)
+			if matchInfo.Size >= matchInfo.MaxSize {
 				continue
 			}
 
@@ -156,7 +156,7 @@ func RpcFindMatch(marshaler *proto.MarshalOptions, unmarshaler *proto.UnmarshalO
 				MarkUnit: request.MarkUnit,
 				// MaxSize:  int64(maxSize),
 				Password:   request.GetPassword(),
-				CustomData: "2",
+				CustomData: `{"is_double_decking": true}`,
 			})
 			if err != nil {
 				logger.WithField("err", err).Error("error creating match")
@@ -391,9 +391,9 @@ func createMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if matchInfo.MaxSize <= 0 {
 		matchInfo.MaxSize = int32(define.GetMaxSizeByGame(define.GameName(matchInfo.Name)))
 	}
-	if matchInfo.NumBot <= 0 && matchInfo.Password == "" {
-		matchInfo.NumBot = 1
-	}
+	// if matchInfo.NumBot <= 0 && matchInfo.Password == "" {
+	// 	matchInfo.NumBot = 1
+	// }
 	// bets, err := LoadBets(ctx, logger, db, nk, request.GameCode)
 	if err != nil {
 		logger.WithField("err", err).Error("load bets failed")

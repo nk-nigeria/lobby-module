@@ -32,6 +32,10 @@ const (
 	rpcIdQuickMatch  = "quick_match"
 	rpcIdInfoMatch   = "info_match"
 
+	// Bot config APIs
+	rpcGetBotConfig    = "get_bot_config"
+	rpcUpdateBotConfig = "update_bot_config"
+
 	rpcIdListBet = "list_bet"
 	// bet admin
 	rpcAdminAddBetAddNew = "admin_bet_add"
@@ -481,6 +485,14 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	}
 
 	if err := api.RegisterSessionEvents(db, nk, initializer); err != nil {
+		return err
+	}
+
+	// Register bot config APIs
+	if err := initializer.RegisterRpc(rpcGetBotConfig, api.RpcGetBotConfig(marshaler, unmarshaler)); err != nil {
+		return err
+	}
+	if err := initializer.RegisterRpc(rpcUpdateBotConfig, api.RpcUpdateBotConfig(marshaler, unmarshaler)); err != nil {
 		return err
 	}
 

@@ -89,4 +89,8 @@ func updateUserMatch(ctx context.Context, logger runtime.Logger, db *sql.DB, evt
 	}
 	trackGame[mcb] = playerSet
 	trackUserInGame[gameCode] = trackGame
+	for k := range playerSet {
+		logger.Debug("playerSet : " + k)
+	}
+	logger.Debug("event type : " + evt.GetName() + " gameCode : " + gameCode + " mcb : " + strconv.Itoa(mcb) + " playerSet : " + strconv.Itoa(len(playerSet)))
 }
